@@ -11,9 +11,11 @@ class WeatherService {
   WeatherService._internal();
 
   // OpenWeatherMap API configuration
-  // Using environment variable or fallback to empty string for development
-  static const String _apiKey = String.fromEnvironment('OPENWEATHER_API_KEY',
-      defaultValue: ''); // Set via --dart-define=OPENWEATHER_API_KEY=your_key
+  // Using environment variable with hardcoded fallback for development
+  static const String _apiKey = String.fromEnvironment(
+    'OPENWEATHER_API_KEY',
+    defaultValue: 'fe4afd570db3327376935efbaa9b8ba9', // Hardcoded fallback for development
+  );
   static const String _baseUrl =
       'https://api.openweathermap.org/data/2.5/weather';
 
@@ -32,30 +34,37 @@ class WeatherService {
     double longitude,
   ) async {
     try {
+      print('🌤️ WeatherService: Getting weather for lat: $latitude, lon: $longitude');
+      print('🔑 API Key available: $isAvailable (key length: ${_apiKey.length})');
+      
       // Return null immediately if no API key is configured
       if (!isAvailable) {
-        // Weather API key not configured. Weather data will not be available.
+        print('❌ Weather API key not configured. Weather data will not be available.');
         return null;
       }
 
       // Check cache first to reduce API calls
       final cached = await _getCachedWeather(latitude, longitude);
       if (cached != null) {
-        // Using cached weather data
+        print('📦 Using cached weather data: ${cached.temperature}°F, ${cached.conditions}');
         return cached;
       }
 
       // Fetch fresh data from API
+      print('🌐 Fetching fresh weather data from API...');
       final weather = await _fetchWeatherFromAPI(latitude, longitude);
 
       if (weather != null) {
+        print('✅ Weather fetched successfully: ${weather.temperature}°F, ${weather.conditions}');
         // Cache the result for future use
         await _cacheWeather(latitude, longitude, weather);
+      } else {
+        print('❌ Weather fetch returned null - API call failed');
       }
 
       return weather;
     } catch (e) {
-      // Error getting weather: $e
+      print('❌ Error getting weather: $e');
       return null;
     }
   }
@@ -71,7 +80,7 @@ class WeatherService {
         '$_baseUrl?lat=$latitude&lon=$longitude&appid=$_apiKey&units=imperial',
       );
 
-      // Fetching weather from API: $url
+      print('🌐 API URL: $url');
 
       // Make HTTP request with timeout
       final response = await http.get(url).timeout(
@@ -81,27 +90,34 @@ class WeatherService {
         },
       );
 
+      print('📡 API Response: Status ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('📊 API Response Data: ${data.toString().substring(0, 200)}...');
 
         // Extract weather information from API response
         final weather = WeatherData(
           temperature: (data['main']['temp'] as num).toDouble(),
           conditions: data['weather'][0]['main'] ?? 'Unknown',
           humidity: (data['main']['humidity'] as num?)?.toDouble(),
+          windSpeed: (data['wind']?['speed'] as num?)?.toDouble(),
+          description: data['weather'][0]['description'] ?? data['weather'][0]['main'],
         );
 
-        // Weather fetched: ${weather.temperature}°F, ${weather.conditions}
+        print('✅ Weather parsed: ${weather.temperature}°F, ${weather.conditions}');
         return weather;
       } else if (response.statusCode == 401) {
-        // Invalid API key. Please configure a valid OpenWeatherMap API key.
+        print('❌ Invalid API key (401). Please configure a valid OpenWeatherMap API key.');
+        print('Response body: ${response.body}');
         return null;
       } else {
-        // Weather API error: ${response.statusCode} - ${response.body}
+        print('❌ Weather API error: ${response.statusCode}');
+        print('Response body: ${response.body}');
         return null;
       }
     } catch (e) {
-      // Error fetching weather from API: $e
+      print('❌ Error fetching weather from API: $e');
       return null;
     }
   }
@@ -127,6 +143,8 @@ class WeatherService {
             temperature: (cacheData['temperature'] as num).toDouble(),
             conditions: cacheData['conditions'],
             humidity: (cacheData['humidity'] as num?)?.toDouble(),
+            windSpeed: (cacheData['windSpeed'] as num?)?.toDouble(),
+            description: cacheData['description'],
           );
         } else {
           // Cache expired, remove it
@@ -155,6 +173,8 @@ class WeatherService {
         'temperature': weather.temperature,
         'conditions': weather.conditions,
         'humidity': weather.humidity,
+        'windSpeed': weather.windSpeed,
+        'description': weather.description,
       };
 
       await prefs.setString(key, json.encode(cacheData));
