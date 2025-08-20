@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/dashboard_screen_local.dart';
 import 'screens/journal_entry_form.dart';
-import 'theme/app_theme.dart';
+import 'theme/mobile_responsive_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class ShowTrackAIJournaling extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ShowTrackAI Journaling',
-      theme: AppTheme.lightTheme,
+      theme: MobileResponsiveTheme.lightTheme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/',
       routes: {

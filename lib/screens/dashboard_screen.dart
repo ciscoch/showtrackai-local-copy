@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/financial_journal_card.dart';
+import '../widgets/ffa_degree_progress_card.dart';
 
 /// Main dashboard screen that displays all cards including the new journal card
 /// This screen safely adds the journal functionality without modifying existing cards
@@ -294,18 +295,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 100), // Space for bottom navigation
+                  
+                  // NEW: FFA Degrees Section with mobile-optimized layout
+                  const SizedBox(height: 24),
+                  const FFADegreesSection(),
+                  
+                  const SizedBox(height: 120), // Increased space for bottom navigation + FAB
                 ],
               ),
             ),
       
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF4CAF50),
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        onTap: (index) {
+      // Bottom Navigation with improved mobile spacing
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: const Color(0xFF4CAF50),
+            unselectedItemColor: Colors.grey,
+            currentIndex: 0,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            selectedFontSize: 12,
+            unselectedFontSize: 11,
+            iconSize: 24,
+            onTap: (index) {
           switch (index) {
             case 0:
               // Already on home
@@ -345,7 +367,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icon(Icons.person),
             label: 'Profile',
           ),
-        ],
+            ],
+          ),
+        ),
       ),
       
       // Floating Action Button for quick journal entry
