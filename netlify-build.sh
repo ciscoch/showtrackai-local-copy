@@ -33,8 +33,6 @@ flutter pub get
 # Build Flutter web app with optimized settings for Netlify
 echo "🏗️  flutter build web --release"
 flutter build web --release \
-  --web-renderer canvaskit \
-  --no-tree-shake-icons \
   --dart-define SUPABASE_URL=${SUPABASE_URL} \
   --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
   --dart-define OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} \
@@ -42,6 +40,12 @@ flutter build web --release \
   --dart-define NETLIFY=true \
   --dart-define DEMO_EMAIL=${DEMO_EMAIL} \
   --dart-define DEMO_PASSWORD=${DEMO_PASSWORD}
+
+# Check if build was successful
+if [ ! -d "build/web" ] || [ ! -f "build/web/index.html" ]; then
+  echo "❌ Build failed - build/web directory or index.html not found"
+  exit 1
+fi
 
 # Verify build output
 echo "🔍 Verifying build output:"
