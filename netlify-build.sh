@@ -28,10 +28,10 @@ flutter pub get
 
 # Build for web with Supabase configuration
 echo "🔨 Building Flutter web app..."
+# Note: Flutter 3.35.1+ uses --web-renderer-mode instead of --web-renderer
 flutter build web --release \
   --dart-define=SUPABASE_URL=$SUPABASE_URL \
-  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-  --web-renderer canvaskit
+  --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY
 
 echo "✅ Build complete!"
 
