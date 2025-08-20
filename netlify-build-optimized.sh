@@ -1,20 +1,10 @@
 #!/bin/bash
 
-# Bulletproof Netlify build script for Flutter web app
+# Optimized Netlify build script for Flutter web app
 echo "🚀 Starting Flutter web build for ShowTrackAI..."
 
 # Exit on any error, treat unset variables as error, catch pipe failures
 set -euo pipefail
-
-# Set build environment variables
-export FLUTTER_ROOT="$HOME/flutter"
-export FLUTTER_BIN="$FLUTTER_ROOT/bin"
-export PATH="$FLUTTER_BIN:$PATH"
-
-# Function to check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
 
 # Function to log with timestamp
 log() {
@@ -31,35 +21,56 @@ handle_error() {
 # Set error trap
 trap 'handle_error $LINENO' ERR
 
+# Set default values for environment variables
+export FLUTTER_VERSION=${FLUTTER_VERSION:-"stable"}
+export FLUTTER_CHANNEL=${FLUTTER_CHANNEL:-"stable"}
+export FLUTTER_ROOT=${FLUTTER_ROOT:-"$HOME/flutter"}
+export FLUTTER_BIN="$FLUTTER_ROOT/bin"
+
 log "📋 Build environment info:"
 log "  - Node version: $(node --version 2>/dev/null || echo 'Not installed')"
 log "  - Current directory: $(pwd)"
 log "  - User: $(whoami)"
-log "  - Available memory: $(free -h 2>/dev/null | grep '^Mem:' | awk '{print $2}' || echo 'Unknown')"
+log "  - Flutter version: ${FLUTTER_VERSION}"
+log "  - Flutter channel: ${FLUTTER_CHANNEL}"
 
-# Set default values for environment variables
-FLUTTER_VERSION=${FLUTTER_VERSION:-"stable"}
-FLUTTER_CHANNEL=${FLUTTER_CHANNEL:-"stable"}
-
-# Install Flutter if not already installed
-if [ ! -d "$FLUTTER_ROOT" ]; then
+# Try to use existing Flutter installation first
+if [ -d "$FLUTTER_ROOT" ] && [ -f "$FLUTTER_BIN/flutter" ]; then
+    log "✅ Using existing Flutter installation"
+    export PATH="$FLUTTER_BIN:$PATH"
+else
+    # Install Flutter if not found
     log "📦 Installing Flutter $FLUTTER_VERSION..."
+    
+    # Remove any partial installation
+    if [ -d "$FLUTTER_ROOT" ]; then
+        rm -rf "$FLUTTER_ROOT"
+    fi
     
     # Create flutter directory
     mkdir -p "$HOME"
     
-    # Download and extract Flutter
+    # Download and extract Flutter with optimizations
     cd "$HOME"
-    git clone https://github.com/flutter/flutter.git -b $FLUTTER_CHANNEL --depth 1 flutter
     
+    # Use wget if available (faster), otherwise git
+    if command -v wget >/dev/null 2>&1; then
+        log "Using wget for faster download..."
+        FLUTTER_URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.19.0-stable.tar.xz"
+        wget -q --show-progress -O flutter.tar.xz "$FLUTTER_URL"
+        tar xf flutter.tar.xz
+        rm flutter.tar.xz
+    else
+        log "Using git clone..."
+        git clone https://github.com/flutter/flutter.git -b $FLUTTER_CHANNEL --depth 1 flutter
+    fi
+    
+    export PATH="$FLUTTER_BIN:$PATH"
     log "✅ Flutter installed successfully"
-else
-    log "✅ Flutter already installed"
 fi
 
-# Verify Flutter installation and update if needed
-log "🔍 Verifying Flutter installation..."
-if ! command_exists flutter; then
+# Verify Flutter installation
+if ! command -v flutter >/dev/null 2>&1; then
     log "❌ Flutter command not found in PATH"
     exit 1
 fi
@@ -159,7 +170,7 @@ log "📋 Build output contents:"
 ls -la build/web/ | head -10
 
 # Verify critical files exist in build
-CRITICAL_FILES=("build/web/index.html" "build/web/main.dart.js" "build/web/flutter.js")
+CRITICAL_FILES=("build/web/index.html" "build/web/flutter.js" "build/web/flutter_bootstrap.js")
 for file in "${CRITICAL_FILES[@]}"; do
     if [ -f "$file" ]; then
         log "✅ $file exists"
@@ -170,6 +181,8 @@ done
 
 # Create a simple health check file
 echo "Build completed at $(date)" > build/web/build-info.txt
+echo "Flutter version: $(flutter --version | head -n1)" >> build/web/build-info.txt
+echo "Build size: $BUILD_SIZE" >> build/web/build-info.txt
 
 log "✅ Flutter web build completed successfully!"
 log "📤 Build output is ready in build/web directory"
