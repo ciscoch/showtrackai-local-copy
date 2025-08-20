@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowTrackAI Geolocation Test (with n8n relay)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    </style>
+</head>
+<body>
+    <h1>🚀 ShowTrackAI Geolocation Feature Test</h1>
+    
+    <div class="card">
+        <h2>📍 Location & Weather</h2>
+        <button onclick="testLocation()">Test GPS Location</button>
+        <button onclick="testWeather()">Test Weather API</button>
+        <button onclick="testFullFlow()">Test Complete Flow → n8n</button>
+        <div id="locationResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>🧪 Test Results</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        // 🔧 Set your OpenWeather key here to test weather call (optional)
+        const OPENWEATHER_API_KEY = window.OPENWEATHER_API_KEY || "";
+        // Relay endpoint works the same on localhost (netlify dev) and Netlify
+        const RELAY_URL = '/.netlify/functions/n8n-relay';
+
+        function log(div, html) {
+            div.innerHTML += html;
+        }
+
+        async function testLocation() {
+            const resultDiv = document.getElementById('locationResult');
+            resultDiv.innerHTML = '<div class="status info">🔄 Requesting location...</div>';
+            
+            if (!navigator.geolocation) {
+                resultDiv.innerHTML = '<div class="status error">❌ Geolocation not supported</div>';
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Location captured successfully!</div>
+                        <pre class="mono">
+Latitude: ${latitude.toFixed(6)}
+Longitude: ${longitude.toFixed(6)}
+Accuracy: ±${accuracy.toFixed(0)}m
+Timestamp: ${new Date(position.timestamp).toLocaleString()}
+                        </pre>
+                    `;
+                    
+                    // Reverse geocoding
+                    fetch(\`https://nominatim.openstreetmap.org/reverse?lat=\${latitude}&lon=\${longitude}&format=json\`)
+                        .then(r => r.json())
+                        .then(data => {
+                            log(resultDiv, \`
+                                <div class="status success">📍 Address: \${data.display_name}</div>
+                            \`);
+                        })
+                        .catch(err => log(resultDiv, \`<div class="status error">❌ Geocoding error: \${err.message}</div>\`));
+                },
+                (error) => {
+                    let errorMsg = 'Unknown error';
+                    switch(error.code) {
+                        case 1: errorMsg = 'Permission denied'; break;
+                        case 2: errorMsg = 'Position unavailable'; break;
+                        case 3: errorMsg = 'Request timeout'; break;
+                    }
+                    resultDiv.innerHTML = \`<div class="status error">❌ Error: \${errorMsg}</div>\`;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+        
+        async function testWeather() {
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.innerHTML = '<div class="status info">🔄 Testing weather API...</div>';
+            
+            if (!OPENWEATHER_API_KEY) {
+                resultDiv.innerHTML = '<div class="status error">❌ Set OPENWEATHER_API_KEY to test weather.</div>';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const url = \`https://api.openweathermap.org/data/2.5/weather?lat=\${latitude}&lon=\${longitude}&appid=\${OPENWEATHER_API_KEY}&units=imperial\`;
+                    
+                    try {
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            const data = await response.json();
+                            const weatherBlock = {
+                                temperature: Math.round(data.main.temp),
+                                condition: data.weather?.[0]?.main || 'Unknown',
+                                humidity: data.main.humidity,
+                                windSpeed: Math.round(data.wind.speed),
+                                source: 'openweather',
+                                timestamp: new Date().toISOString()
+                            };
+                            resultDiv.innerHTML = \`
+                                <div class="status success">✅ Weather API working!</div>
+                                <pre class="mono">\${JSON.stringify(weatherBlock, null, 2)}</pre>
+                            \`;
+                        } else {
+                            resultDiv.innerHTML = \`<div class="status error">❌ Weather API error: \${response.status}</div>\`;
+                        }
+                    } catch (err) {
+                        resultDiv.innerHTML = \`<div class="status error">❌ Network error: \${err.message}</div>\`;
+                    }
+                },
+                () => {
+                    resultDiv.innerHTML = '<div class="status error">❌ Location required for weather test</div>';
+                }
+            );
+        }
+
+        async function sendToRelay(payload) {
+            const resultDiv = document.getElementById('testResults');
+            log(resultDiv, '<div class="status info">🔄 Sending to n8n via Netlify relay…</div>');
+            try {
+                const resp = await fetch(RELAY_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const text = await resp.text();
+                log(resultDiv, \`<div class="status \${resp.ok ? 'success' : 'error'}">↩️ Relay status: \${resp.status}</div>\`);
+                log(resultDiv, \`<pre class="mono">\${text}</pre>\`);
+            } catch (e) {
+                log(resultDiv, \`<div class="status error">❌ Relay failed: \${e.message}</div>\`);
+            }
+        }
+        
+        async function testFullFlow() {
+            const resultDiv = document.getElementById('testResults');
+            resultDiv.innerHTML = '<h3>Full Integration Test</h3>';
+            log(resultDiv, '<div class="status info">1) Requesting permissions…</div>');
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    log(resultDiv, '<div class="status success">✅ Location captured</div>');
+                    
+                    // Reverse geocoding (best effort)
+                    let address = null;
+                    try {
+                        const geocodeResponse = await fetch(
+                            \`https://nominatim.openstreetmap.org/reverse?lat=\${position.coords.latitude}&lon=\${position.coords.longitude}&format=json\`
+                        );
+                        if (geocodeResponse.ok) {
+                            const geo = await geocodeResponse.json();
+                            address = geo.display_name || null;
+                            log(resultDiv, '<div class="status success">✅ Reverse geocoding working</div>');
+                        }
+                    } catch (err) {
+                        log(resultDiv, '<div class="status error">❌ Geocoding failed</div>');
+                    }
+                    
+                    // Optional weather call (only if key present)
+                    let weather = null;
+                    if (OPENWEATHER_API_KEY) {
+                        try {
+                            const w = await fetch(\`https://api.openweathermap.org/data/2.5/weather?lat=\${position.coords.latitude}&lon=\${position.coords.longitude}&appid=\${OPENWEATHER_API_KEY}&units=imperial\`);
+                            if (w.ok) {
+                                const data = await w.json();
+                                weather = {
+                                    temperature: Math.round(data.main.temp),
+                                    condition: data.weather?.[0]?.main || 'Unknown',
+                                    humidity: data.main.humidity,
+                                    windSpeed: Math.round(data.wind.speed),
+                                    source: 'openweather',
+                                    timestamp: new Date().toISOString()
+                                };
+                                log(resultDiv, '<div class="status success">✅ Weather attached</div>');
+                            }
+                        } catch {}
+                    }
+
+                    // Build journal entry
+                    const nowIso = new Date().toISOString();
+                    const journalEntry = {
+                        id: 'journal_' + Date.now(),
+                        userId: 'test_user_123',
+                        title: 'Test Entry - Geolocation Feature',
+                        description: 'Testing the new geolocation feature for agricultural activity tracking. This entry includes GPS coordinates and weather data.',
+                        category: 'feeding',
+                        entryDate: nowIso,
+                        duration: 30,
+                        location: {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            altitude: position.coords.altitude || 0,
+                            timestamp: nowIso,
+                            address: address,
+                            city: null,
+                            state: null,
+                            country: null
+                        },
+                        weather: weather,
+                        metadata: { createdFrom: 'Web Test Interface', version: '1.0.0' }
+                    };
+                    
+                    log(resultDiv, '<div class="status success">✅ Data structure created</div>');
+                    log(resultDiv, '<pre class="mono">' + JSON.stringify(journalEntry, null, 2) + '</pre>');
+                    
+                    // 🚀 Minimal change: send to Netlify Function relay (which forwards to n8n)
+                    await sendToRelay(journalEntry);
+                },
+                () => {
+                    log(resultDiv, '<div class="status error">❌ Location access denied</div>');
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+        }
+    </script>
+</body>
+</html>

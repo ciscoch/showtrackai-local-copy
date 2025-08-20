@@ -1,0 +1,64 @@
+name: showtrackai_journaling
+description: ShowTrackAI Agricultural Education Platform with Journaling Integration
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core dependencies for existing app
+  cupertino_icons: ^1.0.6
+  
+  # Database and backend
+  supabase_flutter: ^2.0.0
+  http: ^1.2.1
+  
+  # State management and utilities
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+  
+  # UI components
+  flutter_svg: ^2.0.9
+  google_fonts: ^6.1.0
+  
+  # Form handling - removed to avoid version conflicts
+  
+  # Date and time is managed by Flutter SDK
+  
+  # JSON handling
+  json_annotation: ^4.8.1
+  
+  # Development utilities
+  uuid: ^4.2.1
+  
+  # Geolocation packages
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  permission_handler: ^11.1.0
+  
+  # Weather API (optional - can use existing http package)
+  weather: ^3.1.1
+  
+  # Maps (optional - for future enhancements)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  flutter_lints: ^3.0.1
+  json_serializable: ^6.7.1
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  
+  # Assets for the app
+  assets:
+    - assets/images/
+    - assets/icons/
