@@ -118,6 +118,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
 
   @override
   Widget build(BuildContext context) {
+    // LocationInputField.build() called
     final theme = Theme.of(context);
 
     return Card(

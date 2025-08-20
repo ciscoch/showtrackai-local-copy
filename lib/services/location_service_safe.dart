@@ -1,9 +1,10 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+// import 'dart:io' show Platform; // Unused import removed
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 /// Service for handling location-based operations
-/// Cross-platform version that works on web, Android, and iOS
+/// Web-safe version that avoids permission_handler on web
 class LocationService {
   static final LocationService _instance = LocationService._internal();
   factory LocationService() => _instance;
@@ -16,7 +17,6 @@ class LocationService {
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        // Location services are disabled
         return false;
       }
 
@@ -25,24 +25,19 @@ class LocationService {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          // Location permission denied by user
           return false;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        // Location permission permanently denied
-        // On web, we can't open app settings, but we can provide instructions
-        if (kIsWeb) {
-          // Web: User needs to enable location in browser settings
-        } else {
-          // Mobile: User needs to enable location in app settings
-          // For mobile, we could show a dialog to guide users to settings
+        // On web, we can't open app settings
+        if (!kIsWeb) {
+          // Only use permission_handler on mobile platforms
+          // This would require conditional import
         }
         return false;
       }
 
-      // Location permission granted: $permission
       return true;
     } catch (e) {
       // Error checking location permission: $e
@@ -132,38 +127,5 @@ class LocationService {
       // Error getting permission status: $e
       return LocationPermission.denied;
     }
-  }
-
-  /// Get last known location (may be stale but faster)
-  /// Useful for quick location without waiting for GPS fix
-  Future<Position?> getLastKnownLocation() async {
-    try {
-      final hasPermission = await requestLocationPermission();
-      if (!hasPermission) {
-        // Location permission not granted for last known position
-        return null;
-      }
-
-      return await Geolocator.getLastKnownPosition();
-    } catch (e) {
-      // Error getting last known location: $e
-      return null;
-    }
-  }
-
-  /// Calculate distance between two GPS points in meters
-  /// Useful for proximity features and geofencing
-  double calculateDistance(
-    double startLatitude,
-    double startLongitude,
-    double endLatitude,
-    double endLongitude,
-  ) {
-    return Geolocator.distanceBetween(
-      startLatitude,
-      startLongitude,
-      endLatitude,
-      endLongitude,
-    );
   }
 }

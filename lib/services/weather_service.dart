@@ -34,15 +34,14 @@ class WeatherService {
     try {
       // Return null immediately if no API key is configured
       if (!isAvailable) {
-        print(
-            'Weather API key not configured. Weather data will not be available.');
+        // Weather API key not configured. Weather data will not be available.
         return null;
       }
 
       // Check cache first to reduce API calls
       final cached = await _getCachedWeather(latitude, longitude);
       if (cached != null) {
-        print('Using cached weather data');
+        // Using cached weather data
         return cached;
       }
 
@@ -56,7 +55,7 @@ class WeatherService {
 
       return weather;
     } catch (e) {
-      print('Error getting weather: $e');
+      // Error getting weather: $e
       return null;
     }
   }
@@ -72,7 +71,7 @@ class WeatherService {
         '$_baseUrl?lat=$latitude&lon=$longitude&appid=$_apiKey&units=imperial',
       );
 
-      print('Fetching weather from API: $url');
+      // Fetching weather from API: $url
 
       // Make HTTP request with timeout
       final response = await http.get(url).timeout(
@@ -92,19 +91,17 @@ class WeatherService {
           humidity: (data['main']['humidity'] as num?)?.toDouble(),
         );
 
-        print(
-            'Weather fetched: ${weather.temperature}°F, ${weather.conditions}');
+        // Weather fetched: ${weather.temperature}°F, ${weather.conditions}
         return weather;
       } else if (response.statusCode == 401) {
-        print(
-            'Invalid API key. Please configure a valid OpenWeatherMap API key.');
+        // Invalid API key. Please configure a valid OpenWeatherMap API key.
         return null;
       } else {
-        print('Weather API error: ${response.statusCode} - ${response.body}');
+        // Weather API error: ${response.statusCode} - ${response.body}
         return null;
       }
     } catch (e) {
-      print('Error fetching weather from API: $e');
+      // Error fetching weather from API: $e
       return null;
     }
   }
@@ -137,7 +134,7 @@ class WeatherService {
         }
       }
     } catch (e) {
-      print('Error reading weather cache: $e');
+      // Error reading weather cache: $e
     }
     return null;
   }
@@ -161,9 +158,9 @@ class WeatherService {
       };
 
       await prefs.setString(key, json.encode(cacheData));
-      print('Weather data cached');
+      // Weather data cached
     } catch (e) {
-      print('Error caching weather data: $e');
+      // Error caching weather data: $e
     }
   }
 
@@ -177,9 +174,9 @@ class WeatherService {
         await prefs.remove(key);
       }
 
-      print('Weather cache cleared');
+      // Weather cache cleared
     } catch (e) {
-      print('Error clearing weather cache: $e');
+      // Error clearing weather cache: $e
     }
   }
 

@@ -53,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error loading dashboard data: $e');
+      // Error loading dashboard data: $e
       setState(() {
         _isLoading = false;
       });

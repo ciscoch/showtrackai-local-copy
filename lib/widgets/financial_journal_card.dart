@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../widgets/location_input_field.dart';
+import '../models/journal_entry.dart';
 
 /// Financial Journal Card Widget
 /// This card safely adds journal functionality to the existing ShowTrackAI dashboard
@@ -56,7 +58,7 @@ class _FinancialJournalCardState extends State<FinancialJournalCard> {
         });
       }
     } catch (e) {
-      print('Error loading journal data: $e');
+      // Error loading journal data: $e
       setState(() {
         _isLoading = false;
       });
@@ -207,6 +209,8 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
   String _selectedAnimalType = 'cattle';
   bool _isSubmitting = false;
   List<Animal> _animals = [];
+  LocationData? _locationData;
+  WeatherData? _weatherData;
 
   // WORKING N8N ORCHESTRATOR ENDPOINT (TESTED ✅)
   static const String _orchestratorUrl = 
@@ -238,12 +242,13 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
         }
       });
     } catch (e) {
-      print('Error loading animals: $e');
+      // Error loading animals: $e
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // JournalEntryModal.build() called - animals loaded: ${_animals.length}
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: const BoxDecoration(
@@ -266,29 +271,66 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
           // Header
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Text(
+                      'Quick Journal Entry',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _isSubmitting ? null : _submitToN8NOrchestrator,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Submit'),
+                    ),
+                  ],
                 ),
-                const Text(
-                  'Financial Journal Entry',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                // Quick access to full form
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: _isSubmitting ? null : _submitToN8NOrchestrator,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Submit'),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Need more features? Use the green + button for the full journal form with AET skills and advanced options.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/journal/new');
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: const Size(60, 30),
+                        ),
+                        child: const Text('Full Form', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -330,6 +372,25 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
                   const SizedBox(height: 16),
                 ],
                 
+                // Location & Weather Section
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.red, width: 2),
+                  ),
+                  child: LocationInputField(
+                    onLocationChanged: (location, weather) {
+                      // Modal location changed: $location, $weather
+                      setState(() {
+                        _locationData = location;
+                        _weatherData = weather;
+                      });
+                    },
+                    initialLocation: _locationData,
+                    initialWeather: _weatherData,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Entry Text
                 const Text(
                   'Today\'s Journal Entry',
@@ -408,11 +469,13 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
         'entryText': _entryController.text.trim(),
         'entryDate': DateTime.now().toIso8601String(),
         'animalType': _selectedAnimalType,
+        'location': _locationData?.toJson(),
+        'weather': _weatherData?.toJson(),
         'photos': [],
         'requestId': 'journal_${DateTime.now().millisecondsSinceEpoch}_${user.id.substring(0, 8)}',
       };
 
-      print('🚀 Submitting to N8N Orchestrator: $_orchestratorUrl');
+      // Submitting to N8N Orchestrator: $_orchestratorUrl
 
       // Call N8N Main Orchestrator
       final response = await http.post(
@@ -421,7 +484,7 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
         body: jsonEncode(payload),
       );
 
-      print('📊 N8N Response: ${response.statusCode} - ${response.body}');
+      // N8N Response: ${response.statusCode} - ${response.body}
 
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
@@ -434,7 +497,7 @@ class _JournalEntryModalState extends State<JournalEntryModal> {
         throw Exception('N8N workflow failed: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('❌ Error submitting to N8N: $e');
+      // Error submitting to N8N: $e
       if (mounted) {
         _showError('Error: ${e.toString()}');
       }
