@@ -38,10 +38,27 @@ class _LocationInputFieldState extends State<LocationInputField> {
     super.initState();
     _currentLocation = widget.initialLocation;
     _currentWeather = widget.initialWeather;
+
     if (_currentLocation != null) {
       _useCurrentLocation = true;
       _manualLocationController.text = _currentLocation!.locationName ?? '';
     }
+
+    // 🔁 Auto-fetch weather on load if we have coords but no weather
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_currentLocation?.latitude != null &&
+          _currentLocation?.longitude != null &&
+          _currentWeather == null &&
+          _weatherService.isAvailable) {
+        final wx = await _weatherService.getWeatherByLocation(
+          _currentLocation!.latitude!,
+          _currentLocation!.longitude!,
+        );
+        if (!mounted) return;
+        setState(() => _currentWeather = wx);
+        widget.onLocationChanged(_currentLocation, wx);
+      }
+    });
   }
 
   /// Capture current GPS location and fetch weather
@@ -99,9 +116,42 @@ class _LocationInputFieldState extends State<LocationInputField> {
         _errorMessage = 'Error getting location: ${e.toString()}';
       });
     } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Manually refresh weather for current coordinates (no GPS recapture)
+  Future<void> _refreshWeather() async {
+    if (_currentLocation?.latitude == null ||
+        _currentLocation?.longitude == null) return;
+    if (!_weatherService.isAvailable) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final wx = await _weatherService.getWeatherByLocation(
+        _currentLocation!.latitude!,
+        _currentLocation!.longitude!,
+      );
+      if (!mounted) return;
+      setState(() => _currentWeather = wx);
+      widget.onLocationChanged(_currentLocation, wx);
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _isLoading = false;
+        _errorMessage = 'Error refreshing weather: ${e.toString()}';
       });
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -173,8 +223,8 @@ class _LocationInputFieldState extends State<LocationInputField> {
                 if (_useCurrentLocation && !_isLoading)
                   IconButton(
                     icon: const Icon(Icons.refresh),
-                    onPressed: _getCurrentLocation,
-                    tooltip: 'Refresh location',
+                    onPressed: _refreshWeather, // ← refresh weather only
+                    tooltip: 'Refresh weather',
                   ),
               ],
             ),
@@ -201,6 +251,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                               accuracy: _currentLocation!.accuracy,
                               capturedAt: _currentLocation!.capturedAt,
                             );
+                            setState(() => _currentLocation = updatedLocation);
                             widget.onLocationChanged(
                                 updatedLocation, _currentWeather);
                           }
@@ -218,6 +269,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                     accuracy: _currentLocation!.accuracy,
                     capturedAt: _currentLocation!.capturedAt,
                   );
+                  setState(() => _currentLocation = updatedLocation);
                   widget.onLocationChanged(updatedLocation, _currentWeather);
                 } else if (value.isNotEmpty) {
                   // Manual location only
@@ -331,7 +383,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                 ),
               ),
 
-            // Weather unavailable indicator
+            // Weather unavailable indicator (API key missing)
             if (_currentLocation != null &&
                 _currentLocation!.latitude != null &&
                 _currentWeather == null &&
@@ -363,6 +415,20 @@ class _LocationInputFieldState extends State<LocationInputField> {
                       ),
                     ),
                   ],
+                ),
+              ),
+
+            // Offer a manual weather refresh button when coords exist, no weather yet, and API is available
+            if (_currentLocation?.latitude != null &&
+                _currentWeather == null &&
+                _weatherService.isAvailable &&
+                !_isLoading)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _refreshWeather,
+                  icon: const Icon(Icons.cloud_sync),
+                  label: const Text('Fetch weather from GPS'),
                 ),
               ),
 
@@ -403,7 +469,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              crossAxisAlignment: TextBaseline.alphabetic,
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
