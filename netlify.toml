@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "dist"            # change if your site builds elsewhere
+  publish = "build/web"            # change if your site builds elsewhere
   functions = "netlify/functions"
 
 [build.environment]
