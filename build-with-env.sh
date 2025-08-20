@@ -67,6 +67,7 @@ fi
 DEFINES=(
   --dart-define SUPABASE_URL="${SUPABASE_URL:-}"
   --dart-define SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
+  --dart-define OPENWEATHER_API_KEY="${OPENWEATHER_API_KEY:-}"
   --dart-define FLUTTER_ENVIRONMENT="${FLUTTER_ENVIRONMENT:-production}"
   --dart-define NETLIFY=true
 )

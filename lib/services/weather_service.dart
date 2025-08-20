@@ -11,10 +11,10 @@ class WeatherService {
   WeatherService._internal();
 
   // OpenWeatherMap API configuration
-  // Using environment variable with hardcoded fallback for development
+  // Using environment variable - no fallback for security
   static const String _apiKey = String.fromEnvironment(
     'OPENWEATHER_API_KEY',
-    defaultValue: 'fe4afd570db3327376935efbaa9b8ba9', // Hardcoded fallback for development
+    defaultValue: '', // No hardcoded fallback for security
   );
   static const String _baseUrl =
       'https://api.openweathermap.org/data/2.5/weather';

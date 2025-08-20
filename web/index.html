@@ -21,18 +21,45 @@
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
+  <!-- Progressive Web App -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="showtrackai_journaling">
+  <meta name="apple-mobile-web-app-title" content="ShowTrackAI">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  
+  <!-- Geolocation permissions for web -->
+  <meta http-equiv="Permissions-Policy" content="geolocation=(self)">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>showtrackai_journaling</title>
+  <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Force JS compilation for web compatibility -->
+  <script>
+    window.flutterConfiguration = {
+      canvasKitBaseUrl: "https://www.gstatic.com/flutter-canvaskit/eef904d1de5b9b1fbbe5b4099d5c8b7f2a0be2d0/"
+    };
+  </script>
 </head>
 <body>
+  <!-- Loading indicator -->
+  <div id="loading" style="display: flex; justify-content: center; align-items: center; height: 100vh; background: #f5f5f5;">
+    <div style="text-align: center;">
+      <div style="width: 40px; height: 40px; border: 4px solid #4CAF50; border-radius: 50%; border-top: 4px solid transparent; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+      <h3 style="color: #4CAF50; font-family: Arial, sans-serif;">Loading ShowTrackAI...</h3>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

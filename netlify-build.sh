@@ -30,11 +30,13 @@ flutter clean
 echo "📚 flutter pub get"
 flutter pub get
 
-# Build Flutter web app
-echo "🏗️  flutter build web --release"
+# Build Flutter web app with JS compilation (no WebAssembly for compatibility)
+echo "🏗️  flutter build web --release (JS compilation only)"
 flutter build web --release \
+  --no-tree-shake-icons \
   --dart-define SUPABASE_URL=${SUPABASE_URL} \
   --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
+  --dart-define OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} \
   --dart-define FLUTTER_ENVIRONMENT=production \
   --dart-define NETLIFY=true \
   --dart-define DEMO_EMAIL=${DEMO_EMAIL} \
