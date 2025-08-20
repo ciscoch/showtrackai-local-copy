@@ -1,48 +1,61 @@
 [build]
-  command = "npm run build"
-  publish = "build/web"            # change if your site builds elsewhere
-  functions = "netlify/functions"
+    command = "./netlify-build.sh"
+    publish = "build/web"
+    functions = "netlify/functions"
 
-[build.environment]
-  FLUTTER_CHANNEL = "stable"
-  FLUTTER_WEB_RENDERER = "canvaskit"
-  BUILD_MODE = "release"
-  REMOVE_SOURCE_MAPS = "false"
-  CACHE_BUSTER = "v3-20250813-044355-force-rebuild"
+  [build.environment]
+    # Flutter settings
+    FLUTTER_VERSION = "3.19.0"
+    FLUTTER_CHANNEL = "stable"
 
-# SPA routing
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+    # Build settings
+    NODE_VERSION = "18"
 
-# Security + perf headers
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Cache buster for forcing rebuilds
+    CACHE_BUSTER = "v4-20250120-flutter-geolocation"
 
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  # SPA routing for Flutter web
+  [[redirects]]
+    from = "/*"
+    to = "/index.html"
+    status = 200
 
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  # Security headers
+  [[headers]]
+    for = "/*"
+    [headers.values]
+      X-Frame-Options = "DENY"
+      X-XSS-Protection = "1; mode=block"
+      X-Content-Type-Options = "nosniff"
+      Referrer-Policy = "strict-origin-when-cross-origin"
+      # Allow geolocation for the app itself
+      Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
 
-[[headers]]
-  for = "/*.woff2"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+  # Cache static assets
+  [[headers]]
+    for = "/*.js"
+    [headers.values]
+      Cache-Control = "public, max-age=31536000, immutable"
 
-# Add Access-Control-Allow-Origin for serverless functions
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
+  [[headers]]
+    for = "/*.css"
+    [headers.values]
+      Cache-Control = "public, max-age=31536000, immutable"
+
+  [[headers]]
+    for = "/*.woff2"
+    [headers.values]
+      Cache-Control = "public, max-age=31536000, immutable"
+
+  [[headers]]
+    for = "/assets/*"
+    [headers.values]
+      Cache-Control = "public, max-age=31536000, immutable"
+
+  # CORS for serverless functions
+  [[headers]]
+    for = "/.netlify/functions/*"
+    [headers.values]
+      Access-Control-Allow-Origin = "*"
+      Access-Control-Allow-Headers = "Content-Type, Authorization"
+      Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
