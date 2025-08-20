@@ -70,18 +70,20 @@ class N8NJournalService {
       final user = _supabase.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      var query = _supabase
+      final baseQuery = _supabase
           .from('journal_entries')
           .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
-
-      if (category != null) {
-        query = query.eq('category', category);
-      }
-
-      final response = await query;
+          .eq('user_id', user.id);
+      
+      // Apply category filter if specified
+      final response = category != null
+          ? await baseQuery
+              .eq('category', category)
+              .order('created_at', ascending: false)
+              .range(offset, offset + limit - 1)
+          : await baseQuery
+              .order('created_at', ascending: false)
+              .range(offset, offset + limit - 1);
       return (response as List)
           .map((e) => JournalEntry.fromSupabaseJson(e))
           .toList();

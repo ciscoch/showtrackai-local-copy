@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import '../services/location_service.dart';
 import '../services/weather_service.dart';
 import '../models/journal_entry.dart';
@@ -25,8 +24,9 @@ class LocationInputField extends StatefulWidget {
 class _LocationInputFieldState extends State<LocationInputField> {
   final LocationService _locationService = LocationService();
   final WeatherService _weatherService = WeatherService();
-  final TextEditingController _manualLocationController = TextEditingController();
-  
+  final TextEditingController _manualLocationController =
+      TextEditingController();
+
   LocationData? _currentLocation;
   WeatherData? _currentWeather;
   bool _isLoading = false;
@@ -54,43 +54,44 @@ class _LocationInputFieldState extends State<LocationInputField> {
     try {
       // Get GPS position
       final position = await _locationService.getCurrentLocation();
-      
+
       if (position != null) {
         // Get human-readable address
         final address = await _locationService.getAddressFromCoordinates(
           position.latitude,
           position.longitude,
         );
-        
+
         // Create location data object
         final locationData = LocationData(
           latitude: position.latitude,
           longitude: position.longitude,
           address: address,
-          locationName: _manualLocationController.text.isNotEmpty 
-            ? _manualLocationController.text 
-            : null,
+          locationName: _manualLocationController.text.isNotEmpty
+              ? _manualLocationController.text
+              : null,
           accuracy: position.accuracy,
           capturedAt: DateTime.now(),
         );
-        
-        // Fetch weather for this location
+
+        // Fetch weather for this location (will be null if API key not configured)
         final weatherData = await _weatherService.getWeatherByLocation(
           position.latitude,
           position.longitude,
         );
-        
+
         setState(() {
           _currentLocation = locationData;
           _currentWeather = weatherData;
           _useCurrentLocation = true;
         });
-        
+
         // Notify parent widget of changes
         widget.onLocationChanged(locationData, weatherData);
       } else {
         setState(() {
-          _errorMessage = 'Unable to get location. Please enable location services.';
+          _errorMessage =
+              'Unable to get location. Please enable location services.';
         });
       }
     } catch (e) {
@@ -118,7 +119,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -146,7 +147,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
               ],
             ),
             const SizedBox(height: 16),
-            
+
             // Location toggle and capture button
             Row(
               children: [
@@ -176,7 +177,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                   ),
               ],
             ),
-            
+
             // Manual location name input
             TextField(
               controller: _manualLocationController,
@@ -186,24 +187,25 @@ class _LocationInputFieldState extends State<LocationInputField> {
                 border: const OutlineInputBorder(),
                 prefixIcon: const Icon(Icons.edit_location),
                 suffixIcon: _manualLocationController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _manualLocationController.clear();
-                        if (_currentLocation != null) {
-                          final updatedLocation = LocationData(
-                            latitude: _currentLocation!.latitude,
-                            longitude: _currentLocation!.longitude,
-                            address: _currentLocation!.address,
-                            locationName: null,
-                            accuracy: _currentLocation!.accuracy,
-                            capturedAt: _currentLocation!.capturedAt,
-                          );
-                          widget.onLocationChanged(updatedLocation, _currentWeather);
-                        }
-                      },
-                    )
-                  : null,
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _manualLocationController.clear();
+                          if (_currentLocation != null) {
+                            final updatedLocation = LocationData(
+                              latitude: _currentLocation!.latitude,
+                              longitude: _currentLocation!.longitude,
+                              address: _currentLocation!.address,
+                              locationName: null,
+                              accuracy: _currentLocation!.accuracy,
+                              capturedAt: _currentLocation!.capturedAt,
+                            );
+                            widget.onLocationChanged(
+                                updatedLocation, _currentWeather);
+                          }
+                        },
+                      )
+                    : null,
               ),
               onChanged: (value) {
                 if (_currentLocation != null) {
@@ -225,9 +227,9 @@ class _LocationInputFieldState extends State<LocationInputField> {
                 }
               },
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Loading indicator
             if (_isLoading)
               const Center(
@@ -236,7 +238,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                   child: CircularProgressIndicator(),
                 ),
               ),
-            
+
             // Error message
             if (_errorMessage != null && !_isLoading)
               Container(
@@ -260,10 +262,10 @@ class _LocationInputFieldState extends State<LocationInputField> {
                   ],
                 ),
               ),
-            
+
             // Location display
-            if (_currentLocation != null && 
-                _currentLocation!.latitude != null && 
+            if (_currentLocation != null &&
+                _currentLocation!.latitude != null &&
                 !_isLoading)
               Container(
                 padding: const EdgeInsets.all(12),
@@ -327,7 +329,42 @@ class _LocationInputFieldState extends State<LocationInputField> {
                   ],
                 ),
               ),
-            
+
+            // Weather unavailable indicator
+            if (_currentLocation != null &&
+                _currentLocation!.latitude != null &&
+                _currentWeather == null &&
+                !_isLoading &&
+                !_weatherService.isAvailable)
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Weather data unavailable (API key not configured)',
+                        style: TextStyle(
+                          color: Colors.orange.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Weather display
             if (_currentWeather != null && !_isLoading)
               Container(
@@ -369,25 +406,17 @@ class _LocationInputFieldState extends State<LocationInputField> {
                               textBaseline: TextBaseline.alphabetic,
                               children: [
                                 Text(
-                                  '${_currentWeather!.temperature.toStringAsFixed(1)}°C',
+                                  '${_currentWeather!.temperature.toStringAsFixed(1)}°F',
                                   style: const TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${(_currentWeather!.temperature * 9/5 + 32).toStringAsFixed(1)}°F',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
                               ],
                             ),
                             Text(
-                              _currentWeather!.description ?? 
-                              _currentWeather!.conditions,
+                              _currentWeather!.description ??
+                                  _currentWeather!.conditions,
                               style: const TextStyle(fontSize: 14),
                             ),
                           ],
@@ -420,7 +449,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${_currentWeather!.windSpeed!.toStringAsFixed(1)} m/s',
+                                    '${_currentWeather!.windSpeed!.toStringAsFixed(1)} mph',
                                     style: const TextStyle(fontSize: 12),
                                   ),
                                 ],

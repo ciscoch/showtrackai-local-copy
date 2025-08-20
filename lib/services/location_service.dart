@@ -22,7 +22,7 @@ class LocationService {
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
@@ -30,14 +30,14 @@ class LocationService {
           return false;
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         // Permissions are permanently denied
         // Open app settings for user to manually enable
         await openAppSettings();
         return false;
       }
-      
+
       // Permission granted (whileInUse or always)
       return true;
     } catch (e) {
@@ -67,7 +67,7 @@ class LocationService {
 
       print('Location captured: ${position.latitude}, ${position.longitude}');
       print('Accuracy: ${position.accuracy} meters');
-      
+
       return position;
     } catch (e) {
       print('Error getting location: $e');
@@ -87,29 +87,30 @@ class LocationService {
         latitude,
         longitude,
       );
-      
+
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
-        
+
         // Build comprehensive address string
         List<String> addressParts = [
-          if (place.street != null && place.street!.isNotEmpty) 
-            place.street!,
-          if (place.locality != null && place.locality!.isNotEmpty) 
+          if (place.street != null && place.street!.isNotEmpty) place.street!,
+          if (place.locality != null && place.locality!.isNotEmpty)
             place.locality!,
-          if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) 
+          if (place.administrativeArea != null &&
+              place.administrativeArea!.isNotEmpty)
             place.administrativeArea!,
-          if (place.postalCode != null && place.postalCode!.isNotEmpty) 
+          if (place.postalCode != null && place.postalCode!.isNotEmpty)
             place.postalCode!,
-          if (place.country != null && place.country!.isNotEmpty) 
+          if (place.country != null && place.country!.isNotEmpty)
             place.country!,
         ];
-        
-        final address = addressParts.where((part) => part.isNotEmpty).join(', ');
+
+        final address =
+            addressParts.where((part) => part.isNotEmpty).join(', ');
         print('Address found: $address');
         return address;
       }
-      
+
       return null;
     } catch (e) {
       print('Error getting address from coordinates: $e');
