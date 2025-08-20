@@ -11,10 +11,10 @@ class WeatherService {
   WeatherService._internal();
 
   // OpenWeatherMap API configuration
-  // Using environment variable - no fallback for security
+  // Using environment variable - must be set in Netlify dashboard
   static const String _apiKey = String.fromEnvironment(
     'OPENWEATHER_API_KEY',
-    defaultValue: '', // No hardcoded fallback for security
+    defaultValue: '', // No hardcoded keys for security
   );
   static const String _baseUrl =
       'https://api.openweathermap.org/data/2.5/weather';
