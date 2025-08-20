@@ -55,8 +55,8 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Updated permissions policy for modern browsers
     Permissions-Policy = "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
-    # Content Security Policy for Flutter web
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org;"
+    # Content Security Policy for Flutter web - Comprehensive policy including all required resources
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org https://www.gstatic.com https://*.gstatic.com wss://*.supabase.co; object-src 'none'; worker-src 'self' blob: https://www.gstatic.com; child-src 'self' blob:; frame-src 'none'; media-src 'self' blob: data:;"
 
 # Optimize caching for Flutter web assets
 [[headers]]
@@ -129,6 +129,19 @@
   for = "/favicon.png"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+
+# Flutter canvaskit files
+[[headers]]
+  for = "/*.wasm"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/wasm"
+
+[[headers]]
+  for = "/flutter_service_worker.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Content-Type = "application/javascript"
 
 # Build status endpoint
 [[headers]]

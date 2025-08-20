@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowTrackAI - Loading Issue</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .retry-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        .retry-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .debug-info {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .status-check {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        .status-ok { color: #4CAF50; }
+        .status-error { color: #f44336; }
+        .status-warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 ShowTrackAI</h1>
+        <p class="subtitle">Agricultural Education Platform</p>
+        
+        <div id="status">
+            <p>The app is having trouble loading. Let's diagnose the issue...</p>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button class="retry-btn" onclick="window.location.reload()">🔄 Retry</button>
+            <button class="retry-btn" onclick="tryAlternateLoad()">🔧 Try Alternative Load</button>
+        </div>
+        
+        <div class="debug-info">
+            <h3>🔍 System Check:</h3>
+            <div id="debug-results">
+                <p>Running diagnostics...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Run diagnostics
+        function runDiagnostics() {
+            const results = document.getElementById('debug-results');
+            let html = '';
+            
+            // Check browser support
+            const isChrome = /Chrome/.test(navigator.userAgent);
+            const isFirefox = /Firefox/.test(navigator.userAgent);
+            const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+            
+            html += `<div class="status-check">Browser: ${navigator.userAgent.split(' ')[0]} ${isChrome || isFirefox || isSafari ? '✅' : '⚠️'}</div>`;
+            
+            // Check JavaScript support
+            html += `<div class="status-check status-ok">JavaScript: ✅ Enabled</div>`;
+            
+            // Check network connectivity
+            if (navigator.onLine) {
+                html += `<div class="status-check status-ok">Network: ✅ Connected</div>`;
+            } else {
+                html += `<div class="status-check status-error">Network: ❌ Offline</div>`;
+            }
+            
+            // Check localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                html += `<div class="status-check status-ok">Storage: ✅ Available</div>`;
+            } catch (e) {
+                html += `<div class="status-check status-warning">Storage: ⚠️ Limited</div>`;
+            }
+            
+            // Check WebGL support (for CanvasKit)
+            const canvas = document.createElement('canvas');
+            const webgl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            if (webgl) {
+                html += `<div class="status-check status-ok">WebGL: ✅ Supported</div>`;
+            } else {
+                html += `<div class="status-check status-error">WebGL: ❌ Not supported (may cause rendering issues)</div>`;
+            }
+            
+            // Check if running in iframe (can cause CSP issues)
+            if (window !== window.parent) {
+                html += `<div class="status-check status-warning">Frame: ⚠️ Running in iframe</div>`;
+            } else {
+                html += `<div class="status-check status-ok">Frame: ✅ Direct load</div>`;
+            }
+            
+            results.innerHTML = html;
+        }
+        
+        function tryAlternateLoad() {
+            document.getElementById('status').innerHTML = '<p>Trying alternative loading method...</p>';
+            
+            // Try to load with different parameters
+            const currentUrl = window.location.href;
+            const separator = currentUrl.includes('?') ? '&' : '?';
+            window.location.href = currentUrl + separator + 'renderer=html&fallback=true&t=' + Date.now();
+        }
+        
+        // Auto-run diagnostics
+        setTimeout(runDiagnostics, 1000);
+        
+        // Auto-redirect after 30 seconds
+        setTimeout(() => {
+            document.getElementById('status').innerHTML = '<p style="color: #ff9800;">Auto-retrying in HTML mode...</p>';
+            tryAlternateLoad();
+        }, 30000);
+    </script>
+</body>
+</html>

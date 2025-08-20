@@ -37,11 +37,65 @@
   <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
   
-  <!-- Force JS compilation for web compatibility -->
+  <!-- Flutter web configuration for better compatibility -->
   <script>
+    // Set Flutter configuration before loading
     window.flutterConfiguration = {
-      canvasKitBaseUrl: "https://www.gstatic.com/flutter-canvaskit/eef904d1de5b9b1fbbe5b4099d5c8b7f2a0be2d0/"
+      canvasKitBaseUrl: "https://www.gstatic.com/flutter-canvaskit/eef904d1de5b9b1fbbe5b4099d5c8b7f2a0be2d0/",
+      renderer: "canvaskit",
+      debugShowCheckedModeBanner: false
     };
+    
+    // Backup configuration in case primary fails
+    window.flutterWebBackup = {
+      renderer: "html",
+      useColorEmoji: true
+    };
+    
+    // Error handling and fallback mechanism
+    let loadingTimeout;
+    let hasLoaded = false;
+    
+    window.addEventListener('error', function(e) {
+      console.error('Flutter loading error:', e.error);
+      if (e.error && e.error.message && e.error.message.includes('canvaskit')) {
+        console.warn('CanvasKit failed, attempting HTML renderer fallback...');
+        tryFallbackRenderer();
+      }
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Unhandled promise rejection:', e.reason);
+      if (e.reason && e.reason.toString().includes('canvaskit')) {
+        tryFallbackRenderer();
+      }
+    });
+    
+    // Fallback to HTML renderer if CanvasKit fails
+    function tryFallbackRenderer() {
+      if (!hasLoaded) {
+        console.log('Attempting to use HTML renderer as fallback...');
+        window.flutterConfiguration.renderer = "html";
+        // Clear and reload
+        location.reload();
+      }
+    }
+    
+    // Set loading timeout
+    loadingTimeout = setTimeout(function() {
+      if (!hasLoaded) {
+        console.warn('Flutter app taking too long to load, attempting fallback...');
+        document.getElementById('loading').innerHTML = 
+          '<div style="text-align: center;"><h3 style="color: #FF9800;">Initializing app... Please wait</h3><p>If this continues, please refresh the page.</p></div>';
+        tryFallbackRenderer();
+      }
+    }, 15000); // 15 second timeout
+    
+    // Clear timeout when app loads
+    window.addEventListener('load', function() {
+      hasLoaded = true;
+      clearTimeout(loadingTimeout);
+    });
   </script>
 </head>
 <body>

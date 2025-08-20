@@ -30,9 +30,10 @@ flutter clean
 echo "📚 flutter pub get"
 flutter pub get
 
-# Build Flutter web app with JS compilation (no WebAssembly for compatibility)
-echo "🏗️  flutter build web --release (JS compilation only)"
+# Build Flutter web app with optimized settings for Netlify
+echo "🏗️  flutter build web --release"
 flutter build web --release \
+  --web-renderer canvaskit \
   --no-tree-shake-icons \
   --dart-define SUPABASE_URL=${SUPABASE_URL} \
   --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
@@ -42,4 +43,12 @@ flutter build web --release \
   --dart-define DEMO_EMAIL=${DEMO_EMAIL} \
   --dart-define DEMO_PASSWORD=${DEMO_PASSWORD}
 
+# Verify build output
+echo "🔍 Verifying build output:"
+ls -la build/web/
 echo "✅ Build completed. Files in build/web/"
+
+# Create build info file for debugging
+echo "Build completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" > build/web/build-info.txt
+echo "Git commit: $(git rev-parse HEAD || echo 'unknown')" >> build/web/build-info.txt
+echo "Git branch: ${BRANCH:-unknown}" >> build/web/build-info.txt
