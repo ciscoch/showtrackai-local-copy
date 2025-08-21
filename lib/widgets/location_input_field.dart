@@ -463,24 +463,18 @@ class _LocationInputFieldState extends State<LocationInputField> {
                     ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: TextBaseline.alphabetic,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  '${_currentWeather!.temperature.toStringAsFixed(1)}°F',
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${_currentWeather!.temperature.toStringAsFixed(1)}°F',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
                             ),
+                         ),
+                       ],
+                    ),
                             Text(
                               _currentWeather!.description ??
                                   _currentWeather!.conditions,
