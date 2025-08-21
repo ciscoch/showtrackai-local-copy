@@ -433,100 +433,107 @@ class _LocationInputFieldState extends State<LocationInputField> {
               ),
 
             // Weather display
-            if (_currentWeather != null && !_isLoading)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+if (_currentWeather != null && !_isLoading)
+  Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.blue.shade50,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.blue.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.cloud,
+              color: Colors.blue.shade700,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Weather conditions',
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // content row: left (temp + desc) | right (humidity/wind)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column: temperature + description
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.cloud,
-                          color: Colors.blue.shade700,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Weather conditions',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '${_currentWeather!.temperature.toStringAsFixed(1)}°F',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                         ),
-                       ],
-                    ),
-                            Text(
-                              _currentWeather!.description ??
-                                  _currentWeather!.conditions,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (_currentWeather!.humidity != null)
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.water_drop,
-                                    size: 16,
-                                    color: Colors.blue.shade600,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_currentWeather!.humidity!.round()}%',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            if (_currentWeather!.windSpeed != null)
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.air,
-                                    size: 16,
-                                    color: Colors.blue.shade600,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${_currentWeather!.windSpeed!.toStringAsFixed(1)} mph',
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ],
+                    Text(
+                      '${_currentWeather!.temperature.toStringAsFixed(1)}°F',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-              ),
+                Text(
+                  _currentWeather!.description ?? _currentWeather!.conditions,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+
+            // Right column: humidity + wind
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (_currentWeather!.humidity != null)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.water_drop,
+                        size: 16,
+                        color: Colors.blue.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_currentWeather!.humidity!.round()}%',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                if (_currentWeather!.windSpeed != null)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.air,
+                        size: 16,
+                        color: Colors.blue.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${_currentWeather!.windSpeed!.toStringAsFixed(1)} mph',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ],
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  ),
+
 
   @override
   void dispose() {
