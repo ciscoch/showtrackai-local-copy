@@ -432,7 +432,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                 ),
               ),
 
-            // Weather display
+// Weather display
 if (_currentWeather != null && !_isLoading)
   Container(
     padding: const EdgeInsets.all(12),
@@ -463,12 +463,12 @@ if (_currentWeather != null && !_isLoading)
         ),
         const SizedBox(height: 8),
 
-        // content row: left (temp + desc) | right (humidity/wind)
+        // Left (temp + desc) | Right (humidity + wind)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left column: temperature + description
+            // Left column
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -492,7 +492,7 @@ if (_currentWeather != null && !_isLoading)
               ],
             ),
 
-            // Right column: humidity + wind
+            // Right column
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -533,6 +533,7 @@ if (_currentWeather != null && !_isLoading)
       ],
     ),
   ),
+
 
 
   @override
