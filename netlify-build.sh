@@ -86,12 +86,14 @@ if [ ! -f "build/web/flutter_bootstrap.js" ]; then
   fi
 fi
 
-# Apply HTML renderer patch
-echo "🔧 Applying HTML renderer patch..."
-if [ -f "./patch-flutter-bootstrap.sh" ]; then
+# Create minimal bootstrap file to avoid encoding issues
+echo "🔧 Creating minimal Flutter bootstrap..."
+if [ -f "./create-minimal-bootstrap.sh" ]; then
+  ./create-minimal-bootstrap.sh
+elif [ -f "./patch-flutter-bootstrap.sh" ]; then
   ./patch-flutter-bootstrap.sh
 else
-  echo "⚠️ Patch script not found, using sed fallback..."
+  echo "⚠️ No patch scripts found, using sed fallback..."
   if [ -f "build/web/flutter_bootstrap.js" ]; then
     # Replace canvaskit renderer with html
     sed -i.bak 's/"renderer":"canvaskit"/"renderer":"html"/g' build/web/flutter_bootstrap.js

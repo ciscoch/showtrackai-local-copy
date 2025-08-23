@@ -6,6 +6,10 @@ publish = "build/web"
 FLUTTER_VERSION = "3.27.1"
 NODE_VERSION = "18"
 
+# Disable all processing to avoid compression issues
+[build.processing]
+skip_processing = true
+
 [context.production.environment]
 FLUTTER_ENVIRONMENT = "production"
 
@@ -23,6 +27,9 @@ Referrer-Policy = "strict-origin-when-cross-origin"
 for = "/*.js"
 [headers.values]
 Cache-Control = "public, max-age=31536000, immutable"
+Content-Type = "application/javascript; charset=utf-8"
+# Prevent double compression
+Content-Encoding = ""
 
 # Special handling for Flutter bootstrap file to prevent encoding issues
 [[headers]]
@@ -30,6 +37,7 @@ for = "/flutter_bootstrap.js"
 [headers.values]
 Cache-Control = "no-cache"
 Content-Type = "application/javascript; charset=utf-8"
+Content-Encoding = ""
 
 # Special handling for main dart file
 [[headers]]
@@ -37,6 +45,7 @@ for = "/main.dart.js"
 [headers.values]
 Cache-Control = "public, max-age=31536000, immutable"
 Content-Type = "application/javascript; charset=utf-8"
+Content-Encoding = ""
 
 [[headers]]
 for = "/*.css"
@@ -70,6 +79,8 @@ Content-Type = "application/wasm"
 for = "/flutter_service_worker.js"
 [headers.values]
 Cache-Control = "no-cache"
+Content-Type = "application/javascript; charset=utf-8"
+Content-Encoding = ""
 
 [[headers]]
 for = "/index.html"
@@ -80,6 +91,20 @@ Cache-Control = "no-cache"
 for = "/version.json"
 [headers.values]
 Cache-Control = "no-cache"
+
+# Disable compression for specific file types that cause ERR_CONTENT_DECODING_FAILED
+[[headers]]
+for = "*.dart.js"
+[headers.values]
+Content-Type = "application/javascript; charset=utf-8"
+Content-Encoding = ""
+Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+for = "*.js.map"
+[headers.values]
+Content-Type = "application/json"
+Content-Encoding = ""
 
 [[redirects]]
 from = "/*"

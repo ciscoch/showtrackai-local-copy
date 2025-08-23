@@ -1,0 +1,39 @@
+# Netlify _headers file to fix content encoding issues
+
+/*
+  X-Frame-Options: DENY
+  X-XSS-Protection: 1; mode=block
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+/flutter_bootstrap.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  X-Content-Type-Options: nosniff
+
+/main.dart.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+
+/flutter_service_worker.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+  X-Content-Type-Options: nosniff
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
