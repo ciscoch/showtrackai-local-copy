@@ -2,112 +2,78 @@
   command = "bash ./netlify-build.sh"
   publish = "build/web"
 
-
 [build.environment]
-FLUTTER_VERSION = "3.27.1"
-NODE_VERSION = "18"
-
-# Disable all processing to avoid compression issues
-[build.processing]
-skip_processing = true
+  FLUTTER_VERSION = "3.27.1"
+  NODE_VERSION = "18"
 
 [context.production.environment]
-FLUTTER_ENVIRONMENT = "production"
+  FLUTTER_ENVIRONMENT = "production"
+
+# ---------- Security & CSP (HTML renderer, no external fonts/Canvaskit) ----------
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    # If you later decide to allow Google Fonts, see the "Optional: allow external fonts" note below.
+    Content-Security-Policy = "default-src 'self' data: blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://showtrackai.app.n8n.cloud; worker-src 'self' blob:;"
+
+# App shell: always revalidate
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
-for = "/*"
-[headers.values]
-X-Frame-Options = "DENY"
-X-XSS-Protection = "1; mode=block"
-X-Content-Type-Options = "nosniff"
-Referrer-Policy = "strict-origin-when-cross-origin"
-# Temporarily disable CSP to troubleshoot ERR_CONTENT_DECODING_FAILED
-# Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co https://showtrackai.app.n8n.cloud; worker-src 'none'; object-src 'none';"
+  for = "/flutter_service_worker.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
-for = "/*.js"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-Content-Type = "application/javascript; charset=utf-8"
-# Prevent double compression
-Content-Encoding = ""
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-# Special handling for Flutter bootstrap file to prevent encoding issues
+# Top-level JS/CSS: revalidate (these filenames aren’t hashed)
 [[headers]]
-for = "/flutter_bootstrap.js"
-[headers.values]
-Cache-Control = "no-cache"
-Content-Type = "application/javascript; charset=utf-8"
-Content-Encoding = ""
-
-# Special handling for main dart file
-[[headers]]
-for = "/main.dart.js"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-Content-Type = "application/javascript; charset=utf-8"
-Content-Encoding = ""
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
-for = "/*.css"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Immutable hashed assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# CanvasKit & WASM (kept harmless even if unused)
+[[headers]]
+  for = "/canvaskit/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-for = "/*.woff2"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/*.wasm"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/wasm"
 
+# Web fonts (if you ever ship local .woff2 in /assets/)
 [[headers]]
-for = "/assets/*"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
-# CanvasKit files
-[[headers]]
-for = "/canvaskit/*"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-
-# WASM files need special handling
-[[headers]]
-for = "/*.wasm"
-[headers.values]
-Cache-Control = "public, max-age=31536000, immutable"
-Content-Type = "application/wasm"
-
-[[headers]]
-for = "/flutter_service_worker.js"
-[headers.values]
-Cache-Control = "no-cache"
-Content-Type = "application/javascript; charset=utf-8"
-Content-Encoding = ""
-
-[[headers]]
-for = "/index.html"
-[headers.values]
-Cache-Control = "no-cache"
-
-[[headers]]
-for = "/version.json"
-[headers.values]
-Cache-Control = "no-cache"
-
-# Disable compression for specific file types that cause ERR_CONTENT_DECODING_FAILED
-[[headers]]
-for = "*.dart.js"
-[headers.values]
-Content-Type = "application/javascript; charset=utf-8"
-Content-Encoding = ""
-Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-for = "*.js.map"
-[headers.values]
-Content-Type = "application/json"
-Content-Encoding = ""
-
+# SPA fallback
 [[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
+  from = "/*"
+  to   = "/index.html"
+  status = 200
