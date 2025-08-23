@@ -1,70 +1,58 @@
-# Netlify Configuration
 [build]
-  # Build command
-  command = "./netlify-build.sh"
-  
-  # Directory to deploy
-  publish = "build/web"
-  
-  # Environment settings
-  environment = { NODE_VERSION = "18" }
+command = "./netlify-build.sh"
+publish = "build/web"
 
-# Build environment variables 
 [build.environment]
-  FLUTTER_VERSION = "3.27.1"
+FLUTTER_VERSION = "3.27.1"
+NODE_VERSION = "18"
 
-# Production context
-[context.production]
-  environment = { FLUTTER_ENVIRONMENT = "production" }
-
-# Headers for all files
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-
-# Cache control for static assets
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+[context.production.environment]
+FLUTTER_ENVIRONMENT = "production"
 
 [[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+for = "/*"
+[headers.values]
+X-Frame-Options = "DENY"
+X-XSS-Protection = "1; mode=block"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
-  for = "/*.woff2"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+for = "/*.js"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Flutter specific files
-[[headers]]
-  for = "/flutter_service_worker.js"
-  [headers.values]
-    Cache-Control = "no-cache"
+for = "/*.css"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "no-cache"
+for = "/*.woff2"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "/version.json"
-  [headers.values]
-    Cache-Control = "no-cache"
+for = "/assets/*"
+[headers.values]
+Cache-Control = "public, max-age=31536000, immutable"
 
-# Redirect rules
+[[headers]]
+for = "/flutter_service_worker.js"
+[headers.values]
+Cache-Control = "no-cache"
+
+[[headers]]
+for = "/index.html"
+[headers.values]
+Cache-Control = "no-cache"
+
+[[headers]]
+for = "/version.json"
+[headers.values]
+Cache-Control = "no-cache"
+
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+from = "/*"
+to = "/index.html"
+status = 200
