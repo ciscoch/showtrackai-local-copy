@@ -1,6 +1,7 @@
 [build]
-command = "./netlify-build.sh"
-publish = "build/web"
+  command = "bash ./netlify-build.sh"
+  publish = "build/web"
+
 
 [build.environment]
 FLUTTER_VERSION = "3.27.1"
