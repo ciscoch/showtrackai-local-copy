@@ -77,3 +77,7 @@ EOF
 echo "✅ Build completed successfully!"
 echo "📁 Output directory: build/web"
 ls -la build/web/
+echo "🔍 Flutter bootstrap file size:"
+ls -la build/web/flutter_bootstrap.js
+echo "🔍 CanvasKit files:"
+ls -la build/web/canvaskit/
