@@ -86,27 +86,49 @@ if [ ! -f "build/web/flutter_bootstrap.js" ]; then
   fi
 fi
 
-# Create minimal bootstrap file to avoid encoding issues
-echo "🔧 Creating minimal Flutter bootstrap..."
-if [ -f "./create-minimal-bootstrap.sh" ]; then
+# FORCE HTML RENDERER - ELIMINATE CANVASKIT PERMANENTLY
+echo "🔨 FORCING HTML-ONLY BOOTSTRAP..."
+if [ -f "./force-html-bootstrap.sh" ]; then
+  ./force-html-bootstrap.sh
+elif [ -f "./create-minimal-bootstrap.sh" ]; then
   ./create-minimal-bootstrap.sh
 elif [ -f "./patch-flutter-bootstrap.sh" ]; then
   ./patch-flutter-bootstrap.sh
 else
-  echo "⚠️ No patch scripts found, using sed fallback..."
-  if [ -f "build/web/flutter_bootstrap.js" ]; then
-    # Replace canvaskit renderer with html
-    sed -i.bak 's/"renderer":"canvaskit"/"renderer":"html"/g' build/web/flutter_bootstrap.js
-    
-    # Disable service worker
-    sed -i.bak 's/serviceWorkerSettings: {/serviceWorkerSettings: null \/\/ {/g' build/web/flutter_bootstrap.js
-    sed -i.bak 's/serviceWorkerVersion: "[^"]*"/serviceWorkerVersion: null/g' build/web/flutter_bootstrap.js
-    
-    # Remove backup files
-    rm -f build/web/flutter_bootstrap.js.bak
-    
-    echo "✅ Flutter bootstrap configured for HTML renderer"
-  fi
+  echo "⚠️ Creating fallback HTML-only bootstrap..."
+  # Create a minimal bootstrap that NEVER loads external resources
+  cat > build/web/flutter_bootstrap.js << 'EOF'
+// Fallback HTML-only bootstrap
+(function() {
+  window._flutter = window._flutter || {};
+  _flutter.buildConfig = {
+    engineRevision: "html",
+    builds: [{
+      compileTarget: "dart2js",
+      renderer: "html",
+      mainJsPath: "main.dart.js"
+    }]
+  };
+  _flutter.loader = {
+    loadEntrypoint: function() { return Promise.resolve(); },
+    load: function() {
+      var script = document.createElement('script');
+      script.src = 'main.dart.js';
+      document.head.appendChild(script);
+      return Promise.resolve();
+    },
+    didCreateEngineInitializer: function(e) {
+      if (e && e.initializeEngine) {
+        e.initializeEngine({renderer: "html"}).then(function(r) {
+          if (r && r.runApp) r.runApp();
+        });
+      }
+    }
+  };
+  _flutter.loader.load({renderer: "html"});
+})();
+EOF
+  echo "✅ Fallback HTML bootstrap created"
 fi
 
 # Verify file sizes

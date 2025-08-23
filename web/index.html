@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- Temporarily disable CSP to troubleshoot loading issues -->
-  <!-- <meta http-equiv="Content-Security-Policy" 
+  <!-- STRICT CSP - NO EXTERNAL RESOURCES ALLOWED -->
+  <meta http-equiv="Content-Security-Policy" 
         content="default-src 'self'; 
                  script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
                  style-src 'self' 'unsafe-inline'; 
@@ -10,13 +10,17 @@
                  img-src 'self' data: blob:; 
                  connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co https://showtrackai.app.n8n.cloud; 
                  worker-src 'none'; 
-                 object-src 'none';"> -->
+                 object-src 'none';
+                 frame-src 'none';
+                 base-uri 'self';
+                 form-action 'self';">
   
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="ShowTrackAI Agricultural Education Platform">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -29,24 +33,37 @@
 
   <title>ShowTrackAI</title>
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <!-- Loading indicator -->
-  <div id="flutter-loading" style="
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #0175C2;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  ">
-    <div style="
+
+  <style>
+    /* Prevent any external resource loading via CSS */
+    * {
+      -webkit-font-feature-settings: normal;
+      font-feature-settings: normal;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0175C2;
+    }
+
+    #flutter-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #0175C2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 9999;
+    }
+
+    .spinner {
       width: 60px;
       height: 60px;
       border: 6px solid rgba(255,255,255,0.3);
@@ -54,44 +71,76 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
       margin-bottom: 20px;
-    "></div>
-    <div style="font-size: 18px; font-weight: 500;">Loading ShowTrackAI...</div>
-  </div>
+    }
 
-  <style>
+    .loading-text {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    /* Hide Flutter loading when app is ready */
+    .flutter-loaded #flutter-loading {
+      display: none !important;
+    }
   </style>
+</head>
+<body>
+  <!-- Loading indicator -->
+  <div id="flutter-loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading ShowTrackAI...</div>
+  </div>
+
+  <!-- App container -->
+  <div id="app-container"></div>
 
   <script>
-    // Force HTML renderer and disable all CanvasKit/service worker features
+    // FORCE HTML RENDERER - NO CANVASKIT EVER
     window.flutterConfiguration = {
       renderer: "html",
+      useColorEmoji: true,
+      debugShowSemantics: false,
+      // Explicitly disable CanvasKit
+      useCanvasKit: false,
       canvasKitBaseUrl: null,
       useLocalCanvasKit: false
     };
     
-    // Completely disable service worker
+    // DISABLE ALL SERVICE WORKERS
     window.flutterServiceWorkerSettings = null;
     window.serviceWorkerVersion = null;
     
-    // Remove loading screen when Flutter loads
-    window.addEventListener('flutter-first-frame', function() {
-      const loading = document.getElementById('flutter-loading');
-      if (loading) {
-        loading.style.display = 'none';
+    // Block any attempts to load external resources
+    window.fetch = new Proxy(window.fetch, {
+      apply: function(target, thisArg, argumentsList) {
+        const url = argumentsList[0];
+        if (typeof url === 'string' && (
+          url.includes('gstatic.com') || 
+          url.includes('canvaskit') ||
+          url.includes('flutter-canvaskit') ||
+          url.startsWith('https://www.gstatic.com')
+        )) {
+          console.warn('BLOCKED external resource:', url);
+          return Promise.reject(new Error('External resource blocked: ' + url));
+        }
+        return target.apply(thisArg, argumentsList);
       }
     });
     
-    // Clear any existing service workers and caches
+    // Clear existing service workers and caches
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
+        registrations.forEach(function(registration) {
           console.log('Unregistering service worker:', registration.scope);
           registration.unregister();
-        }
+        });
+      }).catch(function(error) {
+        console.log('Service worker cleanup failed:', error);
       });
     }
     
@@ -103,10 +152,51 @@
             return caches.delete(cacheName);
           })
         );
+      }).catch(function(error) {
+        console.log('Cache cleanup failed:', error);
       });
     }
+    
+    // Remove loading screen when Flutter loads
+    let loadingRemoved = false;
+    function removeLoadingScreen() {
+      if (!loadingRemoved) {
+        loadingRemoved = true;
+        document.body.classList.add('flutter-loaded');
+        console.log('Flutter app loaded - removing loading screen');
+      }
+    }
+    
+    // Multiple ways to detect Flutter loading
+    window.addEventListener('flutter-first-frame', removeLoadingScreen);
+    
+    // Fallback timeout to remove loading screen
+    setTimeout(removeLoadingScreen, 10000); // 10 seconds max
+    
+    // Check for Flutter app periodically
+    let checkCount = 0;
+    const checkInterval = setInterval(function() {
+      checkCount++;
+      if (checkCount > 50) { // Max 25 seconds
+        clearInterval(checkInterval);
+        removeLoadingScreen();
+        return;
+      }
+      
+      // Look for signs that Flutter has loaded
+      if (document.querySelector('flt-scene-host') || 
+          document.querySelector('flt-semantics-host') ||
+          window.flutter ||
+          document.querySelector('#app-container').children.length > 0) {
+        clearInterval(checkInterval);
+        removeLoadingScreen();
+      }
+    }, 500);
+    
+    console.log('ShowTrackAI - HTML renderer only, zero external dependencies');
   </script>
   
+  <!-- Load our custom Flutter bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

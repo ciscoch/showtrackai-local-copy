@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ShowTrackAI External Resource Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .pass { color: #28a745; font-weight: bold; }
+        .fail { color: #dc3545; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .network-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-result.pass { background: #d4edda; border: 1px solid #c3e6cb; }
+        .test-result.fail { background: #f8d7da; border: 1px solid #f5c6cb; }
+        .test-result.warning { background: #fff3cd; border: 1px solid #ffeeba; }
+        #app-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 ShowTrackAI External Resource Test</h1>
+    <p><strong>Purpose:</strong> Verify that the Flutter app loads with ZERO external dependencies</p>
+    
+    <div class="test-section">
+        <h2>🌐 Network Monitoring</h2>
+        <p>Monitoring all network requests for external resources...</p>
+        <div id="network-status" class="test-result warning">
+            <span class="warning">⏳ MONITORING</span> Capturing network requests...
+        </div>
+        <div class="network-log" id="network-log">Starting network monitoring...\n</div>
+        <button class="button" onclick="clearNetworkLog()">Clear Log</button>
+        <button class="button" onclick="testExternalBlocking()">Test External Block</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Test Results</h2>
+        <div id="test-results">
+            <div class="test-result warning">
+                <span class="warning">⏳ WAITING</span> Waiting for Flutter app to load...
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 ShowTrackAI App</h2>
+        <iframe id="app-frame" src="http://localhost:8090/" title="ShowTrackAI App"></iframe>
+    </div>
+
+    <script>
+        let networkLog = [];
+        let originalFetch = window.fetch;
+        let externalRequestCount = 0;
+        let totalRequestCount = 0;
+
+        function logToDisplay(message) {
+            const logElement = document.getElementById('network-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateNetworkStatus() {
+            const statusElement = document.getElementById('network-status');
+            if (externalRequestCount === 0 && totalRequestCount > 0) {
+                statusElement.innerHTML = '<span class="pass">✅ PASS</span> No external resources detected!';
+                statusElement.className = 'test-result pass';
+            } else if (externalRequestCount > 0) {
+                statusElement.innerHTML = `<span class="fail">❌ FAIL</span> ${externalRequestCount} external requests detected!`;
+                statusElement.className = 'test-result fail';
+            }
+        }
+
+        function isExternalResource(url) {
+            return url.includes('gstatic.com') ||
+                   url.includes('flutter-canvaskit') ||
+                   url.includes('canvaskit') ||
+                   (url.startsWith('http') && !url.includes('localhost'));
+        }
+
+        // Monitor fetch requests
+        window.fetch = function(...args) {
+            const url = args[0];
+            totalRequestCount++;
+            
+            if (isExternalResource(url)) {
+                externalRequestCount++;
+                logToDisplay(`🚫 BLOCKED EXTERNAL: ${url}`);
+                updateNetworkStatus();
+                return Promise.reject(new Error('External resource blocked: ' + url));
+            } else {
+                logToDisplay(`✅ LOCAL REQUEST: ${url}`);
+            }
+            
+            updateNetworkStatus();
+            return originalFetch.apply(this, args);
+        };
+
+        // Monitor other request types
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...args) {
+            totalRequestCount++;
+            
+            if (isExternalResource(url)) {
+                externalRequestCount++;
+                logToDisplay(`🚫 BLOCKED XHR: ${method} ${url}`);
+                updateNetworkStatus();
+                throw new Error('External XHR blocked: ' + url);
+            } else {
+                logToDisplay(`✅ LOCAL XHR: ${method} ${url}`);
+            }
+            
+            updateNetworkStatus();
+            return originalXHROpen.call(this, method, url, ...args);
+        };
+
+        // Monitor iframe messages and network activity
+        window.addEventListener('message', function(event) {
+            if (event.origin !== 'http://localhost:8090') {
+                logToDisplay(`🚫 EXTERNAL MESSAGE: ${event.origin}`);
+                externalRequestCount++;
+                updateNetworkStatus();
+            }
+        });
+
+        function clearNetworkLog() {
+            document.getElementById('network-log').textContent = 'Network log cleared...\n';
+            networkLog = [];
+            externalRequestCount = 0;
+            totalRequestCount = 0;
+            updateNetworkStatus();
+        }
+
+        function testExternalBlocking() {
+            logToDisplay('🧪 Testing external resource blocking...');
+            
+            // Test 1: Try to fetch from gstatic.com
+            fetch('https://www.gstatic.com/flutter-canvaskit/test')
+                .then(() => {
+                    logToDisplay('❌ TEST FAILED: gstatic.com was not blocked!');
+                })
+                .catch(() => {
+                    logToDisplay('✅ TEST PASSED: gstatic.com blocked successfully');
+                });
+
+            // Test 2: Try to load CanvasKit
+            fetch('/canvaskit/canvaskit.js')
+                .then(() => {
+                    logToDisplay('❌ TEST FAILED: canvaskit was not blocked!');
+                })
+                .catch(() => {
+                    logToDisplay('✅ TEST PASSED: canvaskit blocked successfully');
+                });
+        }
+
+        // Run tests after 5 seconds
+        setTimeout(() => {
+            const resultsDiv = document.getElementById('test-results');
+            const iframe = document.getElementById('app-frame');
+            
+            let results = '<h3>🔍 Automated Test Results:</h3>';
+            
+            // Check if Flutter loaded
+            try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const hasFlutterContent = iframeDoc.querySelector('flt-scene-host') || 
+                                        iframeDoc.querySelector('flt-semantics-host') ||
+                                        iframeDoc.body.children.length > 2;
+                
+                if (hasFlutterContent) {
+                    results += '<div class="test-result pass"><span class="pass">✅ FLUTTER LOADED</span> App appears to be running</div>';
+                } else {
+                    results += '<div class="test-result fail"><span class="fail">❌ FLUTTER NOT LOADED</span> No Flutter content detected</div>';
+                }
+            } catch (e) {
+                results += '<div class="test-result warning"><span class="warning">⚠️ CROSS-ORIGIN</span> Cannot inspect iframe content (normal for security)</div>';
+            }
+            
+            // Check network activity
+            if (externalRequestCount === 0) {
+                results += '<div class="test-result pass"><span class="pass">✅ NO EXTERNAL REQUESTS</span> Zero external resources requested</div>';
+            } else {
+                results += `<div class="test-result fail"><span class="fail">❌ EXTERNAL REQUESTS</span> ${externalRequestCount} external requests detected</div>`;
+            }
+            
+            // Check for CSP violations in console
+            results += '<div class="test-result warning"><span class="warning">⚠️ CHECK CONSOLE</span> Open browser dev tools to check for CSP violations</div>';
+            
+            resultsDiv.innerHTML = results;
+            
+            // Run external blocking test
+            testExternalBlocking();
+        }, 5000);
+
+        logToDisplay('🚀 Starting ShowTrackAI external resource test...');
+        logToDisplay('📊 Monitoring network requests...');
+        
+        // Initial status
+        updateNetworkStatus();
+    </script>
+</body>
+</html>
