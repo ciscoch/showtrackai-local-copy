@@ -28,10 +28,9 @@ flutter clean
 echo "📚 Getting dependencies..."
 flutter pub get
 
-# Build for web with HTML renderer (no CanvasKit)
-echo "🏗️ Building Flutter web app with HTML renderer..."
+# Build for web (HTML renderer configured in web/index.html)
+echo "🏗️ Building Flutter web app..."
 flutter build web --release \
-  --web-renderer html \
   --no-tree-shake-icons \
   --dart-define=SUPABASE_URL=${SUPABASE_URL} \
   --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
