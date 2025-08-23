@@ -1,7 +1,11 @@
 [build]
-  command = "npm run build"
-  publish = "dist"            # change if your site builds elsewhere
-  functions = "netlify/functions"
+  command = "bash ./netlify-build.sh"
+  publish = "build/web"
+
+[build.environment]
+  FLUTTER_VERSION = "3.27.1"
+  NODE_VERSION = "18"
+
 
 [build.environment]
   FLUTTER_CHANNEL = "stable"
