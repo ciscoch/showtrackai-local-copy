@@ -86,6 +86,27 @@ if [ ! -f "build/web/flutter_bootstrap.js" ]; then
   fi
 fi
 
+# Apply HTML renderer patch
+echo "🔧 Applying HTML renderer patch..."
+if [ -f "./patch-flutter-bootstrap.sh" ]; then
+  ./patch-flutter-bootstrap.sh
+else
+  echo "⚠️ Patch script not found, using sed fallback..."
+  if [ -f "build/web/flutter_bootstrap.js" ]; then
+    # Replace canvaskit renderer with html
+    sed -i.bak 's/"renderer":"canvaskit"/"renderer":"html"/g' build/web/flutter_bootstrap.js
+    
+    # Disable service worker
+    sed -i.bak 's/serviceWorkerSettings: {/serviceWorkerSettings: null \/\/ {/g' build/web/flutter_bootstrap.js
+    sed -i.bak 's/serviceWorkerVersion: "[^"]*"/serviceWorkerVersion: null/g' build/web/flutter_bootstrap.js
+    
+    # Remove backup files
+    rm -f build/web/flutter_bootstrap.js.bak
+    
+    echo "✅ Flutter bootstrap configured for HTML renderer"
+  fi
+fi
+
 # Verify file sizes
 echo "🔍 Checking critical files..."
 for file in flutter_bootstrap.js flutter.js main.dart.js; do
