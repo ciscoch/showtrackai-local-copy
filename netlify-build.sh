@@ -76,8 +76,28 @@ EOF
 
 echo "✅ Build completed successfully!"
 echo "📁 Output directory: build/web"
+
+# Ensure flutter_bootstrap.js exists and has content
+if [ ! -f "build/web/flutter_bootstrap.js" ]; then
+  echo "⚠️ flutter_bootstrap.js not found, checking for flutter.js..."
+  if [ -f "build/web/flutter.js" ]; then
+    echo "📝 Found flutter.js, copying to flutter_bootstrap.js..."
+    cp build/web/flutter.js build/web/flutter_bootstrap.js
+  fi
+fi
+
+# Verify file sizes
+echo "🔍 Checking critical files..."
+for file in flutter_bootstrap.js flutter.js main.dart.js; do
+  if [ -f "build/web/$file" ]; then
+    SIZE=$(stat -f%z "build/web/$file" 2>/dev/null || stat -c%s "build/web/$file" 2>/dev/null || echo "0")
+    echo "  - $file: $SIZE bytes"
+    if [ "$SIZE" = "0" ]; then
+      echo "    ⚠️ Warning: $file is empty!"
+    fi
+  else
+    echo "  - $file: NOT FOUND"
+  fi
+done
+
 ls -la build/web/
-echo "🔍 Flutter bootstrap file size:"
-ls -la build/web/flutter_bootstrap.js
-echo "🔍 CanvasKit files:"
-ls -la build/web/canvaskit/
