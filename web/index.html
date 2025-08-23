@@ -66,11 +66,11 @@
   </style>
 
   <script>
-    // Force HTML renderer and disable service worker
+    // Configure Flutter with canvaskit renderer and disable service worker
     window.flutterConfiguration = {
-      renderer: "html",
-      canvasKitBaseUrl: null,
-      useLocalCanvasKit: false
+      renderer: "canvaskit",
+      canvasKitBaseUrl: "canvaskit/",
+      useLocalCanvasKit: true
     };
     
     // Disable service worker registration

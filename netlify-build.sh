@@ -41,7 +41,7 @@ flutter build web --release \
 # Remove service worker files to prevent caching issues
 echo "🧹 Removing service worker files..."
 rm -f build/web/flutter_service_worker.js
-rm -rf build/web/canvaskit/
+# Keep canvaskit directory - it's needed for Flutter Web
 
 # Create a dummy service worker that does nothing
 echo "📝 Creating no-op service worker..."
