@@ -2,22 +2,23 @@
   command = "bash ./netlify-build.sh"
   publish = "build/web"
 
+# Keep ONLY ONE of these in the whole file
 [build.environment]
-  FLUTTER_VERSION = "3.27.1"
-  NODE_VERSION = "18"
+  FLUTTER_VERSION   = "3.27.1"
+  NODE_VERSION      = "18"
+  FLUTTER_CHANNEL   = "stable"         # optional; only if your script uses it
+  # add other shared env here (SUPABASE_URL, etc.)
 
+# Use contexts for per-env overrides (optional)
+[context.production.environment]
+  FLUTTER_ENVIRONMENT = "production"
 
-[build.environment]
-  FLUTTER_CHANNEL = "stable"
-  FLUTTER_WEB_RENDERER = "canvaskit"
-  BUILD_MODE = "release"
-  REMOVE_SOURCE_MAPS = "false"
-  CACHE_BUSTER = "v3-20250813-044355-force-rebuild"
+# ... your headers/redirects go here ...
+# [[headers]] blocks are fine to repeat; just don't repeat [build.environment].
 
-# SPA routing
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to   = "/index.html"
   status = 200
 
 # Security + perf headers
