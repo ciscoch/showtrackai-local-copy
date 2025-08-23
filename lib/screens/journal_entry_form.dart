@@ -5,7 +5,6 @@ import '../services/journal_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/feed_data_input.dart';
 import '../widgets/aet_skills_selector.dart';
-import '../widgets/location_input_field.dart';
 
 class JournalEntryForm extends StatefulWidget {
   const JournalEntryForm({Key? key}) : super(key: key);
@@ -28,8 +27,6 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
   String _selectedCategory = 'general';
   List<String> _selectedAETSkills = [];
   FeedData? _feedData;
-  LocationData? _locationData;
-  WeatherData? _weatherData;
   bool _isSubmitting = false;
 
   final List<String> _categories = [
@@ -87,8 +84,6 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
         category: _selectedCategory,
         aetSkills: _selectedAETSkills,
         feedData: _feedData,
-        location: _locationData,
-        weather: _weatherData,
         objectives: _objectivesController.text.isNotEmpty
             ? _objectivesController.text.split('\n')
             : null,
@@ -277,18 +272,6 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
             ),
             const SizedBox(height: 16),
 
-            // Location and Weather Input
-            LocationInputField(
-              onLocationChanged: (location, weather) {
-                setState(() {
-                  _locationData = location;
-                  _weatherData = weather;
-                });
-              },
-              initialLocation: _locationData,
-              initialWeather: _weatherData,
-            ),
-            const SizedBox(height: 16),
 
             // Feed Data Input (optional)
             if (_selectedCategory == 'feeding')

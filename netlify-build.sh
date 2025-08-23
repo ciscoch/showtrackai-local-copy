@@ -1,43 +1,42 @@
-#!/usr/bin/env bash
-# netlify-build.sh
-# Flutter web build script for Netlify
+#!/bin/bash
+set -e
 
-set -e  # exit on first error
+echo "🚀 Starting ShowTrackAI build for Netlify"
+echo "📍 Current directory: $(pwd)"
+echo "📦 Flutter version: ${FLUTTER_VERSION:-3.27.1}"
 
-echo "▶️  Starting Flutter web build"
-
-# Print build info
-echo "🔍 Build Information:"
-echo "   Git Commit: $(git rev-parse HEAD || echo 'unknown')"
-echo "   Git Branch: ${BRANCH:-unknown}"
-echo "   Build Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-
-# Install Flutter if not already present
-if [ ! -d "$HOME/flutter/bin" ]; then
-  echo "⤵️  Installing Flutter (${FLUTTER_CHANNEL:-stable})…"
-  git clone --branch ${FLUTTER_CHANNEL:-stable} https://github.com/flutter/flutter.git $HOME/flutter
+# Install Flutter if not cached
+if [ ! -d "$HOME/flutter" ]; then
+  echo "📥 Installing Flutter ${FLUTTER_VERSION:-3.27.1}..."
+  git clone https://github.com/flutter/flutter.git -b stable --depth 1 "$HOME/flutter"
 fi
 
+# Add Flutter to PATH
 export PATH="$HOME/flutter/bin:$PATH"
+
+# Show Flutter version
 flutter --version
 
-# Enable Flutter web if not already
+# Enable web support
 flutter config --enable-web
 
-# Clean & fetch dependencies
-echo "🧹 flutter clean"
+# Clean previous build
+echo "🧹 Cleaning previous build..."
 flutter clean
-echo "📚 flutter pub get"
+
+# Get dependencies
+echo "📚 Getting dependencies..."
 flutter pub get
 
-# Build Flutter web app
-echo "🏗️  flutter build web --release"
+# Build for web
+echo "🏗️ Building Flutter web app..."
 flutter build web --release \
-  --dart-define SUPABASE_URL=${SUPABASE_URL} \
-  --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
-  --dart-define FLUTTER_ENVIRONMENT=production \
-  --dart-define NETLIFY=true \
-  --dart-define DEMO_EMAIL=${DEMO_EMAIL} \
-  --dart-define DEMO_PASSWORD=${DEMO_PASSWORD}
+  --dart-define=SUPABASE_URL=${SUPABASE_URL} \
+  --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
+  --dart-define=FLUTTER_ENVIRONMENT=production \
+  --dart-define=DEMO_EMAIL=${DEMO_EMAIL} \
+  --dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}
 
-echo "✅ Build completed. Files in build/web/"
+echo "✅ Build completed successfully!"
+echo "📁 Output directory: build/web"
+ls -la build/web/

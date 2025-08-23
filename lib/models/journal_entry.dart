@@ -14,8 +14,6 @@ class JournalEntry {
   final String? challenges;
   final String? improvements;
   final List<String>? photos;
-  final LocationData? location;
-  final WeatherData? weather;
   final int? qualityScore;
   final List<String>? ffaStandards;
   final List<String>? educationalConcepts;
@@ -40,8 +38,6 @@ class JournalEntry {
     this.challenges,
     this.improvements,
     this.photos,
-    this.location,
-    this.weather,
     this.qualityScore,
     this.ffaStandards,
     this.educationalConcepts,
@@ -67,8 +63,6 @@ class JournalEntry {
         'challenges': challenges,
         'improvements': improvements,
         'photos': photos,
-        'location': location?.toJson(),
-        'weather': weather?.toJson(),
       };
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
@@ -94,12 +88,6 @@ class JournalEntry {
         improvements: json['improvements_planned'],
         photos:
             json['photos'] != null ? List<String>.from(json['photos']) : null,
-        location: json['metadata']?['location'] != null
-            ? LocationData.fromJson(json['metadata']['location'])
-            : null,
-        weather: json['metadata']?['weather'] != null
-            ? WeatherData.fromJson(json['metadata']['weather'])
-            : null,
         qualityScore: json['quality_score'],
         ffaStandards: json['ffa_standards'] != null
             ? List<String>.from(json['ffa_standards'])
@@ -149,76 +137,6 @@ class FeedData {
         amount: json['amount'].toDouble(),
         cost: json['cost'].toDouble(),
         feedConversionRatio: json['feedConversionRatio']?.toDouble(),
-      );
-}
-
-class LocationData {
-  final double? latitude;
-  final double? longitude;
-  final String? address;
-  final String? locationName; // User-defined name like "Barn A"
-  final double? accuracy; // GPS accuracy in meters
-  final DateTime? capturedAt; // When location was captured
-
-  LocationData({
-    this.latitude,
-    this.longitude,
-    this.address,
-    this.locationName,
-    this.accuracy,
-    this.capturedAt,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'latitude': latitude,
-        'longitude': longitude,
-        'address': address,
-        'location_name': locationName,
-        'accuracy': accuracy,
-        'captured_at': capturedAt?.toIso8601String(),
-      };
-
-  factory LocationData.fromJson(Map<String, dynamic> json) => LocationData(
-        latitude: json['latitude']?.toDouble(),
-        longitude: json['longitude']?.toDouble(),
-        address: json['address'],
-        locationName: json['location_name'],
-        accuracy: json['accuracy']?.toDouble(),
-        capturedAt: json['captured_at'] != null
-            ? DateTime.parse(json['captured_at'])
-            : null,
-      );
-}
-
-class WeatherData {
-  final double temperature;
-  final String conditions;
-  final double? humidity;
-  final double? windSpeed; // Wind speed in m/s
-  final String? description; // Detailed weather description
-
-  WeatherData({
-    required this.temperature,
-    required this.conditions,
-    this.humidity,
-    this.windSpeed,
-    this.description,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'temperature': temperature,
-        'conditions': conditions,
-        'humidity': humidity,
-        'wind_speed': windSpeed,
-        'description': description,
-      };
-
-  factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
-        temperature: json['temperature'].toDouble(),
-        conditions: json['conditions'],
-        humidity: json['humidity']?.toDouble(),
-        windSpeed: json['wind_speed']?.toDouble(),
-        description: json['description'],
       );
 }
 

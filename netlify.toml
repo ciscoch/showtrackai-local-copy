@@ -1,51 +1,23 @@
+# Netlify Configuration
 [build]
-  command = "bash ./netlify-build.sh"
+  # Build command
+  command = "./netlify-build.sh"
+  
+  # Directory to deploy
   publish = "build/web"
-  functions = "netlify/functions"
+  
+  # Environment settings
+  environment = { NODE_VERSION = "18" }
 
+# Build environment variables 
 [build.environment]
-  # Flutter settings for 3.32+
-  FLUTTER_VERSION = "stable"
-  FLUTTER_CHANNEL = "stable"
-  
-  # Build settings
-  NODE_VERSION = "18"
-  
-  # Performance optimizations
-  DART_DEFINES_CACHE = "true"
-  FLUTTER_BUILD_VERBOSE = "false"
-  
-  # Cache buster for forcing rebuilds
-  CACHE_BUSTER = "v5-20250120-flutter-332-fix"
+  FLUTTER_VERSION = "3.27.1"
 
-# Build command timeout (30 minutes)
-[build.processing]
-  skip_processing = false
+# Production context
+[context.production]
+  environment = { FLUTTER_ENVIRONMENT = "production" }
 
-[build.processing.css]
-  bundle = true
-  minify = true
-
-[build.processing.js]
-  bundle = true
-  minify = true
-
-[build.processing.html]
-  pretty_urls = true
-
-# SPA routing for Flutter web
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Handle Flutter routing
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# Security headers optimized for Flutter web
+# Headers for all files
 [[headers]]
   for = "/*"
   [headers.values]
@@ -53,23 +25,17 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Updated permissions policy for modern browsers
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(self), payment=(), usb=()"
-    # Content Security Policy for Flutter web
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org;"
 
-# Optimize caching for Flutter web assets
+# Cache control for static assets
 [[headers]]
   for = "/*.js"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-    Content-Encoding = "gzip"
 
 [[headers]]
   for = "/*.css"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-    Content-Encoding = "gzip"
 
 [[headers]]
   for = "/*.woff2"
@@ -81,58 +47,24 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# Flutter specific files
 [[headers]]
-  for = "/canvaskit/*"
+  for = "/flutter_service_worker.js"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "no-cache"
 
-# Flutter-specific headers
-[[headers]]
-  for = "/flutter.js"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/flutter_bootstrap.js"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/main.dart.js"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-# CORS for serverless functions
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-
-# Prevent caching of the main HTML file
 [[headers]]
   for = "/index.html"
   [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
-    Pragma = "no-cache"
-    Expires = "0"
-
-# Handle manifest and favicon
-[[headers]]
-  for = "/manifest.json"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-    Content-Type = "application/json"
+    Cache-Control = "no-cache"
 
 [[headers]]
-  for = "/favicon.png"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-# Build status endpoint
-[[headers]]
-  for = "/build-info.txt"
+  for = "/version.json"
   [headers.values]
     Cache-Control = "no-cache"
-    Content-Type = "text/plain"
+
+# Redirect rules
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
