@@ -1,15 +1,22 @@
 [build]
-  command = "bash ./netlify-build.sh"
-  publish = "build/web"
+  command = "npm run build"
+  publish = "dist"            # change if your site builds elsewhere
+  functions = "netlify/functions"
 
 [build.environment]
-  FLUTTER_VERSION = "3.27.1"
-  NODE_VERSION = "18"
+  FLUTTER_CHANNEL = "stable"
+  FLUTTER_WEB_RENDERER = "canvaskit"
+  BUILD_MODE = "release"
+  REMOVE_SOURCE_MAPS = "false"
+  CACHE_BUSTER = "v3-20250813-044355-force-rebuild"
 
-[context.production.environment]
-  FLUTTER_ENVIRONMENT = "production"
+# SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
-# ---------- Security & CSP (HTML renderer, no external fonts/Canvaskit) ----------
+# Security + perf headers
 [[headers]]
   for = "/*"
   [headers.values]
@@ -17,63 +24,25 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    # If you later decide to allow Google Fonts, see the "Optional: allow external fonts" note below.
-    Content-Security-Policy = "default-src 'self' data: blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co wss://*.supabase.in https://showtrackai.app.n8n.cloud; worker-src 'self' blob:;"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
-# App shell: always revalidate
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/flutter_service_worker.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/version.json"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-# Top-level JS/CSS: revalidate (these filenames aren’t hashed)
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
   for = "/*.css"
   [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-# Immutable hashed assets
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# CanvasKit & WASM (kept harmless even if unused)
-[[headers]]
-  for = "/canvaskit/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/*.wasm"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-    Content-Type = "application/wasm"
-
-# Web fonts (if you ever ship local .woff2 in /assets/)
 [[headers]]
   for = "/*.woff2"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# SPA fallback
-[[redirects]]
-  from = "/*"
-  to   = "/index.html"
-  status = 200
+# Add Access-Control-Allow-Origin for serverless functions
+[[headers]]
+  for = "/.netlify/functions/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
