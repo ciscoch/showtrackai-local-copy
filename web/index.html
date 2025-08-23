@@ -1,38 +1,111 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
+  <!-- Security Headers - Block external resources -->
+  <meta http-equiv="Content-Security-Policy" 
+        content="default-src 'self'; 
+                 script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
+                 style-src 'self' 'unsafe-inline'; 
+                 font-src 'self' data:; 
+                 img-src 'self' data: blob:; 
+                 connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co https://showtrackai.app.n8n.cloud; 
+                 worker-src 'none'; 
+                 object-src 'none';">
+  
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="ShowTrackAI Agricultural Education Platform">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="showtrackai_journaling">
+  <meta name="apple-mobile-web-app-title" content="ShowTrackAI">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>showtrackai_journaling</title>
+  <title>ShowTrackAI</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Loading indicator -->
+  <div id="flutter-loading" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0175C2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  ">
+    <div style="
+      width: 60px;
+      height: 60px;
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top: 6px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    "></div>
+    <div style="font-size: 18px; font-weight: 500;">Loading ShowTrackAI...</div>
+  </div>
+
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script>
+    // Force HTML renderer and disable service worker
+    window.flutterConfiguration = {
+      renderer: "html",
+      canvasKitBaseUrl: null,
+      useLocalCanvasKit: false
+    };
+    
+    // Disable service worker registration
+    window.flutterServiceWorkerSettings = null;
+    
+    // Remove loading screen when Flutter loads
+    window.addEventListener('flutter-first-frame', function() {
+      const loading = document.getElementById('flutter-loading');
+      if (loading) {
+        loading.style.display = 'none';
+      }
+    });
+    
+    // Clear any existing service workers and caches
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          console.log('Unregistering service worker:', registration.scope);
+          registration.unregister();
+        }
+      });
+    }
+    
+    if ('caches' in window) {
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            console.log('Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      });
+    }
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

@@ -1,0 +1,6 @@
+{
+  "renderer": "html",
+  "canvasKitBaseUrl": null,
+  "useLocalCanvasKit": false,
+  "serviceWorkerSettings": null
+}

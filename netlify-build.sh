@@ -28,14 +28,52 @@ flutter clean
 echo "📚 Getting dependencies..."
 flutter pub get
 
-# Build for web
-echo "🏗️ Building Flutter web app..."
+# Build for web with HTML renderer (no CanvasKit)
+echo "🏗️ Building Flutter web app with HTML renderer..."
 flutter build web --release \
+  --web-renderer html \
+  --no-tree-shake-icons \
   --dart-define=SUPABASE_URL=${SUPABASE_URL} \
   --dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
   --dart-define=FLUTTER_ENVIRONMENT=production \
   --dart-define=DEMO_EMAIL=${DEMO_EMAIL} \
   --dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}
+
+# Remove service worker files to prevent caching issues
+echo "🧹 Removing service worker files..."
+rm -f build/web/flutter_service_worker.js
+rm -rf build/web/canvaskit/
+
+# Create a dummy service worker that does nothing
+echo "📝 Creating no-op service worker..."
+cat > build/web/flutter_service_worker.js << 'EOF'
+// No-op service worker to prevent caching issues
+self.addEventListener('install', function(event) {
+  console.log('No-op service worker installed');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', function(event) {
+  console.log('No-op service worker activated');
+  // Clear all caches
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(cacheName) {
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    })
+  );
+  return self.clients.claim();
+});
+
+self.addEventListener('fetch', function(event) {
+  // Pass through all requests without caching
+  event.respondWith(fetch(event.request));
+});
+EOF
 
 echo "✅ Build completed successfully!"
 echo "📁 Output directory: build/web"
