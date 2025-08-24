@@ -35,11 +35,6 @@ dependencies:
   # Development utilities
   uuid: ^4.2.1
   
-  # Geolocation packages (conditional for web compatibility)
-  geolocator: ^10.1.0
-  geocoding: ^2.1.1
-  permission_handler: ^11.1.0
-  
   # Weather API (optional - can use existing http package)
   weather: ^3.1.1
   
