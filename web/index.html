@@ -1,106 +1,175 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="ShowTrackAI - Agricultural Education Platform">
-
-  <!-- iOS meta tags & icons -->
-  <!-- Progressive Web App -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="ShowTrackAI">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
-
+  <link rel="icon" type="image/png" href="favicon.png"/>
   <style>
     body {
       margin: 0;
-      background-color: #f5f5f5;
-      font-family: Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
-    .loading {
+    #loading {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
       z-index: 9999;
+      background-color: white;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #loading.hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
     }
     
     .spinner {
       width: 40px;
       height: 40px;
-      border: 4px solid #4CAF50;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #1976d2;
       border-radius: 50%;
-      border-top: 4px solid transparent;
       animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      margin: 0 auto 16px;
     }
     
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    
-    .loading-text {
-      text-align: center;
-      color: #4CAF50;
-    }
   </style>
 </head>
 <body>
   <!-- Loading indicator -->
-  <div id="loading" class="loading">
-    <div class="loading-text">
-      <div class="spinner"></div>
-      <h3>Loading ShowTrackAI...</h3>
-      <p>Agricultural Education Platform</p>
-    </div>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading ShowTrackAI...</p>
   </div>
 
+  <!-- Flutter initialization -->
   <script>
-    // Simple loading management
-    window.addEventListener('flutter-first-frame', function () {
-      const loading = document.getElementById('loading');
-      if (loading) {
-        loading.style.display = 'none';
+    // Add console logging to see what's happening
+    console.log("🚀 Starting Flutter initialization...");
+    
+    // Function to hide loading screen with multiple methods
+    function hideLoadingScreen() {
+      console.log('🎯 Hiding loading screen...');
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement) {
+        // Method 1: Add hidden class (most reliable)
+        loadingElement.classList.add('hidden');
+        
+        // Method 2: Set display none directly
+        loadingElement.style.display = 'none';
+        
+        // Method 3: Set visibility hidden
+        loadingElement.style.visibility = 'hidden';
+        
+        // Method 4: Set opacity to 0
+        loadingElement.style.opacity = '0';
+        
+        // Method 5: Remove from DOM completely
+        setTimeout(() => {
+          if (loadingElement && loadingElement.parentNode) {
+            loadingElement.parentNode.removeChild(loadingElement);
+            console.log('✅ Loading screen removed from DOM');
+          }
+        }, 100);
+        
+        console.log('✅ Loading screen hidden successfully');
+      } else {
+        console.warn('⚠️ Loading element not found');
       }
+    }
+    
+    // Multiple event listeners for Flutter ready state
+    
+    // Method 1: Standard flutter-first-frame event
+    window.addEventListener('flutter-first-frame', function () {
+      console.log('✅ Flutter first frame rendered via flutter-first-frame event!');
+      hideLoadingScreen();
     });
-
-    // Configuration for HTML renderer
-    window.flutterConfiguration = {
-      renderer: "html"
-    };
+    
+    // Method 2: Listen for Flutter app initialization
+    window.addEventListener('DOMContentLoaded', function() {
+      // Wait for Flutter to initialize
+      const checkFlutterReady = () => {
+        if (window.flutterApp || window._flutter?.app || document.querySelector('flt-glass-pane')) {
+          console.log('✅ Flutter app detected via DOM check!');
+          hideLoadingScreen();
+        } else {
+          setTimeout(checkFlutterReady, 100);
+        }
+      };
+      
+      // Start checking after a short delay
+      setTimeout(checkFlutterReady, 500);
+    });
+    
+    // Method 3: Fallback timeout (in case events don't fire)
+    setTimeout(() => {
+      console.log('⏰ Fallback timeout - hiding loading screen');
+      hideLoadingScreen();
+    }, 8000); // 8 second fallback
+    
+    // Method 4: Check for Flutter DOM elements periodically
+    const flutterCheck = setInterval(() => {
+      // Look for Flutter-specific DOM elements
+      const flutterElements = document.querySelectorAll('flt-glass-pane, flt-scene-host, flutter-view');
+      if (flutterElements.length > 0) {
+        console.log('✅ Flutter DOM elements detected!');
+        hideLoadingScreen();
+        clearInterval(flutterCheck);
+      }
+    }, 200);
+    
+    // Clear the interval after 10 seconds to avoid infinite checking
+    setTimeout(() => {
+      clearInterval(flutterCheck);
+    }, 10000);
+    
+    // Error handling
+    window.addEventListener('error', function(e) {
+      console.error('❌ Error loading Flutter:', e.error);
+      console.error('File:', e.filename);
+      console.error('Line:', e.lineno);
+      
+      // Hide loading screen even on error after a delay
+      setTimeout(() => {
+        console.log('⚠️ Hiding loading screen due to error');
+        hideLoadingScreen();
+      }, 3000);
+    });
+    
+    // Additional debugging
+    window.addEventListener('load', function() {
+      console.log('📄 Window load event fired');
+      // Give Flutter a moment to render, then hide if not already hidden
+      setTimeout(() => {
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement && !loadingElement.classList.contains('hidden')) {
+          console.log('🔄 Loading screen still visible after window load, hiding now');
+          hideLoadingScreen();
+        }
+      }, 1000);
+    });
   </script>
   
-  <script src="flutter.js" defer></script>
+  <!-- Load Flutter bootstrap -->
+  <script src="flutter_bootstrap.js"></script>
 </body>
 </html>

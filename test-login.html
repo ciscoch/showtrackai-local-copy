@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+    <meta name="description" content="ShowTrackAI Login Test">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowTrackAI Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-link {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .test-link:hover {
+            background-color: #45a049;
+        }
+        .iframe-container {
+            margin-top: 30px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            height: 600px;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>ShowTrackAI Login Test</h1>
+        <p><strong>Status:</strong> Server running on localhost:8087</p>
+        <p><strong>Build completed:</strong> ✅ Main app should now show login screen</p>
+        
+        <div>
+            <h3>Test Links:</h3>
+            <a href="http://localhost:8087/" class="test-link">🏠 Home (should redirect to login)</a>
+            <a href="http://localhost:8087/#/login" class="test-link">🔐 Direct Login Route</a>
+            <a href="http://localhost:8087/#/dashboard" class="test-link">📊 Dashboard (should require login)</a>
+        </div>
+
+        <div class="iframe-container">
+            <h3>Live Preview:</h3>
+            <iframe src="http://localhost:8087/#/login" title="ShowTrackAI Login Screen"></iframe>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h3>Expected Result:</h3>
+            <ul>
+                <li>✅ Should see ShowTrackAI login screen (not test app)</li>
+                <li>✅ Green logo with "ShowTrackAI" title</li>
+                <li>✅ Email and Password fields</li>
+                <li>✅ "Sign In" and "Continue as Demo User" buttons</li>
+                <li>✅ No more "BLACK SCREEN DEBUG MODE" messages</li>
+            </ul>
+            
+            <h3>If Issues:</h3>
+            <ul>
+                <li>❌ Still shows test app → Check console for routing errors</li>
+                <li>❌ Blank screen → Check browser console for JavaScript errors</li>
+                <li>❌ Build failed → Check Flutter build output</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh iframe every 10 seconds to catch updates
+        setInterval(() => {
+            const iframe = document.querySelector('iframe');
+            if (iframe) {
+                iframe.contentWindow.location.reload();
+            }
+        }, 10000);
+        
+        console.log('ShowTrackAI Test Page Loaded');
+        console.log('Server: http://localhost:8087');
+        console.log('Login URL: http://localhost:8087/#/login');
+    </script>
+</body>
+</html>

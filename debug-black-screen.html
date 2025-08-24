@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter Black Screen Debug</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .debug-panel {
+            background: #f5f5f5;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        .flutter-container {
+            border: 2px solid #ddd;
+            min-height: 600px;
+            position: relative;
+        }
+        #debug-log {
+            background: #000;
+            color: #00ff00;
+            padding: 10px;
+            font-family: monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .test-buttons {
+            margin: 10px 0;
+        }
+        .test-buttons button {
+            margin: 5px;
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-panel">
+        <h1>Flutter Black Screen Debug Tool</h1>
+        <p>This tool will help diagnose the black screen issue in your Flutter web app.</p>
+        
+        <div class="test-buttons">
+            <button onclick="loadFlutterApp()">Load Flutter App</button>
+            <button onclick="inspectFlutterElements()">Inspect Flutter DOM</button>
+            <button onclick="checkCSS()">Check CSS Issues</button>
+            <button onclick="testColorScheme()">Test Color Scheme</button>
+            <button onclick="clearDebugLog()">Clear Log</button>
+        </div>
+        
+        <div id="debug-log"></div>
+    </div>
+    
+    <div class="flutter-container" id="flutter-container">
+        <iframe id="flutter-iframe" src="http://localhost:8087/" width="100%" height="600" frameborder="1"></iframe>
+    </div>
+
+    <script>
+        const debugLog = document.getElementById('debug-log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = {
+                'info': '#00ff00',
+                'warn': '#ffff00', 
+                'error': '#ff0000'
+            }[type] || '#00ff00';
+            
+            debugLog.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            debugLog.scrollTop = debugLog.scrollHeight;
+        }
+        
+        function clearDebugLog() {
+            debugLog.innerHTML = '';
+        }
+        
+        function loadFlutterApp() {
+            log('Loading Flutter app from localhost:8087...');
+            const iframe = document.getElementById('flutter-iframe');
+            iframe.src = 'http://localhost:8087/#/login';
+            
+            iframe.onload = function() {
+                log('Flutter iframe loaded successfully');
+                setTimeout(() => {
+                    inspectFlutterElements();
+                }, 2000);
+            };
+            
+            iframe.onerror = function() {
+                log('Error loading Flutter app', 'error');
+            };
+        }
+        
+        function inspectFlutterElements() {
+            try {
+                const iframe = document.getElementById('flutter-iframe');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                log('=== FLUTTER DOM INSPECTION ===');
+                
+                // Check for Flutter root elements
+                const flutterElements = iframeDoc.querySelectorAll('flt-glass-pane, flt-scene-host, flutter-view, [flt-renderer]');
+                log(`Found ${flutterElements.length} Flutter elements`);
+                
+                flutterElements.forEach((el, i) => {
+                    const rect = el.getBoundingClientRect();
+                    const styles = window.getComputedStyle(el);
+                    log(`Element ${i}: ${el.tagName} - Size: ${rect.width}x${rect.height}, Display: ${styles.display}, Visibility: ${styles.visibility}`);
+                    log(`  Background: ${styles.backgroundColor}, Color: ${styles.color}`);
+                });
+                
+                // Check body and html styles
+                const body = iframeDoc.body;
+                const bodyStyles = iframeDoc.defaultView.getComputedStyle(body);
+                log(`Body styles - Background: ${bodyStyles.backgroundColor}, Color: ${bodyStyles.color}`);
+                log(`Body size: ${body.scrollWidth}x${body.scrollHeight}`);
+                
+                // Check for loading elements
+                const loadingEl = iframeDoc.getElementById('loading');
+                if (loadingEl) {
+                    const loadingStyles = iframeDoc.defaultView.getComputedStyle(loadingEl);
+                    log(`Loading element still present - Display: ${loadingStyles.display}, Visibility: ${loadingStyles.visibility}`, 'warn');
+                } else {
+                    log('Loading element properly removed');
+                }
+                
+                // Check for any error messages
+                const errorElements = iframeDoc.querySelectorAll('[class*="error"], .error, #error');
+                if (errorElements.length > 0) {
+                    log(`Found ${errorElements.length} error elements`, 'error');
+                }
+                
+            } catch (e) {
+                log(`Error inspecting Flutter elements: ${e.message}`, 'error');
+                log('This might be a CORS issue - trying alternative approach');
+                
+                // Alternative: check from parent window
+                setTimeout(() => {
+                    log('Opening Flutter app in new window for direct inspection...');
+                    window.open('http://localhost:8087/#/login', 'flutter-debug');
+                }, 1000);
+            }
+        }
+        
+        function checkCSS() {
+            log('=== CSS DIAGNOSTICS ===');
+            
+            try {
+                const iframe = document.getElementById('flutter-iframe');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                // Check all stylesheets
+                const stylesheets = Array.from(iframeDoc.styleSheets);
+                log(`Found ${stylesheets.length} stylesheets`);
+                
+                // Check for CSS that might cause black screen
+                const problematicCSS = [
+                    'body { background: black',
+                    'body { background-color: black',
+                    'html { background: black',
+                    '* { background: black',
+                    'body { color: black',
+                    'display: none',
+                    'visibility: hidden',
+                    'opacity: 0'
+                ];
+                
+                stylesheets.forEach((sheet, i) => {
+                    try {
+                        const rules = Array.from(sheet.cssRules || sheet.rules || []);
+                        log(`Stylesheet ${i} has ${rules.length} rules`);
+                        
+                        rules.forEach(rule => {
+                            if (rule.cssText) {
+                                problematicCSS.forEach(problem => {
+                                    if (rule.cssText.toLowerCase().includes(problem.toLowerCase())) {
+                                        log(`Potential issue found: ${rule.cssText}`, 'warn');
+                                    }
+                                });
+                            }
+                        });
+                    } catch (e) {
+                        log(`Could not read stylesheet ${i}: ${e.message}`, 'warn');
+                    }
+                });
+                
+            } catch (e) {
+                log(`Error checking CSS: ${e.message}`, 'error');
+            }
+        }
+        
+        function testColorScheme() {
+            log('=== COLOR SCHEME TEST ===');
+            
+            // Test if the issue might be dark mode related
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                log('System is in dark mode - this might affect Flutter rendering', 'warn');
+            } else {
+                log('System is in light mode');
+            }
+            
+            // Test creating Flutter-style elements
+            const testDiv = document.createElement('div');
+            testDiv.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                width: 200px;
+                height: 100px;
+                background: #4CAF50;
+                color: white;
+                padding: 10px;
+                border-radius: 8px;
+                z-index: 9999;
+            `;
+            testDiv.innerHTML = 'Test Flutter Colors<br>Green: #4CAF50<br>Should be visible';
+            document.body.appendChild(testDiv);
+            
+            log('Added test color div - if you can see it, colors are working');
+            
+            setTimeout(() => {
+                document.body.removeChild(testDiv);
+                log('Removed test color div');
+            }, 3000);
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', function() {
+            log('Debug tool loaded - click "Load Flutter App" to begin diagnosis');
+        });
+        
+        // Monitor iframe messages
+        window.addEventListener('message', function(e) {
+            if (e.origin === 'http://localhost:8087') {
+                log(`Message from Flutter app: ${JSON.stringify(e.data)}`);
+            }
+        });
+        
+    </script>
+</body>
+</html>

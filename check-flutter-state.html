@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter Initialization Diagnostic</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #00ff00;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .pass { color: #00ff00; }
+        .fail { color: #ff0000; }
+        .warn { color: #ffff00; }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flutter Initialization Diagnostic</h1>
+    <button onclick="runDiagnostics()">Run Diagnostics</button>
+    <button onclick="clearConsole()">Clear</button>
+    <pre id="output"></pre>
+
+    <script>
+        function log(msg, type = 'info') {
+            const output = document.getElementById('output');
+            const className = type === 'pass' ? 'pass' : type === 'fail' ? 'fail' : type === 'warn' ? 'warn' : '';
+            output.innerHTML += `<span class="${className}">${msg}</span>\n`;
+        }
+
+        function clearConsole() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        function runDiagnostics() {
+            clearConsole();
+            log('=== Flutter Initialization Diagnostic ===\n');
+            
+            // Check 1: Script duplicates
+            log('1. Checking for duplicate scripts...');
+            const scripts = [...document.scripts].map(s => s.src.split('/').pop()).filter(Boolean);
+            const flutterScripts = scripts.filter(n => /flutter(\.js|_bootstrap\.js)|main\.dart\.js/.test(n));
+            
+            log(`   Found scripts: ${JSON.stringify(flutterScripts)}`);
+            
+            const counts = {};
+            flutterScripts.forEach(s => counts[s] = (counts[s] || 0) + 1);
+            
+            let hasDuplicates = false;
+            Object.entries(counts).forEach(([script, count]) => {
+                if (count > 1) {
+                    log(`   ❌ DUPLICATE: ${script} loaded ${count} times!`, 'fail');
+                    hasDuplicates = true;
+                } else {
+                    log(`   ✓ ${script} loaded once`, 'pass');
+                }
+            });
+            
+            if (!hasDuplicates) {
+                log('   ✓ No duplicate scripts detected', 'pass');
+            }
+            
+            // Check 2: Loading element
+            log('\n2. Checking loading/splash element...');
+            const loading = document.getElementById('loading');
+            const splash = document.getElementById('splash');
+            
+            if (loading) {
+                const display = window.getComputedStyle(loading).display;
+                if (display === 'none') {
+                    log('   ✓ Loading element hidden (display: none)', 'pass');
+                } else {
+                    log(`   ⚠ Loading element visible (display: ${display})`, 'warn');
+                }
+            } else {
+                log('   ✓ Loading element removed from DOM', 'pass');
+            }
+            
+            if (splash) {
+                const display = window.getComputedStyle(splash).display;
+                if (display === 'none') {
+                    log('   ✓ Splash element hidden (display: none)', 'pass');
+                } else {
+                    log(`   ⚠ Splash element visible (display: ${display})`, 'warn');
+                }
+            } else {
+                log('   ✓ Splash element not found or removed', 'pass');
+            }
+            
+            // Check 3: Flutter canvas
+            log('\n3. Checking Flutter canvas...');
+            const canvas = document.querySelector('flt-glass-pane, flt-scene-host, canvas');
+            if (canvas) {
+                log('   ✓ Flutter canvas element found', 'pass');
+                log(`   Element: ${canvas.tagName.toLowerCase()}`, 'pass');
+            } else {
+                log('   ❌ Flutter canvas not found', 'fail');
+            }
+            
+            // Check 4: Flutter initialization state
+            log('\n4. Checking initialization state...');
+            if (window.__FLUTTER_INIT_STATE__) {
+                log(`   Attempted: ${window.__FLUTTER_INIT_STATE__.attempted}`, 
+                    window.__FLUTTER_INIT_STATE__.attempted ? 'pass' : 'warn');
+                log(`   Initialized: ${window.__FLUTTER_INIT_STATE__.initialized}`,
+                    window.__FLUTTER_INIT_STATE__.initialized ? 'pass' : 'warn');
+                log(`   Source: ${window.__FLUTTER_INIT_STATE__.source || 'unknown'}`);
+            } else if (window.flutterInitializationState) {
+                log(`   Started: ${window.flutterInitializationState.started}`,
+                    window.flutterInitializationState.started ? 'pass' : 'warn');
+                log(`   Completed: ${window.flutterInitializationState.completed}`,
+                    window.flutterInitializationState.completed ? 'pass' : 'warn');
+                log(`   Method: ${window.flutterInitializationState.method || 'unknown'}`);
+            } else {
+                log('   ⚠ No initialization state tracking found', 'warn');
+            }
+            
+            // Check 5: Flutter objects
+            log('\n5. Checking Flutter objects...');
+            if (window._flutter) {
+                log('   ✓ window._flutter exists', 'pass');
+                if (window._flutter.loader) {
+                    log('   ✓ window._flutter.loader exists', 'pass');
+                } else {
+                    log('   ❌ window._flutter.loader missing', 'fail');
+                }
+                if (window._flutter.buildConfig) {
+                    log('   ✓ window._flutter.buildConfig exists', 'pass');
+                    const renderer = window._flutter.buildConfig.builds?.[0]?.renderer;
+                    log(`   Renderer: ${renderer}`, renderer === 'html' ? 'pass' : 'warn');
+                } else {
+                    log('   ❌ window._flutter.buildConfig missing', 'fail');
+                }
+            } else {
+                log('   ❌ window._flutter missing', 'fail');
+            }
+            
+            // Check 6: Console errors
+            log('\n6. Recommendations:');
+            if (hasDuplicates) {
+                log('   • Remove duplicate script tags', 'fail');
+            }
+            if ((loading && window.getComputedStyle(loading).display !== 'none') ||
+                (splash && window.getComputedStyle(splash).display !== 'none')) {
+                log('   • Ensure splash/loading elements are hidden after Flutter loads', 'warn');
+            }
+            if (!canvas) {
+                log('   • Flutter may not be fully initialized - check console for errors', 'fail');
+            }
+            
+            log('\n=== Diagnostic Complete ===');
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            setTimeout(runDiagnostics, 1000);
+        });
+    </script>
+</body>
+</html>

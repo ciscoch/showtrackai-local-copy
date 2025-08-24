@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flutter Debug - ShowTrackAI</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(45deg, #f0f8ff, #e6f3ff);
+    }
+    
+    .debug-panel {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 10px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .status {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      color: white;
+    }
+    
+    .status.success { background: #4CAF50; }
+    .status.error { background: #f44336; }
+    .status.warning { background: #ff9800; }
+    .status.info { background: #2196F3; }
+    
+    #flutter-container {
+      width: 100%;
+      height: 400px;
+      border: 2px solid #4CAF50;
+      border-radius: 8px;
+      background: white;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .test-result {
+      margin: 5px 0;
+      padding: 8px;
+      border-left: 4px solid #ddd;
+      background: #f9f9f9;
+    }
+    
+    .test-result.pass { border-left-color: #4CAF50; background: #f1f8e9; }
+    .test-result.fail { border-left-color: #f44336; background: #ffebee; }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐛 Flutter Debug Analysis</h1>
+  
+  <div class="debug-panel">
+    <h2>📋 Environment Check</h2>
+    <div id="environment-check">Running checks...</div>
+  </div>
+  
+  <div class="debug-panel">
+    <h2>🔍 Flutter Loading Analysis</h2>
+    <div id="flutter-analysis">Analyzing Flutter load process...</div>
+  </div>
+  
+  <div class="debug-panel">
+    <h2>🎯 Flutter App Container</h2>
+    <p>This is where Flutter should render:</p>
+    <div id="flutter-container">
+      <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #666;">
+        <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+        <div>Waiting for Flutter to render...</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="debug-panel">
+    <h2>📊 Console Output</h2>
+    <pre id="console-output">Console messages will appear here...</pre>
+  </div>
+
+  <script>
+    // Capture console output
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    const consoleOutput = document.getElementById('console-output');
+    
+    function addToConsoleOutput(type, ...args) {
+      const timestamp = new Date().toLocaleTimeString();
+      const message = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      consoleOutput.textContent += `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+    
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addToConsoleOutput('log', ...args);
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addToConsoleOutput('error', ...args);
+    };
+    
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      addToConsoleOutput('warn', ...args);
+    };
+
+    // Environment checks
+    function runEnvironmentChecks() {
+      const checks = [];
+      
+      // Browser compatibility
+      checks.push({
+        name: 'Browser Support',
+        test: () => {
+          const isSupported = 'serviceWorker' in navigator && 
+                             'Promise' in window && 
+                             'fetch' in window;
+          return {
+            pass: isSupported,
+            details: `Browser: ${navigator.userAgent.substring(0, 50)}...`
+          };
+        }
+      });
+      
+      // JavaScript modules
+      checks.push({
+        name: 'ES6 Module Support',
+        test: () => {
+          try {
+            new Function('import("")');
+            return { pass: true, details: 'ES6 modules supported' };
+          } catch (e) {
+            return { pass: false, details: `ES6 modules not supported: ${e.message}` };
+          }
+        }
+      });
+      
+      // WebAssembly
+      checks.push({
+        name: 'WebAssembly Support',
+        test: () => {
+          const supported = typeof WebAssembly === 'object';
+          return { 
+            pass: supported, 
+            details: supported ? 'WebAssembly available' : 'WebAssembly not available' 
+          };
+        }
+      });
+      
+      // Service Workers
+      checks.push({
+        name: 'Service Worker Support',
+        test: () => {
+          const supported = 'serviceWorker' in navigator;
+          return { 
+            pass: supported, 
+            details: supported ? 'Service Workers available' : 'Service Workers not available' 
+          };
+        }
+      });
+      
+      const container = document.getElementById('environment-check');
+      container.innerHTML = '';
+      
+      checks.forEach(check => {
+        const result = check.test();
+        const div = document.createElement('div');
+        div.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+        div.innerHTML = `
+          <strong>${check.name}</strong>: 
+          <span class="status ${result.pass ? 'success' : 'error'}">
+            ${result.pass ? 'PASS' : 'FAIL'}
+          </span><br>
+          <small>${result.details}</small>
+        `;
+        container.appendChild(div);
+      });
+    }
+    
+    // Flutter loading analysis
+    function analyzeFlutterLoading() {
+      const analysis = document.getElementById('flutter-analysis');
+      const steps = [];
+      
+      // Step 1: Check for Flutter files
+      steps.push({
+        name: 'Flutter Bootstrap Script',
+        test: () => fetch('./flutter_bootstrap.js', { method: 'HEAD' })
+          .then(() => ({ pass: true, details: 'flutter_bootstrap.js found' }))
+          .catch(() => ({ pass: false, details: 'flutter_bootstrap.js missing' }))
+      });
+      
+      steps.push({
+        name: 'Main Dart Script',
+        test: () => fetch('./main.dart.js', { method: 'HEAD' })
+          .then(() => ({ pass: true, details: 'main.dart.js found' }))
+          .catch(() => ({ pass: false, details: 'main.dart.js missing' }))
+      });
+      
+      steps.push({
+        name: 'Flutter Engine',
+        test: () => fetch('./flutter.js', { method: 'HEAD' })
+          .then(() => ({ pass: true, details: 'flutter.js found' }))
+          .catch(() => ({ pass: false, details: 'flutter.js missing' }))
+      });
+      
+      // Run all tests
+      Promise.all(steps.map(step => step.test())).then(results => {
+        analysis.innerHTML = '';
+        steps.forEach((step, index) => {
+          const result = results[index];
+          const div = document.createElement('div');
+          div.className = `test-result ${result.pass ? 'pass' : 'fail'}`;
+          div.innerHTML = `
+            <strong>${step.name}</strong>: 
+            <span class="status ${result.pass ? 'success' : 'error'}">
+              ${result.pass ? 'PASS' : 'FAIL'}
+            </span><br>
+            <small>${result.details}</small>
+          `;
+          analysis.appendChild(div);
+        });
+      });
+    }
+    
+    // Initialize Flutter with detailed logging
+    function initializeFlutterWithLogging() {
+      console.log('🚀 Starting Flutter initialization with enhanced logging...');
+      
+      // Check if _flutter is available
+      if (typeof _flutter === 'undefined') {
+        console.error('❌ _flutter global object not found!');
+        return;
+      }
+      
+      // Check if loader is available
+      if (!_flutter.loader) {
+        console.error('❌ _flutter.loader not found!');
+        return;
+      }
+      
+      console.log('✅ Flutter loader found, attempting to initialize...');
+      
+      // Load Flutter with detailed configuration
+      _flutter.loader.load({
+        config: {
+          renderer: "html", // Force HTML renderer
+          hostElement: document.getElementById('flutter-container')
+        },
+        serviceWorkerSettings: {
+          serviceWorkerVersion: "2273907381",
+          serviceWorkerUrl: "./flutter_service_worker.js"
+        }
+      }).then((engineInitializer) => {
+        console.log('✅ Flutter engine initializer loaded!');
+        
+        return engineInitializer.initializeEngine({
+          hostElement: document.getElementById('flutter-container'),
+          renderer: "html"
+        });
+      }).then((appRunner) => {
+        console.log('✅ Flutter engine initialized!');
+        
+        return appRunner.runApp();
+      }).then(() => {
+        console.log('✅ Flutter app started successfully!');
+        
+        // Update container
+        const container = document.getElementById('flutter-container');
+        const placeholder = container.querySelector('div');
+        if (placeholder) {
+          placeholder.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+            <div>Flutter app is running!</div>
+          `;
+        }
+      }).catch((error) => {
+        console.error('❌ Flutter initialization failed:', error);
+        
+        // Update container with error
+        const container = document.getElementById('flutter-container');
+        container.innerHTML = `
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #f44336;">
+            <div style="font-size: 48px; margin-bottom: 10px;">❌</div>
+            <div>Flutter failed to load</div>
+            <div style="font-size: 12px; margin-top: 10px;">${error.message}</div>
+          </div>
+        `;
+      });
+    }
+    
+    // Run initial checks
+    runEnvironmentChecks();
+    analyzeFlutterLoading();
+    
+    // Load Flutter bootstrap script
+    const script = document.createElement('script');
+    script.src = './flutter_bootstrap.js';
+    script.onload = function() {
+      console.log('✅ Flutter bootstrap script loaded');
+      setTimeout(initializeFlutterWithLogging, 100);
+    };
+    script.onerror = function() {
+      console.error('❌ Failed to load Flutter bootstrap script');
+    };
+    document.head.appendChild(script);
+    
+    // Monitor for Flutter DOM changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.tagName && (
+                node.tagName.toLowerCase().startsWith('flt-') || 
+                node.className && node.className.includes('flt-')
+            )) {
+              console.log('✅ Flutter DOM element detected:', node.tagName || node.className);
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class']
+    });
+    
+    // Check for Flutter readiness every 500ms
+    let checkCount = 0;
+    const flutterCheck = setInterval(() => {
+      checkCount++;
+      
+      // Look for Flutter-specific elements
+      const flutterElements = document.querySelectorAll('[class*="flt-"], [id*="flt-"], flt-glass-pane, flt-scene-host');
+      
+      if (flutterElements.length > 0) {
+        console.log(`✅ Flutter elements found after ${checkCount * 500}ms:`, flutterElements);
+        clearInterval(flutterCheck);
+      } else if (checkCount > 40) { // Stop after 20 seconds
+        console.warn('⏰ Stopped checking for Flutter elements after 20 seconds');
+        clearInterval(flutterCheck);
+      }
+    }, 500);
+  </script>
+</body>
+</html>

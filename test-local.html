@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShowTrackAI Local Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #4CAF50; }
+    .status { 
+      padding: 10px; 
+      margin: 10px 0; 
+      border-radius: 4px;
+      background: #f0f0f0;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .warning { background: #fff3cd; color: #856404; }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #45a049; }
+    #log {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 10px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+    iframe {
+      width: 100%;
+      height: 600px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 ShowTrackAI Local Test</h1>
+    
+    <div class="status">
+      <strong>Test Server:</strong> http://localhost:8086
+    </div>
+    
+    <h2>✅ Configuration</h2>
+    <ul>
+      <li>✅ HTML Renderer forced (no CanvasKit)</li>
+      <li>✅ Google Fonts removed</li>
+      <li>✅ No external CDN dependencies</li>
+      <li>✅ Custom bootstrap removed</li>
+      <li>✅ Service Worker disabled for testing</li>
+    </ul>
+    
+    <h2>🧪 Network Tests</h2>
+    <button onclick="testServer()">Test Server Connection</button>
+    <button onclick="testFlutterLoad()">Test Flutter Loading</button>
+    <button onclick="clearCache()">Clear Browser Cache</button>
+    <button onclick="openInNewTab()">Open in New Tab</button>
+    
+    <h2>📊 Test Results</h2>
+    <div id="results"></div>
+    
+    <h2>📜 Console Log</h2>
+    <div id="log"></div>
+    
+    <h2>🖼️ App Preview</h2>
+    <iframe id="appFrame" src=""></iframe>
+  </div>
+
+  <script>
+    let logBuffer = [];
+    
+    function log(message, type = 'info') {
+      const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+      const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+      logBuffer.push(logEntry);
+      
+      const logDiv = document.getElementById('log');
+      logDiv.textContent = logBuffer.join('\n');
+      logDiv.scrollTop = logDiv.scrollHeight;
+      
+      console.log(message);
+    }
+    
+    function addResult(test, success, message) {
+      const resultsDiv = document.getElementById('results');
+      const resultDiv = document.createElement('div');
+      resultDiv.className = `status ${success ? 'success' : 'error'}`;
+      resultDiv.innerHTML = `<strong>${test}:</strong> ${message}`;
+      resultsDiv.appendChild(resultDiv);
+    }
+    
+    async function testServer() {
+      log('Testing server connection...', 'info');
+      try {
+        const response = await fetch('http://localhost:8086/', {
+          method: 'HEAD',
+          cache: 'no-cache'
+        });
+        
+        if (response.ok || response.status === 200 || response.status === 304) {
+          addResult('Server Connection', true, 'Server is running on port 8086');
+          log('Server responded with status: ' + response.status, 'success');
+        } else {
+          addResult('Server Connection', false, `Server returned status ${response.status}`);
+          log('Server error: ' + response.status, 'error');
+        }
+      } catch (error) {
+        addResult('Server Connection', false, error.message);
+        log('Connection failed: ' + error.message, 'error');
+      }
+    }
+    
+    async function testFlutterLoad() {
+      log('Testing Flutter app loading...', 'info');
+      
+      // Load in iframe
+      const iframe = document.getElementById('appFrame');
+      iframe.src = 'http://localhost:8086/';
+      
+      // Monitor iframe loading
+      iframe.onload = () => {
+        log('Iframe loaded successfully', 'success');
+        addResult('Flutter Load', true, 'Page loaded in iframe');
+        
+        // Check for Flutter in iframe
+        setTimeout(() => {
+          try {
+            const iframeWindow = iframe.contentWindow;
+            if (iframeWindow._flutter) {
+              log('Flutter object found in iframe', 'success');
+              addResult('Flutter Object', true, 'Flutter initialized');
+            } else {
+              log('Flutter object not found in iframe', 'warning');
+              addResult('Flutter Object', false, 'Flutter not initialized yet');
+            }
+          } catch (e) {
+            log('Cannot access iframe content: ' + e.message, 'error');
+          }
+        }, 2000);
+      };
+      
+      iframe.onerror = (error) => {
+        log('Iframe error: ' + error, 'error');
+        addResult('Flutter Load', false, 'Failed to load in iframe');
+      };
+    }
+    
+    function clearCache() {
+      log('Attempting to clear cache...', 'info');
+      
+      // Clear localStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Try to unregister service workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            log('Unregistered service worker: ' + registration.scope, 'info');
+          }
+        });
+      }
+      
+      // Clear caches
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+            log('Deleted cache: ' + name, 'info');
+          }
+        });
+      }
+      
+      addResult('Clear Cache', true, 'Cache cleared. Reload the page to test.');
+      log('Cache clearing complete', 'success');
+    }
+    
+    function openInNewTab() {
+      window.open('http://localhost:8086/', '_blank');
+      log('Opened app in new tab', 'info');
+    }
+    
+    // Auto-run server test on load
+    window.addEventListener('load', () => {
+      log('Test page loaded', 'info');
+      testServer();
+    });
+    
+    // Monitor console errors
+    window.addEventListener('error', (e) => {
+      log(`Global error: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+    });
+  </script>
+</body>
+</html>

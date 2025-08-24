@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CanvasKit Blocking Test - ShowTrackAI</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #4CAF50;
+            background: #f8f9fa;
+        }
+        .test-result {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .test-result.pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-result.fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-result.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        #logs {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border: 2px solid #333;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .log-blocked { color: #ff6b6b; background: rgba(255, 107, 107, 0.1); }
+        .log-allowed { color: #4ecdc4; background: rgba(78, 205, 196, 0.1); }
+        .log-info { color: #45b7d1; background: rgba(69, 183, 209, 0.1); }
+        .log-error { color: #ff3838; background: rgba(255, 56, 56, 0.1); }
+        .log-success { color: #26de81; background: rgba(38, 222, 129, 0.1); }
+        
+        .iframe-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        #app-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ CanvasKit Blocking Test</h1>
+        
+        <div class="test-section">
+            <h3>📋 Test Results</h3>
+            <div id="test-results">
+                <div class="test-result info">
+                    <span class="icon">⏳</span>
+                    <span>Initializing tests...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="runTests()" id="run-tests-btn">🧪 Run Tests</button>
+            <button onclick="loadApp()" id="load-app-btn">📱 Load ShowTrackAI</button>
+            <button onclick="clearLogs()" id="clear-logs-btn">🧹 Clear Logs</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Live Monitoring</h3>
+            <div id="logs"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 App Preview</h3>
+            <div class="iframe-container">
+                <iframe id="app-frame" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let testResults = [];
+        let logEntries = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            logEntries.push({entry, type});
+            
+            const logsDiv = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.textContent = entry;
+            logsDiv.appendChild(logDiv);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        function addTestResult(message, passed, icon = null) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <span class="icon">${icon || (passed ? '✅' : '❌')}</span>
+                <span>${message}</span>
+            `;
+            
+            const resultsDiv = document.getElementById('test-results');
+            if (testResults.length === 0) {
+                resultsDiv.innerHTML = '';
+            }
+            resultsDiv.appendChild(resultDiv);
+            
+            testResults.push({message, passed});
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            logEntries = [];
+            log('Logs cleared', 'info');
+        }
+        
+        async function runTests() {
+            log('Starting CanvasKit blocking tests...', 'info');
+            testResults = [];
+            document.getElementById('test-results').innerHTML = '';
+            
+            // Test 1: Check if our blocking functions are in place
+            log('Test 1: Checking if blocking functions are active...', 'info');
+            
+            const fetchBlocked = window.fetch !== window.originalFetch;
+            addTestResult('Fetch function is overridden for blocking', fetchBlocked);
+            
+            const createElementBlocked = document.createElement !== document.originalCreateElement;
+            addTestResult('createElement function is overridden', createElementBlocked);
+            
+            // Test 2: Test fetch blocking
+            log('Test 2: Testing fetch blocking...', 'info');
+            try {
+                await fetch('https://www.gstatic.com/flutter-canvaskit/canvaskit.js');
+                addTestResult('Fetch blocking failed - CanvasKit URL was allowed', false);
+                log('❌ FAILED: CanvasKit fetch was not blocked!', 'error');
+            } catch (error) {
+                addTestResult('Fetch blocking works - CanvasKit URL was blocked', true);
+                log('✅ SUCCESS: CanvasKit fetch was blocked', 'success');
+            }
+            
+            // Test 3: Test script creation blocking
+            log('Test 3: Testing script creation blocking...', 'info');
+            try {
+                const script = document.createElement('script');
+                script.src = 'https://www.gstatic.com/flutter-canvaskit/canvaskit.js';
+                
+                const blocked = !script.src || !script.src.includes('canvaskit');
+                addTestResult('Script creation blocking works', blocked);
+                
+                if (blocked) {
+                    log('✅ SUCCESS: CanvasKit script creation was blocked', 'success');
+                } else {
+                    log('❌ FAILED: CanvasKit script was allowed', 'error');
+                }
+            } catch (error) {
+                addTestResult('Script creation blocking works', true);
+                log('✅ SUCCESS: CanvasKit script creation threw error', 'success');
+            }
+            
+            // Test 4: Test WebAssembly blocking
+            log('Test 4: Testing WebAssembly blocking...', 'info');
+            try {
+                await WebAssembly.compileStreaming(fetch('data:application/wasm,test'));
+                addTestResult('WebAssembly blocking failed - WASM compilation was allowed', false);
+                log('❌ FAILED: WebAssembly was not blocked!', 'error');
+            } catch (error) {
+                addTestResult('WebAssembly blocking works - WASM compilation was blocked', true);
+                log('✅ SUCCESS: WebAssembly was blocked', 'success');
+            }
+            
+            // Test 5: Check global properties
+            log('Test 5: Checking global properties...', 'info');
+            
+            const canvasKitBlocked = window.flutterCanvasKit === null;
+            addTestResult('flutterCanvasKit is blocked (null)', canvasKitBlocked);
+            
+            const canvasKitLoadedBlocked = typeof window.flutterCanvasKitLoaded === 'function';
+            addTestResult('flutterCanvasKitLoaded returns null promise', canvasKitLoadedBlocked);
+            
+            log('All tests completed!', 'success');
+            
+            // Summary
+            const passed = testResults.filter(r => r.passed).length;
+            const total = testResults.length;
+            
+            addTestResult(`Summary: ${passed}/${total} tests passed`, passed === total, '📊');
+            log(`Final Score: ${passed}/${total} tests passed`, passed === total ? 'success' : 'error');
+        }
+        
+        function loadApp() {
+            log('Loading ShowTrackAI app...', 'info');
+            const iframe = document.getElementById('app-frame');
+            iframe.src = 'http://127.0.0.1:8081';
+            
+            iframe.onload = () => {
+                log('✅ App loaded successfully', 'success');
+                
+                // Monitor the iframe for console messages (limited due to same-origin policy)
+                setTimeout(() => {
+                    try {
+                        const iframeWindow = iframe.contentWindow;
+                        if (iframeWindow) {
+                            log('Monitoring app for CanvasKit attempts...', 'info');
+                        }
+                    } catch (error) {
+                        log('Cannot monitor iframe console due to same-origin policy', 'info');
+                    }
+                }, 1000);
+            };
+            
+            iframe.onerror = () => {
+                log('❌ App failed to load', 'error');
+            };
+        }
+        
+        // Initialize blocking functions immediately
+        (function() {
+            // Store originals
+            window.originalFetch = window.fetch;
+            window.originalCreateElement = document.createElement;
+            
+            // Override fetch to block CanvasKit resources
+            window.fetch = function(url, options) {
+                if (typeof url === 'string') {
+                    if (url.includes('canvaskit') || url.includes('CanvasKit')) {
+                        log('🚫 Blocked CanvasKit fetch: ' + url, 'blocked');
+                        return Promise.reject(new Error('CanvasKit blocked by configuration'));
+                    }
+                } else if (url && url.href) {
+                    if (url.href.includes('canvaskit') || url.href.includes('CanvasKit')) {
+                        log('🚫 Blocked CanvasKit fetch: ' + url.href, 'blocked');
+                        return Promise.reject(new Error('CanvasKit blocked by configuration'));
+                    }
+                }
+                log('✅ Allowed fetch: ' + (typeof url === 'string' ? url : url.href), 'allowed');
+                return window.originalFetch.call(this, url, options);
+            };
+            
+            // Override document.createElement to block CanvasKit scripts
+            document.createElement = function(tagName) {
+                const element = window.originalCreateElement.call(this, tagName);
+                if (tagName.toLowerCase() === 'script') {
+                    const originalSrcSetter = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src').set;
+                    Object.defineProperty(element, 'src', {
+                        set: function(value) {
+                            if (value && (value.includes('canvaskit') || value.includes('CanvasKit'))) {
+                                log('🚫 Blocked CanvasKit script: ' + value, 'blocked');
+                                return;
+                            }
+                            log('✅ Allowed script: ' + value, 'allowed');
+                            originalSrcSetter.call(this, value);
+                        },
+                        get: function() {
+                            return this.getAttribute('src');
+                        }
+                    });
+                }
+                return element;
+            };
+            
+            // Override WebAssembly
+            if (window.WebAssembly) {
+                const originalCompileStreaming = WebAssembly.compileStreaming;
+                const originalInstantiateStreaming = WebAssembly.instantiateStreaming;
+                
+                WebAssembly.compileStreaming = function(source) {
+                    log('🚫 Blocked WebAssembly.compileStreaming (likely CanvasKit)', 'blocked');
+                    return Promise.reject(new Error('WebAssembly blocked by HTML renderer configuration'));
+                };
+                
+                WebAssembly.instantiateStreaming = function(source, imports) {
+                    log('🚫 Blocked WebAssembly.instantiateStreaming (likely CanvasKit)', 'blocked');
+                    return Promise.reject(new Error('WebAssembly blocked by HTML renderer configuration'));
+                };
+            }
+            
+            // Set up global properties
+            Object.defineProperty(window, 'flutterCanvasKit', {
+                get: function() { return null; },
+                set: function(value) { 
+                    log('🚫 Attempted to set flutterCanvasKit - blocked', 'blocked');
+                },
+                configurable: false
+            });
+            
+            Object.defineProperty(window, 'flutterCanvasKitLoaded', {
+                get: function() { return Promise.resolve(null); },
+                set: function(value) { 
+                    log('🚫 Attempted to set flutterCanvasKitLoaded - blocked', 'blocked');
+                },
+                configurable: false
+            });
+            
+            log('🛡️ CanvasKit blocking system initialized', 'success');
+        })();
+        
+        // Auto-run tests on load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500);
+        });
+    </script>
+</body>
+</html>

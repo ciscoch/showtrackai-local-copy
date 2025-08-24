@@ -1,0 +1,11 @@
+# Block CanvasKit resources to enforce HTML renderer
+/*canvaskit* /404.html 404
+/*CanvasKit* /404.html 404
+/canvaskit/* /404.html 404
+/CanvasKit/* /404.html 404
+*.canvaskit.* /404.html 404
+*.wasm /404.html 404
+/flutter_service_worker.js /404.html 404
+
+# Default routing for SPA
+/* /index.html 200

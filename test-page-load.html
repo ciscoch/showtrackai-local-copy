@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flutter Web Load Test</title>
+  <script>
+    // Log all errors
+    window.addEventListener('error', function(e) {
+      console.error('Error:', e.error);
+      console.error('File:', e.filename);
+      console.error('Line:', e.lineno);
+    });
+    
+    // Log when Flutter loads
+    window.addEventListener('flutter-first-frame', function () {
+      console.log('✅ Flutter first frame loaded!');
+    });
+    
+    // Test if we can load the files
+    function testLoad() {
+      console.log('Testing file loads...');
+      
+      // Test flutter.js
+      fetch('/flutter.js')
+        .then(response => {
+          console.log('flutter.js status:', response.status);
+          return response.text();
+        })
+        .then(text => {
+          console.log('flutter.js loaded, size:', text.length);
+        })
+        .catch(err => console.error('flutter.js error:', err));
+        
+      // Test main.dart.js
+      fetch('/main.dart.js')
+        .then(response => {
+          console.log('main.dart.js status:', response.status);
+          return response.text();
+        })
+        .then(text => {
+          console.log('main.dart.js loaded, size:', text.length);
+        })
+        .catch(err => console.error('main.dart.js error:', err));
+    }
+  </script>
+</head>
+<body>
+  <h1>Flutter Web Load Test</h1>
+  <button onclick="testLoad()">Test File Loading</button>
+  
+  <div id="status">Loading Flutter...</div>
+  
+  <!-- Load Flutter exactly like the original -->
+  <script>
+    // Force HTML renderer only - no CanvasKit
+    window.flutterConfiguration = {
+      renderer: "html"
+    };
+  </script>
+  
+  <script src="flutter.js" defer></script>
+  
+  <script>
+    setTimeout(() => {
+      document.getElementById('status').innerHTML = 'Waited 5 seconds for Flutter...';
+    }, 5000);
+  </script>
+</body>
+</html>

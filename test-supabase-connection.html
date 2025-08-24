@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-left: 5px solid #4CAF50; background-color: #f1f8e9; }
+        .error { border-left: 5px solid #f44336; background-color: #ffebee; }
+        .warning { border-left: 5px solid #ff9800; background-color: #fff3e0; }
+        .info { border-left: 5px solid #2196F3; background-color: #e3f2fd; }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .credentials {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Supabase Connection Test</h1>
+        <p>This tool helps debug Supabase connectivity issues for the test-elite@example.com user.</p>
+
+        <div class="credentials">
+            <h3>🔐 Test User Credentials</h3>
+            <p><strong>Email:</strong> test-elite@example.com</p>
+            <p><strong>Password:</strong> test123456</p>
+            <p><em>Use these credentials in the Flutter app login form</em></p>
+        </div>
+
+        <div class="test-section info">
+            <h3>🌐 Connection Tests</h3>
+            <button onclick="testBasicConnection()">Test Basic Connection</button>
+            <button onclick="testAuthEndpoint()">Test Auth Endpoint</button>
+            <button onclick="testWithDifferentKeys()">Test Different API Keys</button>
+            <div id="connectionResults"></div>
+        </div>
+
+        <div class="test-section warning">
+            <h3>⚙️ Configuration Check</h3>
+            <button onclick="checkConfiguration()">Check Current Config</button>
+            <div id="configResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Supabase Setup Helper</h3>
+            <p>If the connection tests fail, you may need to:</p>
+            <ol>
+                <li>Check if the Supabase project is active</li>
+                <li>Verify the API keys are correct</li>
+                <li>Create the test-elite@example.com user in Supabase Auth</li>
+                <li>Configure proper RLS policies</li>
+            </ol>
+            <button onclick="generateSupabaseSetup()">Generate Setup Commands</button>
+            <div id="setupResults"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📱 Flutter App Test</h3>
+            <p>After fixing Supabase connection:</p>
+            <ol>
+                <li>Restart the Flutter app</li>
+                <li>Use the "Quick Sign In (Test User)" button</li>
+                <li>Or manually enter test-elite@example.com / test123456</li>
+            </ol>
+            <button onclick="openFlutterApp()">Open Flutter App</button>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://zifbuzsdhparxlhsifdi.supabase.co';
+        const OLD_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjk5NTM5NTAsImV4cCI6MjA0NTUyOTk1MH0.fRilmQ7J9yYvv0wQtxIjfMkjR8W8F2pBh8G0jkmAc4k';
+        const NEW_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU';
+
+        function addResult(containerId, message, type = 'info') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = `<p>${message}</p>`;
+            container.appendChild(div);
+        }
+
+        function clearResults(containerId) {
+            document.getElementById(containerId).innerHTML = '';
+        }
+
+        async function testBasicConnection() {
+            clearResults('connectionResults');
+            addResult('connectionResults', '🔍 Testing basic connection to Supabase...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': NEW_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                });
+
+                if (response.ok) {
+                    addResult('connectionResults', '✅ Basic connection successful!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    addResult('connectionResults', `❌ Connection failed: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                addResult('connectionResults', `❌ Connection error: ${error.message}`, 'error');
+                
+                if (error.message.includes('timeout') || error.message.includes('ERR_TIMED_OUT')) {
+                    addResult('connectionResults', '💡 This looks like the same timeout issue the Flutter app is experiencing', 'warning');
+                }
+            }
+        }
+
+        async function testAuthEndpoint() {
+            clearResults('connectionResults');
+            addResult('connectionResults', '🔐 Testing auth endpoint...', 'info');
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': NEW_API_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test-elite@example.com',
+                        password: 'test123456'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    addResult('connectionResults', '✅ Auth endpoint accessible - User may already exist', 'success');
+                } else if (result.message && result.message.includes('already registered')) {
+                    addResult('connectionResults', '✅ Auth endpoint working - test-elite@example.com already exists!', 'success');
+                } else {
+                    addResult('connectionResults', `⚠️ Auth response: ${JSON.stringify(result)}`, 'warning');
+                }
+            } catch (error) {
+                addResult('connectionResults', `❌ Auth test error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWithDifferentKeys() {
+            clearResults('connectionResults');
+            addResult('connectionResults', '🔑 Testing with different API keys...', 'info');
+
+            const keys = [
+                { name: 'New Key (from main.dart)', key: NEW_API_KEY },
+                { name: 'Old Key (from .env)', key: OLD_API_KEY }
+            ];
+
+            for (const keyInfo of keys) {
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                        method: 'GET',
+                        headers: {
+                            'apikey': keyInfo.key,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        addResult('connectionResults', `✅ ${keyInfo.name}: Working!`, 'success');
+                    } else {
+                        const errorText = await response.text();
+                        addResult('connectionResults', `❌ ${keyInfo.name}: ${response.status} - ${errorText}`, 'error');
+                    }
+                } catch (error) {
+                    addResult('connectionResults', `❌ ${keyInfo.name}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function checkConfiguration() {
+            clearResults('configResults');
+            
+            const config = {
+                'Supabase URL': SUPABASE_URL,
+                'Current API Key (truncated)': NEW_API_KEY.substring(0, 50) + '...',
+                'Test User Email': 'test-elite@example.com',
+                'Browser': navigator.userAgent,
+                'Current Time': new Date().toISOString()
+            };
+
+            addResult('configResults', '<h4>Current Configuration:</h4>', 'info');
+            
+            for (const [key, value] of Object.entries(config)) {
+                addResult('configResults', `<strong>${key}:</strong> ${value}`, 'info');
+            }
+
+            // Check if we can access the Flutter app
+            const flutterCheck = window.location.hostname === 'localhost' ? 
+                'Running locally - Flutter app should be on localhost:port' :
+                'Running remotely - check Flutter app URL';
+            
+            addResult('configResults', `<strong>Flutter App Status:</strong> ${flutterCheck}`, 'info');
+        }
+
+        function generateSupabaseSetup() {
+            clearResults('setupResults');
+            
+            const setupCommands = `
+-- Supabase SQL commands to run in your dashboard:
+
+-- 1. Create the test user (run in Authentication > Users)
+-- Use the Supabase dashboard to create user with:
+-- Email: test-elite@example.com
+-- Password: test123456
+
+-- 2. OR use SQL to create user (if you have service_role access):
+INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token
+) VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    'test-elite@example.com',
+    crypt('test123456', gen_salt('bf')),
+    NOW(),
+    NOW(),
+    NOW(),
+    '',
+    '',
+    '',
+    ''
+);
+
+-- 3. Create a basic user profile (adjust table name as needed)
+INSERT INTO public.user_profiles (id, email, created_at)
+VALUES (
+    (SELECT id FROM auth.users WHERE email = 'test-elite@example.com'),
+    'test-elite@example.com',
+    NOW()
+);
+`;
+
+            addResult('setupResults', '<h4>Supabase Setup Commands:</h4>', 'info');
+            addResult('setupResults', `<pre>${setupCommands}</pre>`, 'info');
+            addResult('setupResults', '<p><strong>Instructions:</strong></p><ol><li>Go to your Supabase dashboard</li><li>Navigate to Authentication > Users</li><li>Click "Add user" and create test-elite@example.com</li><li>Set password to test123456</li><li>Run any additional SQL in the SQL Editor if needed</li></ol>', 'warning');
+        }
+
+        function openFlutterApp() {
+            // Try to open the Flutter app
+            const possibleUrls = [
+                'http://localhost:3000',
+                'http://localhost:8080',
+                'http://localhost:5000',
+                'http://127.0.0.1:3000'
+            ];
+
+            addResult('setupResults', '🚀 Attempting to open Flutter app...', 'info');
+            
+            // Try the first URL
+            window.open(possibleUrls[0], '_blank');
+            
+            addResult('setupResults', `📱 Opened: ${possibleUrls[0]}<br>If that doesn't work, try: ${possibleUrls.join(', ')}`, 'info');
+        }
+
+        // Auto-run basic tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testBasicConnection();
+                checkConfiguration();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

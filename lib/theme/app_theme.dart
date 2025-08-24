@@ -29,8 +29,10 @@ class AppTheme {
         primary: primaryGreen,
         secondary: secondaryGreen,
         surface: surface,
-        background: background,
       ),
+      // Explicitly set background colors to ensure visibility
+      scaffoldBackgroundColor: background,
+      canvasColor: surface,
       
       // AppBar Theme
       appBarTheme: const AppBarTheme(

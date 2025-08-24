@@ -1,0 +1,39 @@
+{
+  "goal": "Evaluate and store a learning journal entry, then log SPAR run",
+  "user_id": "6d80d64d-186f-4eb1-83fd-a6deba59387b",
+  "animal_id": "d034dfb7-c604-4080-aa4b-ad75b0ce2fd1",
+  "title": "Weigh-in and conditioning practice",
+  "entry_text": "Weighed Hank at 63.8 lbs. Practiced show chain and walking patterns for 20 minutes. Adjusted ration to improve cover. Noted mild heat stress in afternoon; provided shade and electrolytes.",
+  "entry_date": "2025-08-22",
+  "category": "training",
+  "duration_minutes": 45,
+  "ffa_standards": [
+    "AS.06.02",
+    "AS.07.01"
+  ],
+  "learning_objectives": [
+    "Improve show ring control",
+    "Monitor weight gain vs target"
+  ],
+  "feed_strategy": {
+    "current_weight": 63.8,
+    "target_weight": 110,
+    "weigh_in_date": "2025-01-26"
+  },
+  "location": {
+    "city": "Helotes",
+    "state": "TX",
+    "lat": 29.56,
+    "lon": -98.68
+  },
+  "weather": {
+    "high_f": 101,
+    "low_f": 79,
+    "conditions": "Hot, sunny",
+    "heat_index_f": 107
+  },
+  "metadata": {
+    "source": "mobile_app_v1.4",
+    "notes": "evening session"
+  }
+}

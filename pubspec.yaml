@@ -21,13 +21,8 @@ dependencies:
   provider: ^6.1.1
   shared_preferences: ^2.2.2
   
-  # UI components
+  # UI components - removed google_fonts to avoid external dependencies
   flutter_svg: ^2.0.9
-  google_fonts: ^6.1.0
-  
-  # Form handling - removed to avoid version conflicts
-  
-  # Date and time is managed by Flutter SDK
   
   # JSON handling
   json_annotation: ^4.8.1
@@ -35,12 +30,7 @@ dependencies:
   # Development utilities
   uuid: ^4.2.1
   
-  # Weather API (optional - can use existing http package)
-  weather: ^3.1.1
-  
-  # Maps (optional - for future enhancements)
-  flutter_map: ^6.1.0
-  latlong2: ^0.9.0
+  # Weather API (using http package instead of weather package)
 
 dev_dependencies:
   flutter_test:

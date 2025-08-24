@@ -1,0 +1,19 @@
+{
+  "goal": "Evaluate journal and fetch current weather before recommendation",
+  "user_id": "6d80d64d-186f-4eb1-83fd-a6deba59387b",
+  "animal_id": "d034dfb7-c604-4080-aa4b-ad75b0ce2fd1",
+  "title": "Morning walk and brush",
+  "entry_text": "Led animal for 15 minutes and brushed coat. Checking hydration schedule.",
+  "entry_date": "2025-08-23",
+  "category": "care",
+  "duration_minutes": 20,
+  "location": {
+    "zip": "78023"
+  },
+  "metadata": {
+    "source": "api_test"
+  },
+  "test_hint_plan": {
+    "prefer_http_step": true
+  }
+}

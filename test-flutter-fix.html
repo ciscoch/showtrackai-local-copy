@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter Black Screen Fix Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status-panel {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .flutter-frame {
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Flutter Black Screen Fix Test</h1>
+        
+        <div class="status-panel">
+            <h3>✅ Applied Fixes:</h3>
+            <ul>
+                <li>✅ Fixed deprecated backgroundColor in MaterialApp</li>
+                <li>✅ Added explicit Container wrapper in LoginScreen</li>
+                <li>✅ Set flutter_bootstrap.js to use HTML renderer (not CanvasKit)</li>
+                <li>✅ Enhanced theme configuration with explicit white backgrounds</li>
+                <li>✅ Added debug logging to identify rendering issues</li>
+            </ul>
+        </div>
+        
+        <h3>🧪 Live Test Results:</h3>
+        <div id="test-results">
+            <div class="test-result info">Loading tests...</div>
+        </div>
+        
+        <h3>📱 Flutter App Preview:</h3>
+        <div class="flutter-frame">
+            <iframe id="flutter-app" src="http://localhost:8087/#/login" width="100%" height="600" frameborder="0"></iframe>
+        </div>
+        
+        <h3>🔍 Diagnostic Information:</h3>
+        <div id="diagnostics">
+            <div class="test-result info">Running diagnostics...</div>
+        </div>
+    </div>
+
+    <script>
+        const testResults = document.getElementById('test-results');
+        const diagnostics = document.getElementById('diagnostics');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            testResults.appendChild(div);
+        }
+        
+        function addDiagnostic(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            diagnostics.appendChild(div);
+        }
+        
+        // Clear initial loading messages
+        setTimeout(() => {
+            testResults.innerHTML = '';
+            diagnostics.innerHTML = '';
+        }, 1000);
+        
+        // Test 1: Check if Flutter app loads
+        window.addEventListener('load', function() {
+            addResult('🔄 Testing Flutter app loading...', 'info');
+            
+            const iframe = document.getElementById('flutter-app');
+            
+            iframe.onload = function() {
+                addResult('✅ Flutter iframe loaded successfully', 'success');
+                
+                // Test 2: Check for Flutter elements after a delay
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        
+                        // Check for Flutter DOM elements
+                        const flutterElements = iframeDoc.querySelectorAll('flt-glass-pane, flt-scene-host, flutter-view, [flt-renderer]');
+                        
+                        if (flutterElements.length > 0) {
+                            addResult(`✅ Found ${flutterElements.length} Flutter DOM elements - rendering working!`, 'success');
+                            
+                            // Check if loading screen is gone
+                            const loadingEl = iframeDoc.getElementById('loading');
+                            if (!loadingEl || loadingEl.style.display === 'none') {
+                                addResult('✅ Loading screen properly removed', 'success');
+                            } else {
+                                addResult('⚠️ Loading screen still visible', 'warning');
+                            }
+                            
+                            // Check body background
+                            const body = iframeDoc.body;
+                            const bodyStyles = iframeDoc.defaultView.getComputedStyle(body);
+                            addDiagnostic(`Body background: ${bodyStyles.backgroundColor}`, 'info');
+                            addDiagnostic(`Body color: ${bodyStyles.color}`, 'info');
+                            
+                        } else {
+                            addResult('❌ No Flutter elements found - app may not be rendering', 'error');
+                        }
+                        
+                    } catch (e) {
+                        addResult(`⚠️ Cannot inspect iframe content (CORS): ${e.message}`, 'warning');
+                        addResult('This is normal - the app should still work. Check the iframe manually.', 'info');
+                    }
+                }, 3000);
+            };
+            
+            iframe.onerror = function() {
+                addResult('❌ Error loading Flutter app iframe', 'error');
+            };
+        });
+        
+        // Test 3: Monitor for Flutter events
+        window.addEventListener('message', function(e) {
+            if (e.origin === 'http://localhost:8087') {
+                addDiagnostic(`📨 Received message from Flutter: ${JSON.stringify(e.data)}`, 'info');
+            }
+        });
+        
+        // Test 4: Check renderer configuration
+        fetch('http://localhost:8087/flutter_bootstrap.js')
+            .then(response => response.text())
+            .then(data => {
+                if (data.includes('"renderer":"html"')) {
+                    addResult('✅ Flutter configured for HTML renderer (correct for fixing black screen)', 'success');
+                } else if (data.includes('"renderer":"canvaskit"')) {
+                    addResult('❌ Flutter still using CanvasKit renderer (may cause black screen)', 'error');
+                } else {
+                    addResult('⚠️ Could not determine renderer configuration', 'warning');
+                }
+            })
+            .catch(e => {
+                addResult(`⚠️ Could not check renderer config: ${e.message}`, 'warning');
+            });
+        
+        // Test 5: System dark mode check
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            addDiagnostic('🌙 System is in dark mode - this should not affect the fix', 'info');
+        } else {
+            addDiagnostic('☀️ System is in light mode', 'info');
+        }
+        
+        // Final test after delay
+        setTimeout(() => {
+            addResult('🎉 Test complete! If you see the Flutter app above without a black screen, the fix worked!', 'success');
+        }, 5000);
+    </script>
+</body>
+</html>

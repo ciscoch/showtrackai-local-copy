@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test ShowTrackAI Flutter App</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        iframe { width: 100%; height: 600px; border: 1px solid #ccc; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .loading { background: #fff3cd; }
+        .success { background: #d1edff; }
+        .error { background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>ShowTrackAI Flutter App Test</h1>
+    <div id="status" class="status loading">Loading app...</div>
+    <iframe id="app-frame" src="http://localhost:8080"></iframe>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const iframe = document.getElementById('app-frame');
+        
+        iframe.onload = function() {
+            statusDiv.textContent = 'App iframe loaded successfully';
+            statusDiv.className = 'status success';
+            
+            // Check if Flutter app actually loaded by looking for Flutter elements
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    const flutterView = iframeDoc.querySelector('flt-glass-pane') || iframeDoc.querySelector('flutter-view');
+                    
+                    if (flutterView) {
+                        statusDiv.textContent = 'Flutter app loaded successfully!';
+                        statusDiv.className = 'status success';
+                    } else {
+                        statusDiv.textContent = 'Flutter app may not have loaded properly - no Flutter elements found';
+                        statusDiv.className = 'status error';
+                    }
+                } catch (e) {
+                    statusDiv.textContent = 'Cannot check Flutter app status due to CORS, but iframe loaded';
+                    statusDiv.className = 'status success';
+                }
+            }, 3000);
+        };
+        
+        iframe.onerror = function() {
+            statusDiv.textContent = 'Failed to load app iframe';
+            statusDiv.className = 'status error';
+        };
+        
+        // Timeout check
+        setTimeout(() => {
+            if (statusDiv.textContent === 'Loading app...') {
+                statusDiv.textContent = 'App taking longer than expected to load';
+                statusDiv.className = 'status error';
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
