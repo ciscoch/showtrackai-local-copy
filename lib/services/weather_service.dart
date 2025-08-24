@@ -1,7 +1,7 @@
 // lib/services/weather_service.dart
 // Stub weather service - can be enhanced later with city-based queries
 
-import '../models/location_weather.dart';
+import 'package:showtrackai_journaling/models/location_weather.dart';
 
 class WeatherService {
   // Stub: Previously used coordinates, now disabled

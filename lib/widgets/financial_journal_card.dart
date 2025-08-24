@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../widgets/location_input_field.dart';
-import '../models/journal_entry.dart';
+import 'package:showtrackai_journaling/widgets/location_input_field.dart';
+import 'package:showtrackai_journaling/models/location_weather.dart';
 
 /// Financial Journal Card Widget
 /// This card safely adds journal functionality to the existing ShowTrackAI dashboard

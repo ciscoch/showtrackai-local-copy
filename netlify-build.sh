@@ -30,9 +30,11 @@ flutter clean
 echo "📚 flutter pub get"
 flutter pub get
 
-# Build for web without WASM (pure JavaScript)
-echo "🏗️ Building Flutter web app (no geolocation, JS only)..."
+# Build for web with HTML renderer only (no WASM, no external CDN dependencies)
+echo "🏗️ Building Flutter web app (HTML renderer, no external dependencies)..."
 flutter build web --release \
+  --no-web-resources-cdn \
+  --csp \
   --dart-define SUPABASE_URL=${SUPABASE_URL} \
   --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
   --dart-define OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} \
@@ -47,7 +49,7 @@ if [ ! -d "build/web" ] || [ ! -f "build/web/index.html" ]; then
   exit 1
 fi
 
-# Apply HTML renderer bootstrap patch
+# Apply HTML renderer bootstrap patch and clean up CanvasKit files
 echo "🔧 Forcing HTML renderer (no CanvasKit)..."
 if [ -f "./force-html-bootstrap.sh" ]; then
   echo "Using force-html-bootstrap.sh script..."
@@ -82,6 +84,17 @@ _flutter.loader.load({
 });
 BOOTSTRAP_END
 fi
+
+# Remove CanvasKit files to reduce bundle size
+echo "🧹 Removing CanvasKit files (not needed for HTML renderer)..."
+if [ -d "build/web/canvaskit" ]; then
+  rm -rf build/web/canvaskit/
+  echo "✓ Removed canvaskit/ directory"
+fi
+
+# Remove any WASM files
+find build/web -name "*.wasm" -type f -delete 2>/dev/null || true
+echo "✓ Removed any WASM files"
 
 # Verify build output
 echo "🔍 Verifying build output:"

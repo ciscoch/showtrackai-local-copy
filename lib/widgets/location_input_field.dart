@@ -2,7 +2,7 @@
 // Simple text-based location input - no GPS or permissions required
 
 import 'package:flutter/material.dart';
-import '../models/location_weather.dart';
+import 'package:showtrackai_journaling/models/location_weather.dart';
 
 class LocationInputField extends StatefulWidget {
   final void Function(LocationData?, WeatherData?) onLocationChanged;
