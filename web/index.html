@@ -9,10 +9,16 @@
   <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png"/>
+  
+  <!-- Preload Google Fonts for better performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+  
   <style>
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     
     #loading {
@@ -60,112 +66,45 @@
     <p>Loading ShowTrackAI...</p>
   </div>
 
-  <!-- Flutter initialization -->
+  <!-- Loading Screen Management -->
   <script>
-    // Add console logging to see what's happening
-    console.log("🚀 Starting Flutter initialization...");
+    console.log("🚀 ShowTrackAI Loading Manager initialized");
     
-    // Function to hide loading screen with multiple methods
+    // Simple, reliable loading screen management
     function hideLoadingScreen() {
       console.log('🎯 Hiding loading screen...');
       const loadingElement = document.getElementById('loading');
       if (loadingElement) {
-        // Method 1: Add hidden class (most reliable)
         loadingElement.classList.add('hidden');
-        
-        // Method 2: Set display none directly
         loadingElement.style.display = 'none';
         
-        // Method 3: Set visibility hidden
-        loadingElement.style.visibility = 'hidden';
-        
-        // Method 4: Set opacity to 0
-        loadingElement.style.opacity = '0';
-        
-        // Method 5: Remove from DOM completely
+        // Clean removal after transition
         setTimeout(() => {
-          if (loadingElement && loadingElement.parentNode) {
+          if (loadingElement.parentNode) {
             loadingElement.parentNode.removeChild(loadingElement);
-            console.log('✅ Loading screen removed from DOM');
           }
-        }, 100);
+        }, 300);
         
-        console.log('✅ Loading screen hidden successfully');
-      } else {
-        console.warn('⚠️ Loading element not found');
+        console.log('✅ Loading screen hidden');
       }
     }
     
-    // Multiple event listeners for Flutter ready state
-    
-    // Method 1: Standard flutter-first-frame event
-    window.addEventListener('flutter-first-frame', function () {
-      console.log('✅ Flutter first frame rendered via flutter-first-frame event!');
+    // Listen for Flutter ready event from bootstrap
+    window.addEventListener('flutter-first-frame', function() {
+      console.log('✅ Flutter first frame rendered!');
       hideLoadingScreen();
     });
     
-    // Method 2: Listen for Flutter app initialization
-    window.addEventListener('DOMContentLoaded', function() {
-      // Wait for Flutter to initialize
-      const checkFlutterReady = () => {
-        if (window.flutterApp || window._flutter?.app || document.querySelector('flt-glass-pane')) {
-          console.log('✅ Flutter app detected via DOM check!');
-          hideLoadingScreen();
-        } else {
-          setTimeout(checkFlutterReady, 100);
-        }
-      };
-      
-      // Start checking after a short delay
-      setTimeout(checkFlutterReady, 500);
-    });
-    
-    // Method 3: Fallback timeout (in case events don't fire)
+    // Fallback timeout - hide after 10 seconds regardless
     setTimeout(() => {
-      console.log('⏰ Fallback timeout - hiding loading screen');
+      console.log('⏰ Fallback timeout - ensuring loading screen is hidden');
       hideLoadingScreen();
-    }, 8000); // 8 second fallback
-    
-    // Method 4: Check for Flutter DOM elements periodically
-    const flutterCheck = setInterval(() => {
-      // Look for Flutter-specific DOM elements
-      const flutterElements = document.querySelectorAll('flt-glass-pane, flt-scene-host, flutter-view');
-      if (flutterElements.length > 0) {
-        console.log('✅ Flutter DOM elements detected!');
-        hideLoadingScreen();
-        clearInterval(flutterCheck);
-      }
-    }, 200);
-    
-    // Clear the interval after 10 seconds to avoid infinite checking
-    setTimeout(() => {
-      clearInterval(flutterCheck);
     }, 10000);
     
-    // Error handling
+    // Error handling - hide loading screen on any error
     window.addEventListener('error', function(e) {
-      console.error('❌ Error loading Flutter:', e.error);
-      console.error('File:', e.filename);
-      console.error('Line:', e.lineno);
-      
-      // Hide loading screen even on error after a delay
-      setTimeout(() => {
-        console.log('⚠️ Hiding loading screen due to error');
-        hideLoadingScreen();
-      }, 3000);
-    });
-    
-    // Additional debugging
-    window.addEventListener('load', function() {
-      console.log('📄 Window load event fired');
-      // Give Flutter a moment to render, then hide if not already hidden
-      setTimeout(() => {
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement && !loadingElement.classList.contains('hidden')) {
-          console.log('🔄 Loading screen still visible after window load, hiding now');
-          hideLoadingScreen();
-        }
-      }, 1000);
+      console.error('❌ Page error:', e.error || e.message);
+      setTimeout(hideLoadingScreen, 2000);
     });
   </script>
   

@@ -43,8 +43,8 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-    # Clean CSP for HTML renderer - no external dependencies
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org wss://*.supabase.co; object-src 'none'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; media-src 'self' blob: data:;"
+    # Clean CSP for HTML renderer with Google Fonts support
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org wss://*.supabase.co; object-src 'none'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; media-src 'self' blob: data:;"
 
 # Cache optimization for Flutter web HTML renderer
 [[headers]]
@@ -67,11 +67,20 @@
   for = "/flutter.js"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/flutter_bootstrap.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Content-Type = "application/javascript; charset=utf-8"
+    X-Content-Type-Options = "nosniff"
 
 [[headers]]
   for = "/main.dart.js"
   [headers.values]
     Cache-Control = "public, max-age=86400"
+    Content-Type = "application/javascript; charset=utf-8"
 
 # No cache for main HTML file
 [[headers]]
