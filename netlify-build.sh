@@ -49,41 +49,8 @@ if [ ! -d "build/web" ] || [ ! -f "build/web/index.html" ]; then
   exit 1
 fi
 
-# Apply HTML renderer bootstrap patch and clean up CanvasKit files
-echo "🔧 Forcing HTML renderer (no CanvasKit)..."
-if [ -f "./force-html-bootstrap.sh" ]; then
-  echo "Using force-html-bootstrap.sh script..."
-  bash ./force-html-bootstrap.sh
-else
-  echo "Creating fallback HTML-only bootstrap..."
-  cat > build/web/flutter_bootstrap.js << 'BOOTSTRAP_END'
-// ShowTrackAI Bootstrap - HTML Renderer ONLY
-Object.defineProperty(window, 'CanvasKit', {
-  get: function() { 
-    console.log('CanvasKit access blocked - using HTML renderer');
-    return null; 
-  }
-});
-
-window.flutterConfiguration = {
-  renderer: "html",
-  canvasKitBaseUrl: null,
-  useLocalCanvasKit: false
-};
-
-_flutter.loader.load({
-  config: window.flutterConfiguration,
-  serviceWorkerSettings: null,
-  onEntrypointLoaded: async function(engineInitializer) {
-    const appRunner = await engineInitializer.initializeEngine({
-      renderer: "html",
-      canvasKitBaseUrl: null
-    });
-    await appRunner.runApp();
-  }
-});
-BOOTSTRAP_END
-fi
+# Clean up unnecessary files for HTML renderer
+echo "🔧 Optimizing for HTML renderer..."
 
 # Remove CanvasKit files to reduce bundle size
 echo "🧹 Removing CanvasKit files (not needed for HTML renderer)..."
