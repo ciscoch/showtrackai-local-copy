@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔨 FORCING HTML RENDERER - ELIMINATING CANVASKIT PERMANENTLY"
+echo "🔨 FORCING HTML RENDERER - NO EXTERNAL DEPENDENCIES"
 
 # This script creates a flutter_bootstrap.js that NEVER loads external resources
 
@@ -9,7 +9,7 @@ cat > build/web/flutter_bootstrap.js << 'BOOTSTRAP_END'
 (function() {
   "use strict";
   
-  console.log("ShowTrackAI Bootstrap - HTML Renderer Only");
+  console.log("ShowTrackAI Bootstrap - HTML Renderer Only, No Geolocation");
   
   // Block any CanvasKit attempts
   Object.defineProperty(window, 'CanvasKit', {
@@ -92,7 +92,7 @@ cat > build/web/flutter_bootstrap.js << 'BOOTSTRAP_END'
   };
   
   // Start loading immediately
-  console.log("Starting ShowTrackAI with HTML renderer");
+  console.log("Starting ShowTrackAI with HTML renderer - No geolocation");
   _flutter.loader.load({
     renderer: "html",
     useCanvasKit: false
@@ -116,4 +116,4 @@ else
   exit 1
 fi
 
-echo "🎉 CANVASKIT ELIMINATED - HTML RENDERER FORCED"
+echo "🎉 HTML RENDERER FORCED - NO EXTERNAL DEPENDENCIES"

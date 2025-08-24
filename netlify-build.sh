@@ -30,8 +30,8 @@ flutter clean
 echo "📚 flutter pub get"
 flutter pub get
 
-# Build Flutter web app with optimized settings for Netlify
-echo "🏗️  flutter build web --release"
+# Build for web without WASM (pure JavaScript)
+echo "🏗️ Building Flutter web app (no geolocation, JS only)..."
 flutter build web --release \
   --dart-define SUPABASE_URL=${SUPABASE_URL} \
   --dart-define SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY} \
@@ -45,6 +45,42 @@ flutter build web --release \
 if [ ! -d "build/web" ] || [ ! -f "build/web/index.html" ]; then
   echo "❌ Build failed - build/web directory or index.html not found"
   exit 1
+fi
+
+# Apply HTML renderer bootstrap patch
+echo "🔧 Forcing HTML renderer (no CanvasKit)..."
+if [ -f "./force-html-bootstrap.sh" ]; then
+  echo "Using force-html-bootstrap.sh script..."
+  bash ./force-html-bootstrap.sh
+else
+  echo "Creating fallback HTML-only bootstrap..."
+  cat > build/web/flutter_bootstrap.js << 'BOOTSTRAP_END'
+// ShowTrackAI Bootstrap - HTML Renderer ONLY
+Object.defineProperty(window, 'CanvasKit', {
+  get: function() { 
+    console.log('CanvasKit access blocked - using HTML renderer');
+    return null; 
+  }
+});
+
+window.flutterConfiguration = {
+  renderer: "html",
+  canvasKitBaseUrl: null,
+  useLocalCanvasKit: false
+};
+
+_flutter.loader.load({
+  config: window.flutterConfiguration,
+  serviceWorkerSettings: null,
+  onEntrypointLoaded: async function(engineInitializer) {
+    const appRunner = await engineInitializer.initializeEngine({
+      renderer: "html",
+      canvasKitBaseUrl: null
+    });
+    await appRunner.runApp();
+  }
+});
+BOOTSTRAP_END
 fi
 
 # Verify build output
