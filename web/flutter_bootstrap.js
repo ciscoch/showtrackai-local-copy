@@ -72,7 +72,8 @@
       if (window._flutter && window._flutter.loader) {
         console.log('🎯 Using Flutter loader...');
         
-        window._flutter.loader.loadEntrypoint({
+        // Use the newer load API instead of deprecated loadEntrypoint
+        window._flutter.loader.load({
           onEntrypointLoaded: async function(engineInitializer) {
             console.log('✅ Flutter entrypoint loaded');
             
