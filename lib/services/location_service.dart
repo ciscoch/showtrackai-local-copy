@@ -1,7 +1,24 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:your_package_name/models/location_weather.dart';
 
+// example signatures you referenced in logs:
+class WeatherService {
+  Future<WeatherData?> getWeatherByLocation(double lat, double lon) async {
+    // call your API (e.g., OpenWeather with &units=metric), then:
+    // final json = ...;
+    // return WeatherData.fromOpenWeather(json);
+    return null; // placeholder until your API code is in place
+  }
+
+  String getWeatherDescription(WeatherData weather) {
+    final t = weather.tempC == null ? '--' : weather.tempC!.toStringAsFixed(1);
+    return '${weather.description ?? '—'}  $t°C  '
+           'H:${weather.humidity ?? 0}%  '
+           'W:${weather.windKph?.toStringAsFixed(1) ?? '0'}kph';
+  }
+}
 /// Service for handling location-based operations
 /// Cross-platform version that works on web, Android, and iOS
 class LocationService {
