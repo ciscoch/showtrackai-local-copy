@@ -2,12 +2,7 @@
   command = "./build_for_netlify.sh"
   publish = "build/web"
 
-# Let real files win, then SPA fallback (also written as _redirects by the script)
 [[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200
-
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "no-cache, no-store, must-revalidate"
