@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <!-- Set a real base; if hosted at /app/, change to /app/ -->
+    <!-- If hosted under a subpath, change to /subpath/ -->
     <base href="/" />
 
     <meta charset="UTF-8" />
@@ -13,22 +13,23 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="favicon.png" />
 
-    <!-- Optional fonts (allowed in your CSP) -->
+    <!-- Optional fonts (allowed by your _headers CSP) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
 
     <style>
-      /* Make sure the viewport has height */
-      html, body { height: 100%; min-height: 100vh; margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
-      /* Ensure Flutter’s host fills the screen */
-      flt-glass-pane, flt-scene-host, #flt-glass-pane { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
-
-      /* Simple splash */
+      /* Ensure the viewport actually has height (prevents white/0px screens) */
+      html, body { height: 100%; min-height: 100vh; margin: 0;
+        font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+      /* Make Flutter’s host fill the screen */
+      flt-glass-pane, flt-scene-host, #flt-glass-pane {
+        position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important;
+      }
+      /* Simple splash that never blocks clicks if it lingers */
       #splash {
         position: fixed; inset: 0; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; background: #fff; z-index: 9999;
-        pointer-events: none; /* never block clicks if it lingers */
+        align-items: center; justify-content: center; background: #fff; z-index: 9999; pointer-events: none;
       }
       .spinner {
         width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1976d2;
@@ -38,13 +39,13 @@
     </style>
 
     <script>
-      // Force HTML renderer; keeps runtime simple (no CanvasKit/gstatic)
+      // Force HTML renderer at runtime (your runner lacks the --web-renderer flag)
       window.flutterConfiguration = { renderer: "html", assetBase: "/" };
 
-      // Remove splash as soon as Flutter paints; include a fallback
+      // Remove splash ASAP; include a fallback in case the event is missed
       const removeSplash = () => document.getElementById('splash')?.remove();
       window.addEventListener('flutter-first-frame', removeSplash);
-      setTimeout(removeSplash, 4000); // fallback in case event is missed
+      setTimeout(removeSplash, 4000);
     </script>
   </head>
   <body>
@@ -53,7 +54,7 @@
       <p>Loading ShowTrackAI…</p>
     </div>
 
-    <!-- Single, official loader. Do NOT include flutter_bootstrap.js yourself. -->
+    <!-- Single, official loader. DO NOT add flutter_bootstrap.js or main.dart.js here. -->
     <script src="flutter.js" defer></script>
   </body>
 </html>
