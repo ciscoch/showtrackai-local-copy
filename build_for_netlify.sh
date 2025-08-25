@@ -24,14 +24,15 @@ rm -rf "$FLUTTER_INSTALL_DIR" || true
 mkdir -p "$FLUTTER_INSTALL_DIR"
 echo "📥 Cloning Flutter stable to $FLUTTER_INSTALL_DIR ..."
 git clone --depth 1 -b stable https://github.com/flutter/flutter.git "$FLUTTER_INSTALL_DIR/flutter" 1>/dev/null
-export PATH="$FLUTTER_INSTALL_DIR/flutter/bin:$PATH"
-echo "🔧 Flutter: $(flutter --version | head -n1)"
 
-# --- Quiet analytics + doctor (no-fail) ---
+export PATH="$FLUTTER_INSTALL_DIR/flutter/bin:$PATH"
+
+echo "🔧 which flutter: $(which flutter)"
+flutter --version || true
 flutter config --no-analytics 2>/dev/null || true
 flutter doctor -v || true
 
-# --- Clean & fetch deps ---
+# --- Clean & deps ---
 echo "🧹 Cleaning previous builds..."
 rm -rf build/web || true
 flutter clean || true
@@ -39,31 +40,34 @@ flutter clean || true
 echo "📦 flutter pub get ..."
 flutter pub get
 
-# --- Ensure web is enabled (idempotent) ---
 flutter config --enable-web 2>/dev/null || true
 
-# --- Build (HTML renderer only) ---
-echo "🔨 Building Web (HTML renderer, no WASM dry-run, disable PWA SW)..."
-set -x
-if ! flutter build web --release \
-  --web-renderer=html \
-  --no-wasm-dry-run \
-  --no-tree-shake-icons \
-  --pwa-strategy=none
-then
-  # Older Flutter may not support --pwa-strategy; retry without it.
-  flutter build web --release \
-    --web-renderer=html \
-    --no-wasm-dry-run \
-    --no-tree-shake-icons
+# --- Detect build flag support (older Flutter may not have them) ---
+WEB_HELP="$(flutter build web -h 2>&1 || true)"
+HAS_WEB_RENDERER=0
+HAS_PWA_STRATEGY=0
+HAS_NO_WASM_DRY_RUN=0
+
+echo "$WEB_HELP" | grep -q -- '--web-renderer'      && HAS_WEB_RENDERER=1
+echo "$WEB_HELP" | grep -q -- '--pwa-strategy'      && HAS_PWA_STRATEGY=1
+echo "$WEB_HELP" | grep -q -- '--no-wasm-dry-run'   && HAS_NO_WASM_DRY_RUN=1
+
+echo "🔎 Flag support: web-renderer=$HAS_WEB_RENDERER, pwa-strategy=$HAS_PWA_STRATEGY, no-wasm-dry-run=$HAS_NO_WASM_DRY_RUN"
+
+# --- Build command (compose safely for any Flutter) ---
+BUILD_ARGS=(build web --release --no-tree-shake-icons)
+[ "$HAS_WEB_RENDERER"   -eq 1 ] && BUILD_ARGS+=("--web-renderer=html")
+[ "$HAS_NO_WASM_DRY_RUN" -eq 1 ] && BUILD_ARGS+=("--no-wasm-dry-run")
+[ "$HAS_PWA_STRATEGY"   -eq 1 ] && BUILD_ARGS+=("--pwa-strategy=none")
+
+echo "🔨 flutter ${BUILD_ARGS[*]}"
+if ! flutter "${BUILD_ARGS[@]}"; then
+  echo "⚠️ Primary build failed. Retrying with minimal flags…"
+  flutter build web --release || { echo "❌ Build failed"; exit 1; }
 fi
-set +x
 
 # --- Verify output ---
-if [ ! -f "build/web/main.dart.js" ]; then
-  echo "❌ build/web/main.dart.js missing; build failed."
-  exit 1
-fi
+[ -f "build/web/main.dart.js" ] || { echo "❌ build/web/main.dart.js missing"; exit 1; }
 echo "✅ Build output present."
 
 # --- Neutralize service worker if generated anyway ---
@@ -77,17 +81,17 @@ self.addEventListener('fetch', e => {});
 JS
 fi
 
-# --- SPA routing (_redirects) ---
+# --- SPA routing ---
 echo "/* /index.html 200" > build/web/_redirects
 
-# --- Runtime headers (_headers) ---
+# --- Runtime headers (authoritative; Netlify warns if toml headers are malformed) ---
 cat > build/web/_headers <<'HEADERS'
 /*
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  # CSP fits HTML renderer (no CanvasKit). Fonts/CDN allowed if used.
+  # CSP fits HTML renderer path; fonts/CDNs allowed if used.
   Content-Security-Policy: default-src 'self' https://*.netlify.com https://*.netlify.app https://www.gstatic.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.netlify.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.netlify.com https://fonts.gstatic.com https://www.gstatic.com; frame-src 'self' https://*.netlify.com https://*.netlify.app;
 
 /index.html
@@ -114,7 +118,6 @@ cat > build/web/_headers <<'HEADERS'
   Cache-Control: public, max-age=31536000, immutable
 HEADERS
 
-# --- Permissions & debug listing ---
 chmod -R 755 build/web || true
 echo "📦 build/web (top 30):"
 ls -la build/web | head -30
