@@ -15,6 +15,7 @@
   Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-cache, no-store, must-revalidate
   X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
 
 /main.dart.js
   Content-Type: application/javascript; charset=utf-8
@@ -29,6 +30,22 @@
 /*.css
   Content-Type: text/css; charset=utf-8
   Cache-Control: public, max-age=31536000, immutable
+
+# Font files
+*.woff2
+  Content-Type: font/woff2
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+*.woff
+  Content-Type: font/woff
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
+
+*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: *
 
 /index.html
   Content-Type: text/html; charset=utf-8

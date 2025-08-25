@@ -71,6 +71,33 @@ find build/web -name "*.wasm" -type f -delete 2>/dev/null || true
 # Remove any source maps to reduce size
 find build/web -name "*.map" -type f -delete 2>/dev/null || true
 
+# Ensure critical files are in build output
+echo "📋 Copying enhanced bootstrap and config files..."
+cp web/flutter_bootstrap.js build/web/ || echo "⚠️  flutter_bootstrap.js not found in web/"
+cp web/flutter_build_config.json build/web/ || echo "⚠️  flutter_build_config.json not found in web/"
+
+# Verify the copied files have our fixes
+echo "🔍 Verifying copied files contain fixes..."
+if grep -q "_flutter.buildConfig" build/web/flutter_bootstrap.js; then
+    echo "✅ flutter_bootstrap.js contains buildConfig fix"
+else
+    echo "❌ flutter_bootstrap.js missing buildConfig fix"
+fi
+
+if grep -q '"useColorEmoji": true' build/web/flutter_build_config.json; then
+    echo "✅ flutter_build_config.json contains enhancements"
+else
+    echo "❌ flutter_build_config.json missing enhancements"
+fi
+
+# Verify no CanvasKit references in main.dart.js
+echo "🔍 Checking for CanvasKit references..."
+if grep -q "canvaskit\|CanvasKit" build/web/main.dart.js 2>/dev/null; then
+    echo "⚠️  CanvasKit references found in main.dart.js - this should be HTML renderer only"
+else
+    echo "✅ No CanvasKit references found - clean HTML renderer build"
+fi
+
 # Verify critical files exist
 echo "✅ Verifying build output:"
 ls -la build/web/

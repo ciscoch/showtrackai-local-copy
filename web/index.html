@@ -6,13 +6,21 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="ShowTrackAI - Agricultural Education Platform">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Permissions Policy to prevent CSP issues -->
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
   <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png"/>
+  
+  <!-- Preload Google Fonts for better performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+  
   <style>
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
     
     #loading {
@@ -60,116 +68,123 @@
     <p>Loading ShowTrackAI...</p>
   </div>
 
-  <!-- Flutter initialization -->
+  <!-- Enhanced Loading Screen Management with Debug Info -->
   <script>
-    // Add console logging to see what's happening
-    console.log("🚀 Starting Flutter initialization...");
+    console.log("🚀 ShowTrackAI Loading Manager v2.0 initialized");
+    console.log("📊 Environment:", {
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      referrer: document.referrer,
+      timestamp: new Date().toISOString()
+    });
     
-    // Function to hide loading screen with multiple methods
+    // Track loading progress
+    let loadingStages = {
+      loadingManagerInit: Date.now(),
+      flutterBootstrapStart: null,
+      flutterJsLoaded: null,
+      flutterEngineInit: null,
+      flutterFirstFrame: null
+    };
+    
+    // Simple, reliable loading screen management
     function hideLoadingScreen() {
       console.log('🎯 Hiding loading screen...');
       const loadingElement = document.getElementById('loading');
       if (loadingElement) {
-        // Method 1: Add hidden class (most reliable)
         loadingElement.classList.add('hidden');
-        
-        // Method 2: Set display none directly
         loadingElement.style.display = 'none';
         
-        // Method 3: Set visibility hidden
-        loadingElement.style.visibility = 'hidden';
-        
-        // Method 4: Set opacity to 0
-        loadingElement.style.opacity = '0';
-        
-        // Method 5: Remove from DOM completely
+        // Clean removal after transition
         setTimeout(() => {
-          if (loadingElement && loadingElement.parentNode) {
+          if (loadingElement.parentNode) {
             loadingElement.parentNode.removeChild(loadingElement);
-            console.log('✅ Loading screen removed from DOM');
           }
-        }, 100);
+        }, 300);
         
-        console.log('✅ Loading screen hidden successfully');
-      } else {
-        console.warn('⚠️ Loading element not found');
+        // Log final timing
+        const totalTime = Date.now() - loadingStages.loadingManagerInit;
+        console.log('✅ Loading screen hidden - Total load time:', totalTime + 'ms');
+        console.log('📊 Loading stages:', loadingStages);
       }
     }
     
-    // Multiple event listeners for Flutter ready state
-    
-    // Method 1: Standard flutter-first-frame event
-    window.addEventListener('flutter-first-frame', function () {
-      console.log('✅ Flutter first frame rendered via flutter-first-frame event!');
+    // Listen for Flutter events
+    window.addEventListener('flutter-first-frame', function() {
+      loadingStages.flutterFirstFrame = Date.now();
+      console.log('✅ Flutter first frame rendered!');
       hideLoadingScreen();
     });
     
-    // Method 2: Listen for Flutter app initialization
-    window.addEventListener('DOMContentLoaded', function() {
-      // Wait for Flutter to initialize
-      const checkFlutterReady = () => {
-        if (window.flutterApp || window._flutter?.app || document.querySelector('flt-glass-pane')) {
-          console.log('✅ Flutter app detected via DOM check!');
-          hideLoadingScreen();
-        } else {
-          setTimeout(checkFlutterReady, 100);
-        }
-      };
-      
-      // Start checking after a short delay
-      setTimeout(checkFlutterReady, 500);
+    window.addEventListener('flutter-initialized', function() {
+      console.log('✅ Flutter fully initialized');
     });
     
-    // Method 3: Fallback timeout (in case events don't fire)
+    // Progressive fallback timeouts with user feedback
     setTimeout(() => {
-      console.log('⏰ Fallback timeout - hiding loading screen');
-      hideLoadingScreen();
-    }, 8000); // 8 second fallback
-    
-    // Method 4: Check for Flutter DOM elements periodically
-    const flutterCheck = setInterval(() => {
-      // Look for Flutter-specific DOM elements
-      const flutterElements = document.querySelectorAll('flt-glass-pane, flt-scene-host, flutter-view');
-      if (flutterElements.length > 0) {
-        console.log('✅ Flutter DOM elements detected!');
-        hideLoadingScreen();
-        clearInterval(flutterCheck);
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement && !loadingElement.classList.contains('hidden')) {
+        loadingElement.querySelector('p').textContent = 'Initializing Flutter engine...';
+        console.log('⏰ 5s: Still loading - updating status');
       }
-    }, 200);
+    }, 5000);
     
-    // Clear the interval after 10 seconds to avoid infinite checking
     setTimeout(() => {
-      clearInterval(flutterCheck);
-    }, 10000);
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement && !loadingElement.classList.contains('hidden')) {
+        loadingElement.querySelector('p').textContent = 'Almost ready...';
+        console.log('⏰ 8s: Still loading - final stages');
+      }
+    }, 8000);
     
-    // Error handling
+    // Final fallback timeout - hide after 15 seconds
+    setTimeout(() => {
+      console.log('⏰ Fallback timeout (15s) - ensuring loading screen is hidden');
+      console.log('🔍 Final Flutter state check:', {
+        '_flutter': !!window._flutter,
+        '_flutter.loader': !!(window._flutter && window._flutter.loader),
+        'flutterApp': !!window.flutterApp,
+        'flutter_view': !!document.querySelector('flutter-view'),
+        'flutter-view': !!document.querySelector('.flutter-view')
+      });
+      hideLoadingScreen();
+    }, 15000);
+    
+    // Enhanced error handling
     window.addEventListener('error', function(e) {
-      console.error('❌ Error loading Flutter:', e.error);
-      console.error('File:', e.filename);
-      console.error('Line:', e.lineno);
-      
-      // Hide loading screen even on error after a delay
-      setTimeout(() => {
-        console.log('⚠️ Hiding loading screen due to error');
-        hideLoadingScreen();
-      }, 3000);
+      console.error('❌ Page error:', {
+        message: e.message || 'Unknown error',
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error,
+        stack: e.error?.stack
+      });
+      setTimeout(hideLoadingScreen, 2000);
     });
     
-    // Additional debugging
-    window.addEventListener('load', function() {
-      console.log('📄 Window load event fired');
-      // Give Flutter a moment to render, then hide if not already hidden
-      setTimeout(() => {
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement && !loadingElement.classList.contains('hidden')) {
-          console.log('🔄 Loading screen still visible after window load, hiding now');
-          hideLoadingScreen();
-        }
-      }, 1000);
+    // Unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('❌ Unhandled promise rejection:', e.reason);
+    });
+    
+    // CSP violation reporting (less verbose to avoid noise)
+    document.addEventListener('securitypolicyviolation', function(e) {
+      // Only log if it's not a known issue (gravatar, etc.)
+      if (!e.blockedURI?.includes('gravatar') && !e.blockedURI?.includes('gstatic')) {
+        console.error('🚫 CSP Violation:', {
+          violatedDirective: e.violatedDirective,
+          blockedURI: e.blockedURI
+        });
+      }
     });
   </script>
   
+  <!-- Preload critical assets -->
+  <link rel="preload" href="flutter.js" as="script">
+  <link rel="preload" href="main.dart.js" as="script">
+  
   <!-- Load Flutter bootstrap -->
-  <script src="flutter_bootstrap.js"></script>
+  <script src="flutter_bootstrap.js" defer></script>
 </body>
 </html>

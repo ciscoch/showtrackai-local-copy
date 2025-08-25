@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "builds": [
+    {
+      "compileTarget": "dart2js",
+      "renderer": "html",
+      "mainJsPath": "main.dart.js"
+    }
+  ],
+  "engineRevision": "flutter",
+  "frameworkRevision": "flutter",
+  "dartSdkVersion": "3.0.0"
+}
