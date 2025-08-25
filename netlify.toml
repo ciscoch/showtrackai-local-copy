@@ -42,9 +42,10 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-    # Clean CSP for HTML renderer with Google Fonts support
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org wss://*.supabase.co; object-src 'none'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'none'; media-src 'self' blob: data:;"
+    # Permissions for Flutter web features - allow camera/mic for future features, allow geolocation
+    Permissions-Policy = "camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()"
+    # CSP optimized for Flutter HTML renderer + Netlify deployment
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.netlify.com https://*.netlify.app https://goo.netlify.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob:; connect-src 'self' https://zifbuzsdhparxlhsifdi.supabase.co wss://realtime.supabase.co https://api.openweathermap.org wss://*.supabase.co https://*.netlify.com https://*.netlify.app; object-src 'none'; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' https://*.netlify.com https://*.netlify.app https://goo.netlify.com; media-src 'self' blob: data:;"
 
 # Cache optimization for Flutter web HTML renderer
 [[headers]]

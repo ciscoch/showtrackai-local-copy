@@ -66,9 +66,24 @@
     <p>Loading ShowTrackAI...</p>
   </div>
 
-  <!-- Loading Screen Management -->
+  <!-- Enhanced Loading Screen Management with Debug Info -->
   <script>
-    console.log("🚀 ShowTrackAI Loading Manager initialized");
+    console.log("🚀 ShowTrackAI Loading Manager v2.0 initialized");
+    console.log("📊 Environment:", {
+      userAgent: navigator.userAgent,
+      url: window.location.href,
+      referrer: document.referrer,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Track loading progress
+    let loadingStages = {
+      loadingManagerInit: Date.now(),
+      flutterBootstrapStart: null,
+      flutterJsLoaded: null,
+      flutterEngineInit: null,
+      flutterFirstFrame: null
+    };
     
     // Simple, reliable loading screen management
     function hideLoadingScreen() {
@@ -85,26 +100,80 @@
           }
         }, 300);
         
-        console.log('✅ Loading screen hidden');
+        // Log final timing
+        const totalTime = Date.now() - loadingStages.loadingManagerInit;
+        console.log('✅ Loading screen hidden - Total load time:', totalTime + 'ms');
+        console.log('📊 Loading stages:', loadingStages);
       }
     }
     
-    // Listen for Flutter ready event from bootstrap
+    // Listen for Flutter events
     window.addEventListener('flutter-first-frame', function() {
+      loadingStages.flutterFirstFrame = Date.now();
       console.log('✅ Flutter first frame rendered!');
       hideLoadingScreen();
     });
     
-    // Fallback timeout - hide after 10 seconds regardless
-    setTimeout(() => {
-      console.log('⏰ Fallback timeout - ensuring loading screen is hidden');
-      hideLoadingScreen();
-    }, 10000);
+    window.addEventListener('flutter-initialized', function() {
+      console.log('✅ Flutter fully initialized');
+    });
     
-    // Error handling - hide loading screen on any error
+    // Progressive fallback timeouts with user feedback
+    setTimeout(() => {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement && !loadingElement.classList.contains('hidden')) {
+        loadingElement.querySelector('p').textContent = 'Initializing Flutter engine...';
+        console.log('⏰ 5s: Still loading - updating status');
+      }
+    }, 5000);
+    
+    setTimeout(() => {
+      const loadingElement = document.getElementById('loading');
+      if (loadingElement && !loadingElement.classList.contains('hidden')) {
+        loadingElement.querySelector('p').textContent = 'Almost ready...';
+        console.log('⏰ 8s: Still loading - final stages');
+      }
+    }, 8000);
+    
+    // Final fallback timeout - hide after 15 seconds
+    setTimeout(() => {
+      console.log('⏰ Fallback timeout (15s) - ensuring loading screen is hidden');
+      console.log('🔍 Final Flutter state check:', {
+        '_flutter': !!window._flutter,
+        '_flutter.loader': !!(window._flutter && window._flutter.loader),
+        'flutterApp': !!window.flutterApp,
+        'flutter_view': !!document.querySelector('flutter-view'),
+        'flutter-view': !!document.querySelector('.flutter-view')
+      });
+      hideLoadingScreen();
+    }, 15000);
+    
+    // Enhanced error handling
     window.addEventListener('error', function(e) {
-      console.error('❌ Page error:', e.error || e.message);
+      console.error('❌ Page error:', {
+        message: e.message || 'Unknown error',
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error,
+        stack: e.error?.stack
+      });
       setTimeout(hideLoadingScreen, 2000);
+    });
+    
+    // Unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('❌ Unhandled promise rejection:', e.reason);
+    });
+    
+    // CSP violation reporting
+    document.addEventListener('securitypolicyviolation', function(e) {
+      console.error('🚫 CSP Violation:', {
+        violatedDirective: e.violatedDirective,
+        blockedURI: e.blockedURI,
+        documentURI: e.documentURI,
+        originalPolicy: e.originalPolicy
+      });
     });
   </script>
   
