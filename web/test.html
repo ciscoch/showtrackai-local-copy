@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ShowTrackAI Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #4CAF50; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ShowTrackAI Deployment Test</h1>
+        
+        <div class="status info">
+            <strong>Test Page Status:</strong> If you can see this, basic HTML serving works!
+        </div>
+        
+        <div class="status success">
+            <strong>✅ Static Files:</strong> CSS and basic HTML are working
+        </div>
+        
+        <h2>Quick Tests:</h2>
+        <ol>
+            <li>This page loads = Netlify routing works ✅</li>
+            <li>Styles visible = CSS works ✅</li>
+            <li>No console errors = Basic setup OK ✅</li>
+        </ol>
+        
+        <h2>Flutter App Status:</h2>
+        <div id="flutter-status" class="status info">
+            Checking Flutter...
+        </div>
+        
+        <script>
+            // Check for Flutter
+            setTimeout(() => {
+                const status = document.getElementById('flutter-status');
+                if (window._flutter) {
+                    status.className = 'status success';
+                    status.innerHTML = '✅ Flutter object detected';
+                } else {
+                    status.className = 'status error';
+                    status.innerHTML = '❌ Flutter not detected - check main app';
+                }
+            }, 2000);
+        </script>
+        
+        <h2>Next Steps:</h2>
+        <p>If this test page works but the main app doesn't:</p>
+        <ul>
+            <li>Check browser console on main page</li>
+            <li>Look for specific Flutter errors</li>
+            <li>Verify all build files are present</li>
+        </ul>
+        
+        <p><a href="/" style="color: #4CAF50;">← Back to Main App</a></p>
+    </div>
+</body>
+</html>
