@@ -12,10 +12,17 @@
   // Set up _flutter.buildConfig early - this is critical for newer Flutter versions
   window._flutter = window._flutter || {};
   window._flutter.buildConfig = {
-    "renderer": "html",
-    "canvasKitBaseUrl": null,
-    "useLocalCanvasKit": false,
-    "serviceWorkerSettings": null
+    "builds": [
+      {
+        "compileTarget": "dart2js",
+        "renderer": "html",
+        "mainWasmPath": null,
+        "jsSupportPath": null
+      }
+    ],
+    "engineRevision": "flutter",
+    "frameworkRevision": "flutter",
+    "dartSdkVersion": "3.0.0"
   };
   
   console.log('✅ Flutter buildConfig set:', window._flutter.buildConfig);
@@ -25,9 +32,10 @@
     renderer: "html",
     hostElement: document.body,
     useColorEmoji: true,
-    // Disable CanvasKit completely
-    canvasKitBaseUrl: null,
-    useLocalCanvasKit: false,
+    // Explicitly set config to match buildConfig
+    config: {
+      renderer: "html"
+    }
   };
   
   // Function to load Flutter with proper error handling
@@ -72,7 +80,11 @@
         
         // Use the newer load() method with proper configuration
         window._flutter.loader.load({
-          config: window._flutter.buildConfig,
+          config: {
+            renderer: "html",
+            canvasKitBaseUrl: null,
+            useLocalCanvasKit: false
+          },
           onEntrypointLoaded: async function(engineInitializer) {
             console.log('✅ Flutter entrypoint loaded via modern API');
             

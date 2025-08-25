@@ -6,6 +6,8 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="ShowTrackAI - Agricultural Education Platform">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Permissions Policy to prevent CSP issues -->
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
   <title>ShowTrackAI Journaling</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" href="favicon.png"/>
@@ -166,18 +168,23 @@
       console.error('❌ Unhandled promise rejection:', e.reason);
     });
     
-    // CSP violation reporting
+    // CSP violation reporting (less verbose to avoid noise)
     document.addEventListener('securitypolicyviolation', function(e) {
-      console.error('🚫 CSP Violation:', {
-        violatedDirective: e.violatedDirective,
-        blockedURI: e.blockedURI,
-        documentURI: e.documentURI,
-        originalPolicy: e.originalPolicy
-      });
+      // Only log if it's not a known issue (gravatar, etc.)
+      if (!e.blockedURI?.includes('gravatar') && !e.blockedURI?.includes('gstatic')) {
+        console.error('🚫 CSP Violation:', {
+          violatedDirective: e.violatedDirective,
+          blockedURI: e.blockedURI
+        });
+      }
     });
   </script>
   
+  <!-- Preload critical assets -->
+  <link rel="preload" href="flutter.js" as="script">
+  <link rel="preload" href="main.dart.js" as="script">
+  
   <!-- Load Flutter bootstrap -->
-  <script src="flutter_bootstrap.js"></script>
+  <script src="flutter_bootstrap.js" defer></script>
 </body>
 </html>
