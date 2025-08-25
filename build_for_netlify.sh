@@ -4,43 +4,91 @@ set -e  # Exit on error
 
 echo "🚀 Building ShowTrackAI for Netlify deployment..."
 echo "Current directory: $(pwd)"
-echo "Contents: $(ls -la)"
+
+# Ensure we're in the correct directory and find project root
+PROJECT_ROOT=""
+if [ -n "$NETLIFY_REPO_PATH" ] && [ -d "$NETLIFY_REPO_PATH" ]; then
+    PROJECT_ROOT="$NETLIFY_REPO_PATH"
+elif [ -d "/opt/build/repo" ]; then
+    PROJECT_ROOT="/opt/build/repo"
+else
+    PROJECT_ROOT="$(pwd)"
+fi
+
+echo "📍 Project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
+
+# Verify we're in a Flutter project directory
+if [ ! -f "pubspec.yaml" ]; then
+    echo "❌ ERROR: pubspec.yaml not found in $PROJECT_ROOT"
+    echo "Directory contents:"
+    ls -la
+    exit 1
+fi
+
+echo "✅ Flutter project root confirmed: $(pwd)"
+echo "📦 pubspec.yaml found"
 
 # Force fresh Flutter installation to avoid version conflicts
 echo "📥 Installing Flutter SDK for Netlify build..."
 
-# Remove any existing Flutter to avoid conflicts
-rm -rf flutter 2>/dev/null || true
-rm -rf .flutter 2>/dev/null || true
-rm -rf ~/.flutter 2>/dev/null || true
+# Create temp directory for Flutter SDK (not in project!)
+FLUTTER_INSTALL_DIR="/tmp/flutter_sdk_$$"
+rm -rf "$FLUTTER_INSTALL_DIR" 2>/dev/null || true
+mkdir -p "$FLUTTER_INSTALL_DIR"
 
-# Clone Flutter stable branch (will get latest stable)
-echo "Cloning Flutter stable branch..."
+# Save current project directory
+SAVED_PROJECT_ROOT="$PROJECT_ROOT"
+
+# Clone Flutter stable branch in temp directory
+echo "Cloning Flutter stable branch to temp directory..."
+cd "$FLUTTER_INSTALL_DIR"
 git clone https://github.com/flutter/flutter.git -b stable --depth 1
 
-# Set PATH to use our Flutter (before any system Flutter)
-export PATH="$(pwd)/flutter/bin:$PATH"
+# Set up Flutter PATH from temp location
+FLUTTER_BIN="$FLUTTER_INSTALL_DIR/flutter/bin"
+export PATH="$FLUTTER_BIN:$PATH"
+
+# Return to project directory - CRITICAL!
+cd "$SAVED_PROJECT_ROOT"
+
+echo "🔧 Flutter binary path: $FLUTTER_BIN"
+echo "🔧 Current working directory: $(pwd)"
+echo "🔧 Project root should be: $SAVED_PROJECT_ROOT"
+
+# Verify Flutter installation
+if [ ! -f "$FLUTTER_BIN/flutter" ]; then
+    echo "❌ ERROR: Flutter binary not found at $FLUTTER_BIN/flutter"
+    exit 1
+fi
 
 # Disable analytics to speed up first run
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter config --no-analytics 2>/dev/null || true
 
 # Run flutter once to download Dart SDK and initialize
 echo "Initializing Flutter..."
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter --version
 
 # Quick doctor check (don't fail on this)
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter doctor -v || true
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
+cd "$PROJECT_ROOT"
 rm -rf build/web || true
 flutter clean || true
 
-# Get dependencies
+# Get dependencies - CRITICAL: Must be in project root
 echo "📦 Getting dependencies..."
+cd "$PROJECT_ROOT"
+echo "📍 Running 'flutter pub get' from: $(pwd)"
 flutter pub get
 
 # Enable web support (might be needed for some Flutter versions)
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter config --enable-web 2>/dev/null || true
 
 # Get Flutter version for appropriate build command
@@ -49,31 +97,33 @@ echo "📊 Flutter version detected: $FLUTTER_VERSION"
 
 # Build for web with version-appropriate command
 echo "🔨 Building for web..."
+cd "$PROJECT_ROOT"
+echo "📍 Running Flutter build from: $(pwd)"
 
 # Try different build approaches based on Flutter version
 build_success=false
 
 # Method 1: Try without --web-renderer flag (works for very old and very new Flutter)
 echo "Attempting build without renderer flag..."
-if flutter build web --release --no-tree-shake-icons 2>/dev/null; then
+if cd "$PROJECT_ROOT" && flutter build web --release --no-tree-shake-icons 2>/dev/null; then
     echo "✅ Build successful without renderer flag"
     build_success=true
 else
     # Method 2: Try with --web-renderer html (Flutter 2.10 to 3.21)
     echo "Attempting build with --web-renderer html..."
-    if flutter build web --release --web-renderer html --no-tree-shake-icons 2>/dev/null; then
+    if cd "$PROJECT_ROOT" && flutter build web --release --web-renderer html --no-tree-shake-icons 2>/dev/null; then
         echo "✅ Build successful with --web-renderer html"
         build_success=true
     else
         # Method 3: Try with dart-define for older Flutter versions
         echo "Attempting build with dart-define..."
-        if flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false --no-tree-shake-icons 2>/dev/null; then
+        if cd "$PROJECT_ROOT" && flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false --no-tree-shake-icons 2>/dev/null; then
             echo "✅ Build successful with dart-define"
             build_success=true
         else
             # Method 4: Simplest possible build
             echo "Attempting basic build..."
-            if flutter build web --release 2>/dev/null; then
+            if cd "$PROJECT_ROOT" && flutter build web --release 2>/dev/null; then
                 echo "✅ Basic build successful"
                 build_success=true
             else
@@ -88,9 +138,10 @@ if [ "$build_success" = false ]; then
     echo "⚠️ Flutter build failed, attempting recovery..."
 fi
 
-# Verify build directory exists
+# Verify build directory exists - CRITICAL: Must be in project root
+cd "$PROJECT_ROOT"
 if [ ! -d "build/web" ]; then
-    echo "⚠️ Build directory not created, creating fallback..."
+    echo "⚠️ Build directory not created, creating fallback from: $(pwd)"
     mkdir -p build/web
     
     # Copy web files as emergency fallback
@@ -166,8 +217,9 @@ else
 fi
 
 # Copy custom files if they exist and build succeeded
+cd "$PROJECT_ROOT"
 if [ -d "build/web" ]; then
-    echo "📋 Copying custom files..."
+    echo "📋 Copying custom files from: $(pwd)"
     [ -f "web/flutter_bootstrap.js" ] && cp web/flutter_bootstrap.js build/web/ 2>/dev/null || true
     [ -f "web/flutter_fallback.js" ] && cp web/flutter_fallback.js build/web/ 2>/dev/null || true
     [ -f "web/test.html" ] && cp web/test.html build/web/ 2>/dev/null || true

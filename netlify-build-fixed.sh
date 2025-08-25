@@ -7,56 +7,109 @@ echo "Current directory: $(pwd)"
 echo "Node version: $(node --version)"
 echo "Build timestamp: $(date)"
 
-# Ensure we're in the correct directory
-cd $NETLIFY_REPO_PATH || cd /opt/build/repo || cd .
+# Ensure we're in the correct directory and find project root
+PROJECT_ROOT=""
+if [ -n "$NETLIFY_REPO_PATH" ] && [ -d "$NETLIFY_REPO_PATH" ]; then
+    PROJECT_ROOT="$NETLIFY_REPO_PATH"
+elif [ -d "/opt/build/repo" ]; then
+    PROJECT_ROOT="/opt/build/repo"
+else
+    PROJECT_ROOT="$(pwd)"
+fi
 
-# Clean any previous Flutter installations
+echo "📍 Project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
+
+# Verify we're in a Flutter project directory
+if [ ! -f "pubspec.yaml" ]; then
+    echo "❌ ERROR: pubspec.yaml not found in $PROJECT_ROOT"
+    echo "Directory contents:"
+    ls -la
+    exit 1
+fi
+
+echo "✅ Flutter project root confirmed: $(pwd)"
+echo "📦 pubspec.yaml found"
+
+# Clean any previous Flutter installations (in temp directory)
 echo "🧹 Cleaning previous Flutter installations..."
-rm -rf flutter || true
+FLUTTER_INSTALL_DIR="/tmp/flutter_sdk_$$"
+rm -rf "$FLUTTER_INSTALL_DIR" || true
+mkdir -p "$FLUTTER_INSTALL_DIR"
 
-# Install Flutter with explicit stable version
-echo "📥 Installing Flutter SDK (latest stable)..."
+# Save current directory
+SAVED_DIR="$(pwd)"
+
+# Install Flutter in temp directory (not in project!)
+echo "📥 Installing Flutter SDK to temp location..."
+cd "$FLUTTER_INSTALL_DIR"
 git clone https://github.com/flutter/flutter.git -b stable --depth 1
-export PATH="$PATH:$(pwd)/flutter/bin"
+
+# Set up Flutter PATH from temp location
+FLUTTER_BIN="$FLUTTER_INSTALL_DIR/flutter/bin"
+export PATH="$FLUTTER_BIN:$PATH"
+
+# Return to project directory
+cd "$SAVED_DIR"
+
+echo "🔧 Flutter binary path: $FLUTTER_BIN"
+echo "🔧 Current working directory: $(pwd)"
+
+# Verify Flutter installation
+if [ ! -f "$FLUTTER_BIN/flutter" ]; then
+    echo "❌ ERROR: Flutter binary not found at $FLUTTER_BIN/flutter"
+    exit 1
+fi
 
 # Enable web support
 echo "🌐 Enabling Flutter web support..."
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter config --enable-web
 
 # Precache web artifacts
 echo "⬇️ Precaching Flutter web artifacts..."
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter precache --web
 
 # Display Flutter version and doctor info
 echo "🔍 Flutter installation info:"
+cd "$PROJECT_ROOT"  # Ensure we're in project root
 flutter --version
 flutter doctor -v
 
-# Get dependencies
+# Get dependencies - CRITICAL: Must be in project root
 echo "📦 Installing Flutter dependencies..."
+cd "$PROJECT_ROOT"
+echo "📍 Running 'flutter pub get' from: $(pwd)"
 flutter pub get
 
-# Clean any previous builds
+# Clean any previous builds - CRITICAL: Must be in project root
 echo "🧹 Cleaning previous builds..."
+cd "$PROJECT_ROOT"
+echo "📍 Running 'flutter clean' from: $(pwd)"
 flutter clean
 rm -rf build/web || true
 
 # Build for web - try different approaches based on what works
 echo "🔨 Building Flutter web app..."
+cd "$PROJECT_ROOT"
+echo "📍 Running Flutter build from: $(pwd)"
 
 # Primary build attempt - modern Flutter
-if flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false 2>/dev/null; then
+if cd "$PROJECT_ROOT" && flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false 2>/dev/null; then
     echo "✅ Build successful with modern Flutter settings"
-elif flutter build web --release --web-renderer html 2>/dev/null; then
+elif cd "$PROJECT_ROOT" && flutter build web --release --web-renderer html 2>/dev/null; then
     echo "✅ Build successful with --web-renderer flag"  
-elif flutter build web --release 2>/dev/null; then
+elif cd "$PROJECT_ROOT" && flutter build web --release 2>/dev/null; then
     echo "✅ Build successful with basic settings"
 else
     echo "❌ All build attempts failed, creating fallback"
+    cd "$PROJECT_ROOT"
     mkdir -p build/web
     
     # Copy existing web files as fallback
     if [ -d "web" ]; then
+        echo "📋 Copying web directory as fallback from: $(pwd)"
         cp -r web/* build/web/ || true
     fi
     
@@ -140,9 +193,10 @@ EOF
     echo "⚠️ Fallback page created due to build failure"
 fi
 
-# Verify build output
+# Verify build output - CRITICAL: Must be in project root
+cd "$PROJECT_ROOT"
 if [ -d "build/web" ] && [ -f "build/web/index.html" ]; then
-    echo "✅ Build directory verified"
+    echo "✅ Build directory verified from: $(pwd)"
     
     # Copy additional files
     echo "📋 Copying additional files..."
