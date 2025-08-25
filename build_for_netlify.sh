@@ -6,21 +6,30 @@ echo "🚀 Building ShowTrackAI for Netlify deployment..."
 echo "Current directory: $(pwd)"
 echo "Contents: $(ls -la)"
 
-# Install Flutter if not present on Netlify
-if ! command -v flutter &> /dev/null; then
-    echo "📥 Installing Flutter SDK for Netlify build..."
-    
-    # Download Flutter stable branch
-    git clone https://github.com/flutter/flutter.git -b stable --depth 1
-    export PATH="$PATH:$(pwd)/flutter/bin"
-    
-    # Verify installation
-    flutter --version
-    flutter doctor -v
-else
-    echo "✅ Flutter already installed"
-    flutter --version
-fi
+# Force fresh Flutter installation to avoid version conflicts
+echo "📥 Installing Flutter SDK for Netlify build..."
+
+# Remove any existing Flutter to avoid conflicts
+rm -rf flutter 2>/dev/null || true
+rm -rf .flutter 2>/dev/null || true
+rm -rf ~/.flutter 2>/dev/null || true
+
+# Clone Flutter stable branch (will get latest stable)
+echo "Cloning Flutter stable branch..."
+git clone https://github.com/flutter/flutter.git -b stable --depth 1
+
+# Set PATH to use our Flutter (before any system Flutter)
+export PATH="$(pwd)/flutter/bin:$PATH"
+
+# Disable analytics to speed up first run
+flutter config --no-analytics 2>/dev/null || true
+
+# Run flutter once to download Dart SDK and initialize
+echo "Initializing Flutter..."
+flutter --version
+
+# Quick doctor check (don't fail on this)
+flutter doctor -v || true
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -31,9 +40,53 @@ flutter clean || true
 echo "📦 Getting dependencies..."
 flutter pub get
 
-# Build for web with HTML renderer (more compatible)
-echo "🔨 Building for web with HTML renderer..."
-flutter build web --release --web-renderer html --no-tree-shake-icons
+# Enable web support (might be needed for some Flutter versions)
+flutter config --enable-web 2>/dev/null || true
+
+# Get Flutter version for appropriate build command
+FLUTTER_VERSION=$(flutter --version | head -n 1 | grep -oP 'Flutter \K[0-9]+\.[0-9]+' || echo "unknown")
+echo "📊 Flutter version detected: $FLUTTER_VERSION"
+
+# Build for web with version-appropriate command
+echo "🔨 Building for web..."
+
+# Try different build approaches based on Flutter version
+build_success=false
+
+# Method 1: Try without --web-renderer flag (works for very old and very new Flutter)
+echo "Attempting build without renderer flag..."
+if flutter build web --release --no-tree-shake-icons 2>/dev/null; then
+    echo "✅ Build successful without renderer flag"
+    build_success=true
+else
+    # Method 2: Try with --web-renderer html (Flutter 2.10 to 3.21)
+    echo "Attempting build with --web-renderer html..."
+    if flutter build web --release --web-renderer html --no-tree-shake-icons 2>/dev/null; then
+        echo "✅ Build successful with --web-renderer html"
+        build_success=true
+    else
+        # Method 3: Try with dart-define for older Flutter versions
+        echo "Attempting build with dart-define..."
+        if flutter build web --release --dart-define=FLUTTER_WEB_USE_SKIA=false --no-tree-shake-icons 2>/dev/null; then
+            echo "✅ Build successful with dart-define"
+            build_success=true
+        else
+            # Method 4: Simplest possible build
+            echo "Attempting basic build..."
+            if flutter build web --release 2>/dev/null; then
+                echo "✅ Basic build successful"
+                build_success=true
+            else
+                echo "❌ All Flutter build methods failed"
+            fi
+        fi
+    fi
+fi
+
+# Check if build succeeded
+if [ "$build_success" = false ]; then
+    echo "⚠️ Flutter build failed, attempting recovery..."
+fi
 
 # Verify build directory exists
 if [ ! -d "build/web" ]; then

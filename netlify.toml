@@ -1,6 +1,6 @@
 [build]
   publish = "build/web"
-  command = "./build_for_netlify.sh"
+  command = "./netlify-build-fixed.sh"
 
 [build.environment]
   FLUTTER_ROOT = "/opt/buildhome/flutter"
