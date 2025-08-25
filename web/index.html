@@ -1,190 +1,59 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <base href="$FLUTTER_BASE_HREF">
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="ShowTrackAI - Agricultural Education Platform">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Permissions Policy to prevent CSP issues -->
-  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
-  <title>ShowTrackAI Journaling</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-  
-  <!-- Preload Google Fonts for better performance -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
-  
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-    
-    #loading {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      z-index: 9999;
-      background-color: white;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    #loading.hidden {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-    }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid #1976d2;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
-</head>
-<body>
-  <!-- Loading indicator -->
-  <div id="loading">
-    <div class="spinner"></div>
-    <p>Loading ShowTrackAI...</p>
-  </div>
+  <head>
+    <!-- Set a real base; if hosted at /app/, change to /app/ -->
+    <base href="/" />
 
-  <!-- Enhanced Loading Screen Management with Debug Info -->
-  <script>
-    console.log("🚀 ShowTrackAI Loading Manager v2.0 initialized");
-    console.log("📊 Environment:", {
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      referrer: document.referrer,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Track loading progress
-    let loadingStages = {
-      loadingManagerInit: Date.now(),
-      flutterBootstrapStart: null,
-      flutterJsLoaded: null,
-      flutterEngineInit: null,
-      flutterFirstFrame: null
-    };
-    
-    // Simple, reliable loading screen management
-    function hideLoadingScreen() {
-      console.log('🎯 Hiding loading screen...');
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement) {
-        loadingElement.classList.add('hidden');
-        loadingElement.style.display = 'none';
-        
-        // Clean removal after transition
-        setTimeout(() => {
-          if (loadingElement.parentNode) {
-            loadingElement.parentNode.removeChild(loadingElement);
-          }
-        }, 300);
-        
-        // Log final timing
-        const totalTime = Date.now() - loadingStages.loadingManagerInit;
-        console.log('✅ Loading screen hidden - Total load time:', totalTime + 'ms');
-        console.log('📊 Loading stages:', loadingStages);
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="ShowTrackAI - Agricultural Education Platform" />
+
+    <title>ShowTrackAI Journaling</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" href="favicon.png" />
+
+    <!-- Optional fonts (allowed in your CSP) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+    <style>
+      /* Make sure the viewport has height */
+      html, body { height: 100%; min-height: 100vh; margin: 0; font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+      /* Ensure Flutter’s host fills the screen */
+      flt-glass-pane, flt-scene-host, #flt-glass-pane { position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
+
+      /* Simple splash */
+      #splash {
+        position: fixed; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; background: #fff; z-index: 9999;
+        pointer-events: none; /* never block clicks if it lingers */
       }
-    }
-    
-    // Listen for Flutter events
-    window.addEventListener('flutter-first-frame', function() {
-      loadingStages.flutterFirstFrame = Date.now();
-      console.log('✅ Flutter first frame rendered!');
-      hideLoadingScreen();
-    });
-    
-    window.addEventListener('flutter-initialized', function() {
-      console.log('✅ Flutter fully initialized');
-    });
-    
-    // Progressive fallback timeouts with user feedback
-    setTimeout(() => {
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement && !loadingElement.classList.contains('hidden')) {
-        loadingElement.querySelector('p').textContent = 'Initializing Flutter engine...';
-        console.log('⏰ 5s: Still loading - updating status');
+      .spinner {
+        width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #1976d2;
+        border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 16px;
       }
-    }, 5000);
-    
-    setTimeout(() => {
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement && !loadingElement.classList.contains('hidden')) {
-        loadingElement.querySelector('p').textContent = 'Almost ready...';
-        console.log('⏰ 8s: Still loading - final stages');
-      }
-    }, 8000);
-    
-    // Final fallback timeout - hide after 15 seconds
-    setTimeout(() => {
-      console.log('⏰ Fallback timeout (15s) - ensuring loading screen is hidden');
-      console.log('🔍 Final Flutter state check:', {
-        '_flutter': !!window._flutter,
-        '_flutter.loader': !!(window._flutter && window._flutter.loader),
-        'flutterApp': !!window.flutterApp,
-        'flutter_view': !!document.querySelector('flutter-view'),
-        'flutter-view': !!document.querySelector('.flutter-view')
-      });
-      hideLoadingScreen();
-    }, 15000);
-    
-    // Enhanced error handling
-    window.addEventListener('error', function(e) {
-      console.error('❌ Page error:', {
-        message: e.message || 'Unknown error',
-        filename: e.filename,
-        lineno: e.lineno,
-        colno: e.colno,
-        error: e.error,
-        stack: e.error?.stack
-      });
-      setTimeout(hideLoadingScreen, 2000);
-    });
-    
-    // Unhandled promise rejections
-    window.addEventListener('unhandledrejection', function(e) {
-      console.error('❌ Unhandled promise rejection:', e.reason);
-    });
-    
-    // CSP violation reporting (less verbose to avoid noise)
-    document.addEventListener('securitypolicyviolation', function(e) {
-      // Only log if it's not a known issue (gravatar, etc.)
-      if (!e.blockedURI?.includes('gravatar') && !e.blockedURI?.includes('gstatic')) {
-        console.error('🚫 CSP Violation:', {
-          violatedDirective: e.violatedDirective,
-          blockedURI: e.blockedURI
-        });
-      }
-    });
-  </script>
-  
-  <!-- Preload critical assets -->
-  <link rel="preload" href="flutter.js" as="script">
-  <link rel="preload" href="main.dart.js" as="script">
-  
-  <!-- Load Flutter bootstrap -->
-  <script src="flutter_bootstrap.js" defer></script>
-</body>
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+
+    <script>
+      // Force HTML renderer; keeps runtime simple (no CanvasKit/gstatic)
+      window.flutterConfiguration = { renderer: "html", assetBase: "/" };
+
+      // Remove splash as soon as Flutter paints; include a fallback
+      const removeSplash = () => document.getElementById('splash')?.remove();
+      window.addEventListener('flutter-first-frame', removeSplash);
+      setTimeout(removeSplash, 4000); // fallback in case event is missed
+    </script>
+  </head>
+  <body>
+    <div id="splash">
+      <div class="spinner"></div>
+      <p>Loading ShowTrackAI…</p>
+    </div>
+
+    <!-- Single, official loader. Do NOT include flutter_bootstrap.js yourself. -->
+    <script src="flutter.js" defer></script>
+  </body>
 </html>
