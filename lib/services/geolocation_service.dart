@@ -332,21 +332,7 @@ class GeolocationService {
     _lastLocationTime = null;
   }
 
-  /// Get mock location for testing/demo purposes
-  static LocationResult getMockLocation() {
-    final mockLocation = LocationData(
-      latitude: 39.7392,
-      longitude: -104.9903,
-      address: 'Denver, CO 80202, USA',
-      name: 'Agricultural Education Center',
-      accuracy: 5.0,
-      capturedAt: DateTime.now(),
-      city: 'Denver',
-      state: 'CO',
-    );
-    
-    return LocationResult.success(mockLocation);
-  }
+
 }
 
 /// Enum for location permission status

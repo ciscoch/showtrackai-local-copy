@@ -1,80 +1,53 @@
 // lib/services/weather_service.dart
-// Enhanced weather service with mock data for demo purposes
+// Weather service for real weather data integration
 
-import 'dart:math';
 import '../models/journal_entry.dart' show WeatherData;
 
 class WeatherService {
-  static final Random _random = Random();
+  // TODO: Add real weather API configuration
+  static const String? _apiKey = null; // Replace with real API key from environment
+  static const String? _apiUrl = null; // Replace with real weather API URL
   
-  /// Get weather by GPS coordinates with enhanced mock data
+  /// Get weather by GPS coordinates
+  /// Returns null if no weather API is configured or if API call fails
   Future<WeatherData?> getWeatherByLocation(double lat, double lon) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 1500));
+    if (_apiKey == null || _apiUrl == null) {
+      print('Weather API not configured - weather data unavailable');
+      return null;
+    }
     
-    // Return mock weather data based on location
-    return _generateMockWeatherForLocation(lat, lon);
+    try {
+      // TODO: Implement real weather API call
+      // Example implementation would go here:
+      // final response = await http.get(Uri.parse('$_apiUrl?lat=$lat&lon=$lon&key=$_apiKey'));
+      // Parse response and return WeatherData
+      
+      throw UnimplementedError('Real weather API integration not implemented yet');
+    } catch (e) {
+      print('Error fetching weather by location: $e');
+      return null;
+    }
   }
   
-  /// Get weather by city name with enhanced mock data
+  /// Get weather by city name
+  /// Returns null if no weather API is configured or if API call fails
   Future<WeatherData?> getWeatherByCityName(String cityName) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(milliseconds: 1200));
+    if (_apiKey == null || _apiUrl == null) {
+      print('Weather API not configured - weather data unavailable');
+      return null;
+    }
     
-    // Return mock weather data based on city
-    return _generateMockWeatherForCity(cityName);
-  }
-  
-  /// Generate mock weather based on GPS coordinates
-  WeatherData _generateMockWeatherForLocation(double lat, double lon) {
-    // Base temperature on latitude (rough approximation)
-    final baseTemp = 30 - (lat.abs() * 0.5);
-    final temperature = baseTemp + (_random.nextDouble() * 10 - 5);
-    
-    return _createWeatherData(temperature);
-  }
-  
-  /// Generate mock weather based on city name
-  WeatherData _generateMockWeatherForCity(String cityName) {
-    // Mock temperatures for common cities
-    final cityTemperatures = {
-      'Denver': 18.0,
-      'Phoenix': 28.0,
-      'Seattle': 12.0,
-      'Miami': 26.0,
-      'Chicago': 8.0,
-      'Austin': 22.0,
-      'Portland': 14.0,
-    };
-    
-    final baseTemp = cityTemperatures[cityName] ?? 20.0;
-    final temperature = baseTemp + (_random.nextDouble() * 8 - 4);
-    
-    return _createWeatherData(temperature);
-  }
-  
-  /// Create WeatherData with realistic values
-  WeatherData _createWeatherData(double temperature) {
-    final conditions = ['clear', 'partly_cloudy', 'cloudy', 'overcast', 'light_rain'];
-    final descriptions = [
-      'Clear skies',
-      'Partly cloudy',
-      'Mostly cloudy',
-      'Overcast skies',
-      'Light rain showers',
-    ];
-    
-    final conditionIndex = _random.nextInt(conditions.length);
-    final humidity = 30 + _random.nextInt(50); // 30-80%
-    final windSpeed = 2.0 + (_random.nextDouble() * 15); // 2-17 mph
-    
-    return WeatherData(
-      temperature: double.parse(temperature.toStringAsFixed(1)),
-      condition: conditions[conditionIndex],
-      humidity: humidity,
-      windSpeed: double.parse(windSpeed.toStringAsFixed(1)),
-      description: descriptions[conditionIndex],
-    );
+    try {
+      // TODO: Implement real weather API call
+      // Example implementation would go here:
+      // final response = await http.get(Uri.parse('$_apiUrl?q=$cityName&key=$_apiKey'));
+      // Parse response and return WeatherData
+      
+      throw UnimplementedError('Real weather API integration not implemented yet');
+    } catch (e) {
+      print('Error fetching weather by city: $e');
+      return null;
+    }
   }
   
   /// Get a compact weather description for display
@@ -117,14 +90,5 @@ class WeatherService {
     );
   }
   
-  /// Get default weather for testing
-  WeatherData getDefaultMockWeather() {
-    return WeatherData(
-      temperature: 22.5,
-      condition: 'partly_cloudy',
-      humidity: 65,
-      windSpeed: 8.5,
-      description: 'Partly cloudy with light breeze',
-    );
-  }
+
 }

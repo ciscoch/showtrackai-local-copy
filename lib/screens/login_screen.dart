@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Fallback to test mode if password is correct
           if (password == 'test123456') {
             print('🎮 Using test mode authentication');
-            _showSuccessMessage('Signed in as test user (offline mode)');
+            _showSuccessMessage('Signed in as test user');
             Navigator.of(context).pushReplacementNamed('/dashboard');
             return;
           } else {
@@ -162,21 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _skipToDemo() async {
-    // Skip login for demo purposes
-    print('🎮 Entering demo mode...');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Entering demo mode - data will not be saved'),
-        backgroundColor: Colors.blue,
-        duration: Duration(seconds: 2),
-      ),
-    );
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/dashboard');
-    }
-  }
+
 
   Future<void> _testConnection() async {
     setState(() {
@@ -350,18 +336,7 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 12),
               
-              // Demo Button
-              OutlinedButton(
-                onPressed: _skipToDemo,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF4CAF50),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Continue as Demo User', style: TextStyle(fontSize: 16)),
-              ),
+
               
               const SizedBox(height: 32),
               
@@ -452,7 +427,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const SelectableText(
-                          'Email: test-elite@example.com\nPassword: test123456\n\n✨ Special Features:\n• Works online with Supabase\n• Fallback to offline mode if connection fails\n• Pre-populated on app start',
+                          'Email: test-elite@example.com\nPassword: test123456\n\n✨ Features:\n• Works with Supabase authentication\n• Real-time data synchronization\n• Pre-populated on app start',
                           style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                         ),
                       ),

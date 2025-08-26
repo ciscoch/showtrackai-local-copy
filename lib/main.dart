@@ -40,12 +40,12 @@ void main() async {
       print('✅ Database connection verified');
     } catch (dbError) {
       print('⚠️ Database test failed: $dbError');
-      print('📝 This is normal if the database is being configured');
+      print('📝 Database connection issues - app may not function properly');
     }
   } catch (e) {
-    print('⚠️ Supabase initialization failed: $e');
+    print('❌ Supabase initialization failed: $e');
     print('📝 Error details: ${e.toString()}');
-    print('📝 Continuing with offline mode...');
+    print('🚨 App requires Supabase connection to function');
   }
   
   print('🎬 Starting ShowTrackAI app...');

@@ -26,7 +26,6 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
   bool _isLoading = true;
   String _searchQuery = '';
   AnimalSpecies? _filterSpecies;
-  bool _isOffline = false;
   CoppaStatus? _coppaStatus;
   
   @override
@@ -78,20 +77,18 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
           _animals = animals;
           _filterAnimals();
           _isLoading = false;
-          _isOffline = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _isOffline = true;
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load animals: ${e.toString()}'),
-            backgroundColor: Colors.orange,
+            backgroundColor: Colors.red,
             action: SnackBarAction(
               label: 'Retry',
               onPressed: _loadAnimals,
@@ -289,21 +286,21 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
     );
   }
   
-  Widget _buildOfflineState() {
+  Widget _buildConnectionErrorState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.cloud_off,
+            Icons.error_outline,
             size: 64,
-            color: Colors.grey[400],
+            color: Colors.red[400],
           ),
           const SizedBox(height: 16),
           Text(
-            'Offline Mode',
+            'Connection Error',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.grey[600],
+              color: Colors.red[600],
             ),
           ),
           const SizedBox(height: 8),
@@ -635,7 +632,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
         ),
       ),
       actions: [
-        if (!_isLoading && !_isOffline)
+        if (!_isLoading)
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadAnimals,
@@ -643,11 +640,9 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
       ],
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _isOffline
-              ? _buildOfflineState()
-              : _filteredAnimals.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
+          : _filteredAnimals.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: _filteredAnimals.length,
                       itemBuilder: (context, index) {

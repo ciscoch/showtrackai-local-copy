@@ -338,13 +338,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         _locationData = result.data;
         await _extractCityStateFromLocation(_locationData!);
       } else {
-        // Use mock location as fallback for demo
-        final mockResult = GeolocationService.getMockLocation();
-        _locationData = mockResult.data;
-        await _extractCityStateFromLocation(_locationData!);
-        
+        // Location not available
         if (mounted) {
-          _showErrorSnackbar('Using demo location: ${result.userMessage}');
+          _showErrorSnackbar('Location not available: ${result.userMessage}');
         }
       }
 
@@ -353,10 +349,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       setState(() => _isLoadingLocation = false);
       debugPrint('Location permission error: $e');
       
-      // Use mock location as final fallback
-      final mockResult = GeolocationService.getMockLocation();
-      _locationData = mockResult.data;
-      await _extractCityStateFromLocation(_locationData!);
+      if (mounted) {
+        _showErrorSnackbar('Location error: ${e.toString()}');
+      }
     }
   }
 
@@ -387,7 +382,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
           }
         }
         
-        // Final fallback for known mock location
+        // No location data available
         if (_locationCity == null && location.address?.contains('Denver') == true) {
           _locationCity = 'Denver';
           _locationState = 'CO';
@@ -444,9 +439,13 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       } else {
         // Use enhanced mock weather data for demonstration
         setState(() {
-          _weatherData = _weatherService.getDefaultMockWeather();
+          _weatherData = null;
           _isLoadingWeather = false;
         });
+        
+        if (mounted) {
+          _showErrorSnackbar('Weather data not available');
+        }
       }
     } catch (e) {
       setState(() => _isLoadingWeather = false);
@@ -728,7 +727,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         debugPrint('SPAR Settings: ${sparSettings.toString()}');
         
         // Start AI processing in background (don't wait for completion)
-        N8NWebhookService.processJournalEntry(savedEntry, retrievalQuery: retrievalQuery, sparSettings: sparSettings).catchError((error) {
+        N8NWebhookService.sendJournalEntry(savedEntry).catchError((error) {
           debugPrint('AI processing error: $error');
           // Show a subtle notification that AI processing failed
           if (mounted) {

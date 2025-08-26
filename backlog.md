@@ -21,6 +21,9 @@
 main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(message: Invalid login credentials, statusCode: 400, code: invalid_credentials)
 
 
+## Now
+
+- [x] Remove mock data. use only real data in database. do not use offline mode right now. ✅
 
 ### Core form fields (Journal payload → journal_entries)
 - [x] User selector (required) → sets `user_id` ✅
