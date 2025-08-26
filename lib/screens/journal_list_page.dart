@@ -4,8 +4,11 @@ import '../models/journal_entry.dart';
 import '../models/animal.dart';
 import '../services/journal_service.dart';
 import '../services/animal_service.dart';
+import '../services/spar_runs_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/weather_pill.dart';
+import '../widgets/processing_status_indicator.dart';
+import '../widgets/ai_status_panel.dart';
 import 'journal_entry_form_page.dart';
 
 class JournalListPage extends StatefulWidget {
@@ -22,6 +25,7 @@ class _JournalListPageState extends State<JournalListPage> {
   List<JournalEntry> _entries = [];
   List<JournalEntry> _filteredEntries = [];
   List<Animal> _animals = [];
+  Map<String, Map<String, dynamic>> _entryProcessingStatus = {}; // journalId -> SPAR run data
   
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -31,6 +35,7 @@ class _JournalListPageState extends State<JournalListPage> {
   DateTimeRange? _selectedDateRange;
   JournalSortOption _sortOption = JournalSortOption.dateDescending;
   bool _showAIAnalysisOnly = false;
+  bool _showAIStatusPanel = false;
   
   static const int _pageSize = 20;
   int _currentPage = 0;
@@ -57,6 +62,7 @@ class _JournalListPageState extends State<JournalListPage> {
       await Future.wait([
         _loadAnimals(),
         _loadJournalEntries(reset: true),
+        _loadProcessingStatus(),
       ]);
     } catch (e) {
       _showErrorSnackbar('Failed to load data: ${e.toString()}');
@@ -171,7 +177,72 @@ class _JournalListPageState extends State<JournalListPage> {
   }
 
   Future<void> _refreshData() async {
-    await _loadJournalEntries(reset: true);
+    await Future.wait([
+      _loadJournalEntries(reset: true),
+      _loadProcessingStatus(),
+    ]);
+  }
+
+  /// Load SPAR processing status for journal entries
+  Future<void> _loadProcessingStatus() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) return;
+
+      // Get recent SPAR runs for this user
+      final runs = await SPARRunsService.getUserSPARRuns(
+        userId: user.id,
+        limit: 50, // Get more runs to match with entries
+      );
+
+      // Map SPAR runs to journal entries
+      final statusMap = <String, Map<String, dynamic>>{};
+      for (final run in runs) {
+        final journalId = run['journal_entry_id'] as String?;
+        if (journalId != null) {
+          // Keep only the most recent run per journal entry
+          if (!statusMap.containsKey(journalId) || 
+              DateTime.parse(run['created_at']).isAfter(
+                DateTime.parse(statusMap[journalId]!['created_at']))) {
+            statusMap[journalId] = run;
+          }
+        }
+      }
+
+      setState(() {
+        _entryProcessingStatus = statusMap;
+      });
+
+      // Check if we should show the AI status panel
+      final hasActiveRuns = runs.any((run) {
+        final status = run['status'] as String;
+        return status == SPARRunsService.STATUS_PENDING || 
+               status == SPARRunsService.STATUS_PROCESSING;
+      });
+
+      if (hasActiveRuns && !_showAIStatusPanel) {
+        setState(() {
+          _showAIStatusPanel = true;
+        });
+      }
+    } catch (e) {
+      print('Error loading processing status: $e');
+    }
+  }
+
+  /// Retry AI processing for a specific journal entry
+  Future<void> _retryProcessing(String journalId) async {
+    final status = _entryProcessingStatus[journalId];
+    if (status == null) return;
+
+    try {
+      await SPARRunsService.retrySPARRun(status['run_id']);
+      await _loadProcessingStatus(); // Refresh status
+      
+      _showSuccessSnackbar('AI analysis retry initiated');
+    } catch (e) {
+      _showErrorSnackbar('Retry failed: ${e.toString()}');
+    }
   }
 
   void _navigateToCreateEntry() async {
@@ -290,6 +361,15 @@ class _JournalListPageState extends State<JournalListPage> {
         title: const Text('Journal Entries'),
         elevation: 0,
         actions: [
+          // Global AI Status Indicator
+          GlobalAIStatusIndicator(
+            onTap: () {
+              setState(() {
+                _showAIStatusPanel = !_showAIStatusPanel;
+              });
+            },
+            showBadge: true,
+          ),
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: _showSearchDialog,
@@ -322,7 +402,23 @@ class _JournalListPageState extends State<JournalListPage> {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: Stack(
+        children: [
+          _buildBody(),
+          // AI Status Panel
+          AIStatusPanel(
+            isVisible: _showAIStatusPanel,
+            onDismiss: () {
+              setState(() {
+                _showAIStatusPanel = false;
+              });
+            },
+            position: AIStatusPanelPosition.bottomRight,
+            maxEntries: 3,
+            autoHideCompleted: true,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToCreateEntry,
         backgroundColor: AppTheme.primaryGreen,
@@ -688,7 +784,12 @@ class _JournalListPageState extends State<JournalListPage> {
                     ),
                   ),
                   const Spacer(),
+                  
+                  // AI Processing Status Badge
+                  _buildAIStatusBadge(entry),
+                  
                   if (entry.aiInsights != null) ...[
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -716,15 +817,14 @@ class _JournalListPageState extends State<JournalListPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
                   ],
                   if (entry.locationData != null) ...[
+                    const SizedBox(width: 8),
                     Icon(
                       Icons.location_on,
                       size: 16,
                       color: Colors.green[600],
                     ),
-                    const SizedBox(width: 4),
                   ],
                 ],
               ),
@@ -1143,6 +1243,197 @@ class _JournalListPageState extends State<JournalListPage> {
         return 'Quality Score (High-Low)';
       case JournalSortOption.durationDescending:
         return 'Duration (Long-Short)';
+    }
+  }
+
+  /// Build AI processing status badge for a journal entry
+  Widget _buildAIStatusBadge(JournalEntry entry) {
+    if (entry.id == null) return const SizedBox.shrink();
+    
+    final status = _entryProcessingStatus[entry.id!];
+    if (status == null) {
+      // No processing status found - show idle if no AI insights
+      if (entry.aiInsights == null) {
+        return ProcessingStatusBadge(
+          status: ProcessingStatus.idle,
+          onTap: () => _showProcessingDetails(entry),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    final processingStatus = (status['status'] as String).toProcessingStatus();
+    
+    return ProcessingStatusBadge(
+      status: processingStatus,
+      onTap: () => _showProcessingDetails(entry),
+      onRetry: processingStatus == ProcessingStatus.failed 
+          ? () => _retryProcessing(entry.id!) 
+          : null,
+    );
+  }
+
+  /// Show detailed processing information for a journal entry
+  void _showProcessingDetails(JournalEntry entry) {
+    final status = entry.id != null ? _entryProcessingStatus[entry.id!] : null;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.psychology, color: Colors.blue[600]),
+            const SizedBox(width: 8),
+            const Text('AI Processing Status'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Entry: "${entry.title}"',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            
+            if (status != null) ...[
+              ProcessingStatusIndicator(
+                status: (status['status'] as String).toProcessingStatus(),
+                size: ProcessingStatusSize.large,
+                showStatusText: true,
+                showRetryButton: true,
+                onRetry: (status['status'] as String) == SPARRunsService.STATUS_FAILED
+                    ? () {
+                        Navigator.of(context).pop();
+                        _retryProcessing(entry.id!);
+                      }
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              
+              Text(
+                'Processing Details:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              _buildStatusDetail('Run ID', status['run_id']),
+              _buildStatusDetail('Created', _formatDateTime(status['created_at'])),
+              if (status['processing_started_at'] != null)
+                _buildStatusDetail('Started', _formatDateTime(status['processing_started_at'])),
+              if (status['processing_completed_at'] != null)
+                _buildStatusDetail('Completed', _formatDateTime(status['processing_completed_at'])),
+              if (status['processing_duration_ms'] != null)
+                _buildStatusDetail('Duration', '${status['processing_duration_ms']}ms'),
+              if (status['error'] != null)
+                _buildStatusDetail('Error', status['error'], isError: true),
+            ] else ...[
+              Row(
+                children: [
+                  Icon(
+                    entry.aiInsights != null ? Icons.check_circle : Icons.pending,
+                    color: entry.aiInsights != null ? Colors.green[600] : Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    entry.aiInsights != null 
+                        ? 'AI analysis completed'
+                        : 'No AI analysis found',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              if (entry.aiInsights != null) ...[
+                Text(
+                  'AI Insights Available:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildStatusDetail('Quality Score', '${entry.qualityScore}/10'),
+                _buildStatusDetail('Competency Level', entry.competencyLevel ?? 'Not assessed'),
+                if (entry.ffaStandards?.isNotEmpty == true)
+                  _buildStatusDetail('FFA Standards', '${entry.ffaStandards!.length} matched'),
+              ],
+            ],
+          ],
+        ),
+        actions: [
+          if (status != null && (status['status'] as String) == SPARRunsService.STATUS_FAILED)
+            TextButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _retryProcessing(entry.id!);
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry Processing'),
+              style: TextButton.styleFrom(foregroundColor: Colors.orange[700]),
+            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusDetail(String label, String value, {bool isError = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                color: isError ? Colors.red[600] : Colors.grey[800],
+                fontFamily: isError ? 'monospace' : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(String isoString) {
+    try {
+      final dateTime = DateTime.parse(isoString);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+      
+      if (difference.inMinutes < 1) {
+        return '${difference.inSeconds}s ago';
+      } else if (difference.inHours < 1) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inDays < 1) {
+        return '${difference.inHours}h ago';
+      } else {
+        return '${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+      }
+    } catch (e) {
+      return isoString;
     }
   }
 }
