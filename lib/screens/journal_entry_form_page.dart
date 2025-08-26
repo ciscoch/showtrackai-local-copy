@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
 import '../models/animal.dart';
 import '../services/journal_service.dart';
@@ -82,10 +83,23 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   bool _hasUnsavedChanges = false;
   String? _draftKey;
 
+  // SPAR Run Controls (Advanced AI Settings)
+  bool _sendToSPAROrchestrator = true; // Default ON
+  String _runId = '';
+  String _routeIntent = 'edu_context'; // Default edu_context
+  int _vectorMatchCount = 6; // Default 6
+  double _vectorMinSimilarity = 0.75; // Default 0.75
+  String? _toolInputsCategory;
+  String? _toolInputsQuery;
+  bool _showAdvancedSettings = false;
+  
+  static const _uuid = Uuid();
+
   @override
   void initState() {
     super.initState();
     _draftKey = 'journal_draft_${widget.existingEntry?.id ?? 'new'}_${DateTime.now().millisecondsSinceEpoch}';
+    _runId = _uuid.v4(); // Generate unique run ID for correlation with n8n
     _initializeForm();
     _setupAutoSave();
   }
@@ -166,6 +180,15 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         'nextWeighInDate': _nextWeighInDate?.toIso8601String(),
         'selectedSource': _selectedSource,
         'notes': _notesController.text,
+        // SPAR Settings
+        'sendToSPAROrchestrator': _sendToSPAROrchestrator,
+        'runId': _runId,
+        'routeIntent': _routeIntent,
+        'vectorMatchCount': _vectorMatchCount,
+        'vectorMinSimilarity': _vectorMinSimilarity,
+        'toolInputsCategory': _toolInputsCategory,
+        'toolInputsQuery': _toolInputsQuery,
+        'showAdvancedSettings': _showAdvancedSettings,
         'savedAt': DateTime.now().toIso8601String(),
       };
 
@@ -296,6 +319,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     // Populate metadata fields from existing entry
     _selectedSource = entry.source ?? 'web_app'; // Use existing or default
     _notesController.text = entry.notes ?? ''; // Use existing or empty
+    
+    // Generate new run ID for edited entries
+    _runId = _uuid.v4();
   }
 
   Future<void> _requestLocationPermission() async {
@@ -680,8 +706,29 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         final retrievalQuery = _composeRetrievalQuery();
         debugPrint('Composed retrieval query: $retrievalQuery');
         
+        // Prepare SPAR settings for webhook payload
+        final sparSettings = _sendToSPAROrchestrator ? {
+          'enabled': true,
+          'runId': _runId,
+          'route': {
+            'intent': _routeIntent,
+          },
+          'vector': {
+            'matchCount': _vectorMatchCount,
+            'minSimilarity': _vectorMinSimilarity,
+          },
+          'toolInputs': {
+            'category': _toolInputsCategory,
+            'query': _toolInputsQuery ?? retrievalQuery, // Default to retrieval query
+          },
+        } : {
+          'enabled': false,
+        };
+        
+        debugPrint('SPAR Settings: ${sparSettings.toString()}');
+        
         // Start AI processing in background (don't wait for completion)
-        N8NWebhookService.processJournalEntry(savedEntry, retrievalQuery: retrievalQuery).catchError((error) {
+        N8NWebhookService.processJournalEntry(savedEntry, retrievalQuery: retrievalQuery, sparSettings: sparSettings).catchError((error) {
           debugPrint('AI processing error: $error');
           // Show a subtle notification that AI processing failed
           if (mounted) {
@@ -805,7 +852,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                       )),
             ] else
               Text(
-                'All required fields completed! Your entry is ready for AI analysis.',
+                _sendToSPAROrchestrator
+                    ? 'All required fields completed! Your entry is ready for enhanced SPAR analysis.'
+                    : 'All required fields completed! Your entry is ready for basic AI analysis.',
                 style: TextStyle(color: Colors.green.shade700),
               ),
           ],
@@ -928,6 +977,10 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
             // Metadata Section
             _buildMetadataSection(),
+            const SizedBox(height: 16),
+
+            // Advanced AI Settings (SPAR Controls)
+            _buildAdvancedAISettingsSection(),
             const SizedBox(height: 16),
 
             // FFA Degree Information
@@ -2550,6 +2603,402 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAdvancedAISettingsSection() {
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              Icons.settings_suggest,
+              color: _sendToSPAROrchestrator ? AppTheme.primaryGreen : Colors.grey,
+            ),
+            title: const Text(
+              'Advanced AI Settings',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              _showAdvancedSettings 
+                  ? 'Configure SPAR orchestrator and AI processing'
+                  : _sendToSPAROrchestrator
+                      ? 'SPAR enabled • Run ID: ${_runId.substring(0, 8)}...'
+                      : 'SPAR disabled • Basic processing only',
+              style: const TextStyle(fontSize: 12),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _sendToSPAROrchestrator ? Icons.smart_toy : Icons.smart_toy_outlined,
+                  color: _sendToSPAROrchestrator ? Colors.green : Colors.grey,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(_showAdvancedSettings ? Icons.expand_less : Icons.expand_more),
+                  onPressed: () {
+                    setState(() {
+                      _showAdvancedSettings = !_showAdvancedSettings;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          if (_showAdvancedSettings) ...[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Info card about SPAR
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue.shade700, size: 16),
+                            const SizedBox(width: 6),
+                            Text(
+                              'SPAR Orchestrator Controls',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'These settings control how AI processes your journal entry. SPAR (Systematic Processing and Retrieval) provides enhanced educational analysis with vector search and intelligent routing.',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // SPAR Enable/Disable
+                  SwitchListTile(
+                    title: const Text(
+                      'Send to SPAR Orchestrator',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      _sendToSPAROrchestrator 
+                          ? 'AI analysis with advanced educational processing'
+                          : 'Basic AI analysis only',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    value: _sendToSPAROrchestrator,
+                    onChanged: (value) {
+                      setState(() {
+                        _sendToSPAROrchestrator = value;
+                        if (value) {
+                          _runId = _uuid.v4(); // Generate new run ID when enabling
+                        }
+                      });
+                    },
+                    activeColor: AppTheme.primaryGreen,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const SizedBox(height: 16),
+
+                  if (_sendToSPAROrchestrator) ...[
+                    // Run ID Display (read-only)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.fingerprint, color: Colors.green.shade700, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Run ID (Client Trace)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                icon: Icon(Icons.refresh, size: 16, color: Colors.green.shade700),
+                                onPressed: () {
+                                  setState(() {
+                                    _runId = _uuid.v4();
+                                  });
+                                },
+                                tooltip: 'Generate new Run ID',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.green.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _runId,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 11,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Use this ID to correlate UI actions with n8n workflow execution',
+                            style: TextStyle(
+                              color: Colors.green.shade600,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Routing Settings
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.route, color: AppTheme.primaryGreen, size: 18),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Routing Settings',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _routeIntent,
+                          decoration: InputDecoration(
+                            labelText: 'Route Intent',
+                            isDense: true,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'edu_context',
+                              child: Text('Educational Context (Default)'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'general',
+                              child: Text('General Analysis'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'analysis',
+                              child: Text('Deep Analysis'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              _routeIntent = value!;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Vector Tuning Settings
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.tune, color: AppTheme.primaryGreen, size: 18),
+                            const SizedBox(width: 6),
+                            const Text(
+                              'Vector Search Tuning',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _vectorMatchCount.toString(),
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  labelText: 'Match Count',
+                                  hintText: '6',
+                                  isDense: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Required';
+                                  final count = int.tryParse(value);
+                                  if (count == null || count < 1 || count > 20) {
+                                    return '1-20';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (value) {
+                                  final count = int.tryParse(value);
+                                  if (count != null && count >= 1 && count <= 20) {
+                                    _vectorMatchCount = count;
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _vectorMinSimilarity.toString(),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  labelText: 'Min Similarity',
+                                  hintText: '0.75',
+                                  isDense: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) return 'Required';
+                                  final similarity = double.tryParse(value);
+                                  if (similarity == null || similarity < 0.0 || similarity > 1.0) {
+                                    return '0.0-1.0';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (value) {
+                                  final similarity = double.tryParse(value);
+                                  if (similarity != null && similarity >= 0.0 && similarity <= 1.0) {
+                                    _vectorMinSimilarity = similarity;
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Tool Inputs Override (Optional)
+                    ExpansionTile(
+                      leading: const Icon(Icons.build, color: AppTheme.primaryGreen, size: 18),
+                      title: const Text(
+                        'Tool Inputs Override (Optional)',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        _toolInputsCategory != null || _toolInputsQuery != null
+                            ? 'Custom overrides set'
+                            : 'Use defaults from form data',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                initialValue: _toolInputsCategory,
+                                decoration: InputDecoration(
+                                  labelText: 'Category Override',
+                                  hintText: 'e.g., health_check, feeding, training',
+                                  isDense: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  _toolInputsCategory = value.isEmpty ? null : value;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                initialValue: _toolInputsQuery,
+                                maxLines: 3,
+                                decoration: InputDecoration(
+                                  labelText: 'Query Override',
+                                  hintText: 'Custom query (defaults to retrieval_query if empty)',
+                                  isDense: true,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  _toolInputsQuery = value.isEmpty ? null : value;
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

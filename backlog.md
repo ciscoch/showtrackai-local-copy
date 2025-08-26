@@ -52,11 +52,11 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
   → submit as `retrieval_query` ✅
 
 ### SPAR run controls (Advanced, collapsible)
-- [ ] “Send to SPAR Orchestrator” checkbox (default ON)
-- [ ] Readonly `run_id` preview (client trace id) to correlate UI ↔ n8n
-- [ ] Advanced routing: `route.intent` select (default `edu_context`)
-- [ ] Vector tuning inputs: `vector.match_count` (default 6), `vector.min_similarity` (default 0.75)
-- [ ] Tool inputs override (optional): `tool_inputs.category`, `tool_inputs.query` (defaults to retrieval_query)
+- [x] "Send to SPAR Orchestrator" checkbox (default ON) ✅
+- [x] Readonly `run_id` preview (client trace id) to correlate UI ↔ n8n ✅
+- [x] Advanced routing: `route.intent` select (default `edu_context`) ✅
+- [x] Vector tuning inputs: `vector.match_count` (default 6), `vector.min_similarity` (default 0.75) ✅
+- [x] Tool inputs override (optional): `tool_inputs.category`, `tool_inputs.query` (defaults to retrieval_query) ✅
 
 ### Validation (before submit)
 - [ ] Block submit if `user_id` or `animal_id` missing

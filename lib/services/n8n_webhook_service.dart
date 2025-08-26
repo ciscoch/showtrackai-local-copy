@@ -20,7 +20,7 @@ class N8NWebhookService {
   static final _random = Random();
 
   /// Main method to process journal entry with AI
-  static Future<N8NAnalysisResult> processJournalEntry(JournalEntry entry, {String? retrievalQuery}) async {
+  static Future<N8NAnalysisResult> processJournalEntry(JournalEntry entry, {String? retrievalQuery, Map<String, dynamic>? sparSettings}) async {
     try {
       // Check if we already have a cached result for this entry
       final cachedResult = await _getCachedResult(entry.id!);
@@ -29,11 +29,20 @@ class N8NWebhookService {
       }
 
       // Prepare comprehensive webhook payload
-      final payload = await _buildWebhookPayload(entry, retrievalQuery: retrievalQuery);
+      final payload = await _buildWebhookPayload(entry, retrievalQuery: retrievalQuery, sparSettings: sparSettings);
       
       // Debug log the retrieval query
       if (retrievalQuery != null && retrievalQuery.isNotEmpty) {
         print('N8N Webhook: Sending retrieval query: $retrievalQuery');
+      }
+      
+      // Debug log SPAR settings
+      if (sparSettings != null && sparSettings['enabled'] == true) {
+        print('N8N Webhook: SPAR enabled with run ID: ${sparSettings['runId']}');
+        print('N8N Webhook: Route intent: ${sparSettings['route']?['intent']}');
+        print('N8N Webhook: Vector settings: ${sparSettings['vector']}');
+      } else {
+        print('N8N Webhook: SPAR disabled - using basic processing');
       }
       
       // Attempt to send webhook with retry logic
@@ -56,7 +65,7 @@ class N8NWebhookService {
   }
 
   /// Build comprehensive webhook payload
-  static Future<Map<String, dynamic>> _buildWebhookPayload(JournalEntry entry, {String? retrievalQuery}) async {
+  static Future<Map<String, dynamic>> _buildWebhookPayload(JournalEntry entry, {String? retrievalQuery, Map<String, dynamic>? sparSettings}) async {
     try {
       // Get user information for age-appropriate responses
       final user = _supabase.auth.currentUser;
@@ -139,6 +148,9 @@ class N8NWebhookService {
           'ageAppropriate': true,
           'detailLevel': 'comprehensive',
         },
+        'sparSettings': sparSettings ?? {
+          'enabled': false,
+        },
       };
     } catch (e) {
       // Return minimal payload if context building fails
@@ -166,6 +178,9 @@ class N8NWebhookService {
           'includeFFAStandards': true,
           'includeCompetencyMapping': true,
           'detailLevel': 'basic',
+        },
+        'sparSettings': sparSettings ?? {
+          'enabled': false,
         },
       };
     }
