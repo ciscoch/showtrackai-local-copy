@@ -80,6 +80,15 @@ class AuthService extends ChangeNotifier {
     
     final session = currentSession;
     if (session == null) return;
+
+  // If SDK already thinks it’s expired, refresh now.
+  if (session.isExpired == true) { // available in current SDKs
+    refreshSession();
+    return;
+  }
+
+      final now = DateTime.now();
+  DateTime? expiryTime;
     
     // Calculate when to refresh (5 minutes before expiry)
     final expiresAt = session.expiresAt;
@@ -87,6 +96,8 @@ class AuthService extends ChangeNotifier {
     
     final expiryTime = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
     final refreshTime = expiryTime.subtract(_tokenRefreshBuffer);
+    final delay = refreshTime.difference(now);
+     _refreshTimer = Timer(delay.isNegative ? Duration.zero : delay, refreshSession);
     final timeUntilRefresh = refreshTime.difference(DateTime.now());
     
     if (timeUntilRefresh.isNegative) {
@@ -272,23 +283,28 @@ class AuthService extends ChangeNotifier {
   
   // Check if session is valid and refresh if needed
   Future<bool> validateSession() async {
-    final session = currentSession;
-    if (session == null) return false;
-    
-    final expiresAt = session.expiresAt;
-    if (expiresAt == null) return false;
-    
-    final expiryTime = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
-    final timeUntilExpiry = expiryTime.difference(DateTime.now());
-    
-    // If less than 5 minutes until expiry, refresh now
-    if (timeUntilExpiry.inMinutes < 5) {
+  final session = currentSession;
+  if (session == null) return false;
+
+  if (session.isExpired == true) {
+    await refreshSession();
+  } else if (session.expiresAt != null) {
+    final expiry = DateTime.fromMillisecondsSinceEpoch(session.expiresAt! * 1000);
+    if (expiry.difference(DateTime.now()) < _tokenRefreshBuffer) {
       await refreshSession();
     }
-    
-    return currentUser != null;
   }
-  
+  return currentUser != null;
+}
+
+@override
+void dispose() {
+  print('🧹 Disposing AuthService...');
+  _authStateSubscription?.cancel();
+  _cancelTokenRefresh();
+  super.dispose();
+}
+
   // Get current auth headers for API calls
   Map<String, String> getAuthHeaders() {
     final session = currentSession;
