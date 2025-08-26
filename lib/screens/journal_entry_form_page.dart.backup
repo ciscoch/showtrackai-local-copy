@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import '../models/journal_entry.dart' hide JournalCategories, FFAConstants;
+import '../models/journal_entry.dart';
 import '../models/animal.dart';
 import '../models/feed.dart';
 import '../models/ffa_constants.dart';
@@ -14,12 +14,9 @@ import '../services/weather_service.dart';
 import '../services/geolocation_service.dart';
 import '../services/n8n_webhook_service.dart';
 import '../services/journal_toast_service.dart';
-import '../services/spar_runs_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/toast_notification_widget.dart';
 import '../widgets/feed_data_card.dart';
-import '../widgets/assessment_preview_card.dart';
-import '../widgets/processing_status_indicator.dart';
 
 class JournalEntryFormPage extends StatefulWidget {
   final String? animalId;
@@ -101,13 +98,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
   String _runId = '';
   String _routeIntent = 'edu_context'; // Default edu_context
   
-  // AI Processing Status
-  ProcessingStatus _aiProcessingStatus = ProcessingStatus.idle;
-  String? _aiProcessingMessage;
-  String? _aiProcessingError;
-  double? _aiProcessingProgress;
-  Timer? _aiStatusTimer;
-  
   // Distributed tracing
   late String _traceId; // Generated once for end-to-end correlation
   int _vectorMatchCount = 6; // Default 6
@@ -136,7 +126,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
-    _aiStatusTimer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
     _objectivesController.dispose();
@@ -698,6 +687,29 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     );
   }
 
+  Future<void> _submitJournal() async {
+    if (!_formKey.currentState!.validate()) {
+      // Show validation error toast
+      JournalToast.validationError('required fields');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    // Use the comprehensive journal toast submission flow
+    await JournalToast.showSubmissionFlow(
+      onSubmit: () => _performSubmission(),
+      onViewEntry: () {
+        // TODO: Navigate to entry detail view
+        debugPrint('Navigate to journal entry detail view');
+      },
+      onRetry: () {
+        // Retry submission
+        _submitJournal();
+      },
+    );
+  }
+
   /// Performs the actual journal submission logic
   Future<void> _performSubmission() async {
     try {
@@ -801,7 +813,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         Future.delayed(const Duration(milliseconds: 6500), () {
           if (mounted) {
             if (_sendToSPAROrchestrator) {
-              _simulateAssessmentResult();();
+              _simulateAssessmentResult();
             } else {
               Navigator.of(context).pop(savedEntry);
             }
@@ -817,12 +829,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
   /// Start AI processing with proper error handling
   void _startAIProcessing(JournalEntry savedEntry) {
-    // Update status to pending
-    _updateAIProcessingStatus(
-      ProcessingStatus.pending,
-      message: 'Submitting for AI analysis...',
-    );
-
     // Compose retrieval query for AI processing
     final retrievalQuery = _composeRetrievalQuery();
     debugPrint('Composed retrieval query: $retrievalQuery');
@@ -850,21 +856,8 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     N8NWebhookService.sendJournalEntry(
       savedEntry,
       sparSettings: sparSettings,
-    ).then((_) {
-      // Successfully submitted - update to processing
-      _updateAIProcessingStatus(
-        ProcessingStatus.processing,
-        message: 'AI analyzing your entry...',
-      );
-    }).catchError((error) {
+    ).catchError((error) {
       debugPrint('AI processing error: $error');
-      // Update status to failed
-      _updateAIProcessingStatus(
-        ProcessingStatus.failed,
-        message: 'AI analysis failed to start',
-        error: error.toString(),
-      );
-      
       // Show AI processing error toast (non-blocking)
       if (mounted) {
         JournalToast.aiError(onRetry: () {
@@ -928,6 +921,36 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     return '${date.month}/${date.day}/${date.year}';
   }
 
+  IconData _getAnimalIcon(String species) {
+    switch (species.toLowerCase()) {
+      case 'cattle':
+      case 'cow':
+      case 'beef':
+      case 'dairy':
+        return Icons.agriculture;
+      case 'goat':
+        return Icons.pets;
+      case 'sheep':
+      case 'lamb':
+        return Icons.pets_outlined;
+      case 'swine':
+      case 'pig':
+      case 'hog':
+        return Icons.savings;
+      case 'horse':
+      case 'equine':
+        return Icons.directions_run;
+      case 'poultry':
+      case 'chicken':
+      case 'duck':
+      case 'turkey':
+        return Icons.egg_alt;
+      case 'rabbit':
+        return Icons.cruelty_free;
+      default:
+        return Icons.pets;
+    }
+  }
 
   Widget _buildProgressCard() {
     final requiredFields = [
@@ -1048,17 +1071,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         ),
         elevation: 0,
         actions: [
-          // AI Processing Status Indicator
-          if (_aiProcessingStatus != ProcessingStatus.idle)
-            ProcessingStatusIndicator(
-              status: _aiProcessingStatus,
-              message: _aiProcessingMessage,
-              errorMessage: _aiProcessingError,
-              progress: _aiProcessingProgress,
-              size: ProcessingStatusSize.small,
-              showStatusText: false,
-              onTap: _showAIProcessingDetails,
-            ),
           if (_hasUnsavedChanges)
             IconButton(
               icon: const Icon(Icons.save_outlined),
@@ -1166,13 +1178,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
             // AI Assessment Preview (appears after submission when SPAR enabled)
             if (_showAssessmentPreview || _isProcessingAssessment) ...[
-              AssessmentPreviewCard(
-                assessmentResult: _assessmentResult,
-                isProcessing: _isProcessingAssessment,
-                onViewDetails: _onViewAssessmentDetails,
-                onShare: _onShareAssessment,
-                onRetry: _onRetryAssessment,
-              ),
+              _buildAssessmentPreview(),
               const SizedBox(height: 16),
             ],
 
@@ -3285,11 +3291,507 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     );
   }
 
+  Widget _buildAssessmentPreview() {
+    if (!_showAssessmentPreview || _assessmentResult == null) {
+      return const SizedBox.shrink();
+    }
 
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.psychology,
+                    color: AppTheme.primaryGreen,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'AI Assessment Results',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryGreen,
+                        ),
+                      ),
+                      Text(
+                        'Processed ${_formatTimestamp(_assessmentResult!.processedAt)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    setState(() {
+                      _showAssessmentPreview = false;
+                    });
+                  },
+                  tooltip: 'Close assessment',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
+            // Overall Score
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryGreen.withValues(alpha: 0.1),
+                    AppTheme.secondaryGreen.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Overall Assessment Score',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Text(
+                              '${_assessmentResult!.overallScore.toStringAsFixed(1)}/10',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _getCompetencyColor(_assessmentResult!.competencyLevel),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                _assessmentResult!.competencyLevel,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _getScoreColor(_assessmentResult!.overallScore),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _getScoreGrade(_assessmentResult!.overallScore),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
 
+            // Detailed Scores
+            if (_assessmentResult!.detailedScores.isNotEmpty) ...[
+              Text(
+                'Detailed Assessment',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ..._assessmentResult!.detailedScores.entries.map((entry) {
+                final score = (entry.value as num).toDouble();
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _formatScoreCategory(entry.key),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      Container(
+                        width: 100,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: FractionallySizedBox(
+                          widthFactor: score / 10,
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _getScoreColor(score),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        score.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: _getScoreColor(score),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              const SizedBox(height: 16),
+            ],
 
+            // Competencies Identified
+            if (_assessmentResult!.identifiedCompetencies.isNotEmpty) ...[
+              _buildExpandableSection(
+                title: 'Identified Competencies',
+                icon: Icons.school,
+                items: _assessmentResult!.identifiedCompetencies,
+                color: Colors.blue,
+              ),
+              const SizedBox(height: 12),
+            ],
 
+            // Strengths
+            if (_assessmentResult!.strengths.isNotEmpty) ...[
+              _buildExpandableSection(
+                title: 'Strengths',
+                icon: Icons.star,
+                items: _assessmentResult!.strengths,
+                color: Colors.green,
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Growth Areas
+            if (_assessmentResult!.growthAreas.isNotEmpty) ...[
+              _buildExpandableSection(
+                title: 'Areas for Growth',
+                icon: Icons.trending_up,
+                items: _assessmentResult!.growthAreas,
+                color: Colors.orange,
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Recommendations
+            if (_assessmentResult!.recommendations.isNotEmpty) ...[
+              Text(
+                'Personalized Recommendations',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ..._assessmentResult!.recommendations.map((rec) => 
+                _buildRecommendationCard(rec)
+              ).toList(),
+              const SizedBox(height: 16),
+            ],
+
+            // Feedback Summary
+            if (_assessmentResult!.feedbackSummary.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.lightbulb, color: Colors.blue.shade700),
+                        const SizedBox(width: 8),
+                        Text(
+                          'AI Feedback Summary',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _assessmentResult!.feedbackSummary,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandableSection({
+    required String title,
+    required IconData icon,
+    required List<String> items,
+    required Color color,
+  }) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        leading: Icon(icon, color: color),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: color.shade700,
+          ),
+        ),
+        subtitle: Text('${items.length} items'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              children: items.map((item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, right: 8),
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard(AssessmentRecommendation rec) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getPriorityColor(rec.priority),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    rec.priority.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    rec.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              rec.description,
+              style: const TextStyle(fontSize: 13, height: 1.3),
+            ),
+            if (rec.actionSteps.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Action Steps:',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...rec.actionSteps.map((step) => Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    Expanded(
+                      child: Text(
+                        step,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper methods for assessment display
+  Color _getCompetencyColor(String level) {
+    switch (level.toLowerCase()) {
+      case 'beginner':
+      case 'novice':
+        return Colors.red.shade600;
+      case 'developing':
+        return Colors.orange.shade600;
+      case 'proficient':
+        return Colors.green.shade600;
+      case 'advanced':
+      case 'expert':
+        return Colors.blue.shade600;
+      default:
+        return Colors.grey.shade600;
+    }
+  }
+
+  Color _getScoreColor(double score) {
+    if (score >= 9.0) return Colors.blue.shade600; // Excellent
+    if (score >= 8.0) return Colors.green.shade600; // Good
+    if (score >= 7.0) return Colors.orange.shade600; // Fair
+    if (score >= 6.0) return Colors.red.shade600; // Needs improvement
+    return Colors.grey.shade600; // Poor
+  }
+
+  String _getScoreGrade(double score) {
+    if (score >= 9.0) return 'A';
+    if (score >= 8.0) return 'B';
+    if (score >= 7.0) return 'C';
+    if (score >= 6.0) return 'D';
+    return 'F';
+  }
+
+  Color _getPriorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'high':
+        return Colors.red.shade600;
+      case 'medium':
+        return Colors.orange.shade600;
+      case 'low':
+        return Colors.blue.shade600;
+      default:
+        return Colors.grey.shade600;
+    }
+  }
+
+  String _formatScoreCategory(String category) {
+    return category
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((word) => word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1))
+        .join(' ');
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
+  }
 
   // Method to simulate receiving SPAR assessment results
   void _simulateAssessmentResult() {
@@ -3307,155 +3809,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         });
       }
     });
-  }
-
-  /// Handle viewing detailed assessment results
-  void _onViewAssessmentDetails() {
-    if (_assessmentResult == null) return;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.psychology, color: AppTheme.primaryGreen),
-            const SizedBox(width: 8),
-            const Text('Assessment Details'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Feedback Summary:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _assessmentResult!.feedbackSummary,
-                style: TextStyle(height: 1.4, color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Processing Details:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text('Assessment ID: ${_assessmentResult!.id}'),
-              Text('Processed: ${_assessmentResult!.processedAt.toString()}'),
-              Text('Status: ${_assessmentResult!.isComplete ? "Complete" : "Processing"}'),
-              const SizedBox(height: 20),
-              Text(
-                'SPAR Configuration:',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text('Route Intent: $_routeIntent'),
-              Text('Vector Matches: $_vectorMatchCount'),
-              Text('Min Similarity: $_vectorMinSimilarity'),
-              Text('Run ID: $_runId'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Handle sharing assessment results
-  void _onShareAssessment() {
-    if (_assessmentResult == null) return;
-    
-    // Show share options dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.share, color: AppTheme.primaryGreen),
-            SizedBox(width: 8),
-            Text('Share Assessment'),
-          ],
-        ),
-        content: const Text(
-          'Share your AI assessment results with instructors, mentors, or add to your FFA portfolio.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Implement actual sharing functionality
-              Navigator.of(context).pop();
-              showSuccess('Assessment results shared successfully!');
-            },
-            icon: const Icon(Icons.share),
-            label: const Text('Share'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Handle retrying failed assessment
-  void _onRetryAssessment() {
-    if (_assessmentResult == null) {
-      // Retry processing
-      _simulateAssessmentResult();
-      return;
-    }
-    
-    // Show retry confirmation
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.refresh, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Retry Assessment'),
-          ],
-        ),
-        content: const Text(
-          'This will reprocess your journal entry with the AI assessment system. Your current results will be replaced.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _assessmentResult = null;
-                _showAssessmentPreview = false;
-              });
-              _simulateAssessmentResult();();
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSubmitButton() {
@@ -3503,6 +3856,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
         const SizedBox(height: 8),
 
+        // Assessment Preview
+        _buildAssessmentPreview(),
+
         // Submit Button
         SizedBox(
           width: double.infinity,
@@ -3544,9 +3900,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
                   ),
                 ],
               ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -3741,171 +4095,424 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     }
   }
 
-  /// Update AI processing status and monitor progress
-  void _updateAIProcessingStatus(ProcessingStatus status, {
-    String? message,
-    String? error,
-    double? progress,
-  }) {
-    setState(() {
-      _aiProcessingStatus = status;
-      _aiProcessingMessage = message;
-      _aiProcessingError = error;
-      _aiProcessingProgress = progress;
-    });
-
-    // Start monitoring for processing and pending states
-    if (status == ProcessingStatus.processing || status == ProcessingStatus.pending) {
-      _startAIStatusMonitoring();
-    } else {
-      _aiStatusTimer?.cancel();
-    }
+  Widget _buildSubmitButton() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submitJournal,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade300,
+          disabledForegroundColor: Colors.grey.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: _isSubmitting ? 0 : 2,
+        ),
+        child: _isSubmitting
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Saving Journal Entry...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.save_alt, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.existingEntry != null ? 'Update Entry' : 'Save Entry',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  if (_feedItems.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_feedItems.length} feed${_feedItems.length != 1 ? 's' : ''}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
   }
 
-  /// Start monitoring AI processing status
-  void _startAIStatusMonitoring() {
-    _aiStatusTimer?.cancel();
-    _aiStatusTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      if (_runId.isNotEmpty) {
-        try {
-          final run = await SPARRunsService.getSPARRun(_runId);
-          if (run != null) {
-            final status = (run['status'] as String).toProcessingStatus();
-            
-            // Update progress for processing status
-            double? progress;
-            if (status == ProcessingStatus.processing) {
-              final createdAt = DateTime.parse(run['created_at']);
-              final elapsed = DateTime.now().difference(createdAt).inSeconds;
-              const estimatedDuration = 30; // 30 seconds estimated
-              progress = (elapsed / estimatedDuration).clamp(0.0, 0.9);
-            }
-
-            setState(() {
-              _aiProcessingStatus = status;
-              _aiProcessingProgress = progress;
-              
-              if (status == ProcessingStatus.completed) {
-                _aiProcessingMessage = 'AI analysis completed successfully';
-                _aiProcessingError = null;
-              } else if (status == ProcessingStatus.failed) {
-                _aiProcessingMessage = 'AI analysis failed';
-                _aiProcessingError = run['error'];
-              } else if (status == ProcessingStatus.timeout) {
-                _aiProcessingMessage = 'AI analysis timed out';
-                _aiProcessingError = 'Processing took too long';
-              }
-            });
-
-            // Stop monitoring when complete
-            if (status == ProcessingStatus.completed || 
-                status == ProcessingStatus.failed || 
-                status == ProcessingStatus.timeout) {
-              timer.cancel();
-            }
-          }
-        } catch (e) {
-          print('Error monitoring AI status: $e');
-        }
-      }
-    });
-  }
-
-  /// Show AI processing details dialog
-  void _showAIProcessingDetails() {
+  void _showFFAStandardsDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.psychology, color: Colors.blue[600]),
-            const SizedBox(width: 8),
-            const Text('AI Processing Status'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ProcessingStatusIndicator(
-              status: _aiProcessingStatus,
-              message: _aiProcessingMessage,
-              errorMessage: _aiProcessingError,
-              progress: _aiProcessingProgress,
-              size: ProcessingStatusSize.large,
-              showStatusText: true,
-              showRetryButton: true,
-              onRetry: _aiProcessingStatus == ProcessingStatus.failed 
-                  ? _retryAIProcessing 
-                  : null,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            if (_aiProcessingStatus == ProcessingStatus.processing) 
-              const AIProcessingProgressIndicator(
-                currentStep: 'Analyzing journal content and standards...',
-                showDetails: true,
-              ),
-            
-            if (_runId.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Run ID: $_runId',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontFamily: 'monospace',
+        title: const Text('Select FFA Standards'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView(
+            children: FFAConstants.animalSystemsStandards.map((standard) {
+              final isSelected = _selectedFFAStandards.contains(standard);
+              return CheckboxListTile(
+                value: isSelected,
+                onChanged: (selected) {
+                  setState(() {
+                    if (selected == true) {
+                      _selectedFFAStandards.add(standard);
+                    } else {
+                      _selectedFFAStandards.remove(standard);
+                    }
+                  });
+                },
+                title: Text(
+                  standard,
+                  style: const TextStyle(fontSize: 14),
                 ),
-              ),
-            ],
-          ],
+                dense: true,
+              );
+            }).toList(),
+          ),
         ),
         actions: [
-          if (_aiProcessingStatus == ProcessingStatus.failed)
-            TextButton.icon(
-              onPressed: _retryAIProcessing,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-              style: TextButton.styleFrom(foregroundColor: Colors.orange[700]),
-            ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+            child: const Text('Done'),
           ),
         ],
       ),
     );
   }
 
-  /// Retry AI processing for the current entry
-  Future<void> _retryAIProcessing() async {
-    if (_runId.isEmpty) return;
-
-    try {
-      await SPARRunsService.retrySPARRun(_runId);
-      _updateAIProcessingStatus(
-        ProcessingStatus.pending,
-        message: 'AI analysis retry initiated',
-      );
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('AI analysis retry initiated'),
-            backgroundColor: Colors.blue,
+  void _showAETSkillsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select AET Skills'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView(
+            children: AETSkillCategories.categories.entries.map((entry) {
+              return ExpansionTile(
+                title: Text(
+                  entry.key,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                children: entry.value.map((skill) {
+                  final isSelected = _selectedAETSkills.contains(skill);
+                  return CheckboxListTile(
+                    value: isSelected,
+                    onChanged: (selected) {
+                      setState(() {
+                        if (selected == true) {
+                          _selectedAETSkills.add(skill);
+                        } else {
+                          _selectedAETSkills.remove(skill);
+                        }
+                      });
+                    },
+                    title: Text(
+                      skill,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    dense: true,
+                  );
+                }).toList(),
+              );
+            }).toList(),
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Retry failed: $e'),
-            backgroundColor: Colors.red,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
           ),
-        );
-      }
-    }
+        ],
+      ),
+    );
   }
 
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Journal Entry Help'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Creating Quality Journal Entries',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Describe your activities in detail (minimum 25 words)\n'
+                '• Include specific observations and measurements\n'
+                '• Connect activities to FFA standards\n'
+                '• Add learning objectives and reflections\n'
+                '• Include feed information if applicable\n'
+                '• Use location and weather data when relevant\n'
+                '• Tag entries for easy searching',
+                style: TextStyle(height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Feed Data Features',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Record specific feeds given to animals\n'
+                '• Track hay by flakes or other feeds by weight\n'
+                '• Use "Use Last" to quickly add recent feeds\n'
+                '• Edit or remove feed items as needed',
+                style: TextStyle(height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mock method for assessment simulation (development/demo purposes)
+  void _simulateAssessmentResult() {
+    setState(() {
+      _showAssessmentPreview = true;
+      _assessmentResult = SPARAssessmentResult.mock();
+    });
+  }
+
+  Widget _buildAssessmentPreview() {
+    if (_assessmentResult == null) return const SizedBox.shrink();
+
+    return Card(
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.psychology, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Assessment Results',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${(_assessmentResult!.overallScore).toStringAsFixed(1)}/10',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(_assessmentResult!.feedbackSummary),
+            const SizedBox(height: 12),
+            if (_assessmentResult!.strengths.isNotEmpty) ...[
+              Text(
+                'Strengths:',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700),
+              ),
+              ...(_assessmentResult!.strengths.map((strength) => 
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('• $strength', style: const TextStyle(fontSize: 14)),
+                )
+              )),
+              const SizedBox(height: 8),
+            ],
+            if (_assessmentResult!.growthAreas.isNotEmpty) ...[
+              Text(
+                'Areas for Growth:',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade700),
+              ),
+              ...(_assessmentResult!.growthAreas.map((area) => 
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('• $area', style: const TextStyle(fontSize: 14)),
+                )
+              )),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// SPAR Assessment Result model for AI-generated feedback
+class SPARAssessmentResult {
+  final String id;
+  final double overallScore;
+  final String competencyLevel;
+  final List<String> identifiedCompetencies;
+  final List<String> strengths;
+  final List<String> growthAreas;
+  final List<AssessmentRecommendation> recommendations;
+  final Map<String, dynamic> detailedScores;
+  final String feedbackSummary;
+  final DateTime processedAt;
+  final bool isComplete;
+
+  SPARAssessmentResult({
+    required this.id,
+    required this.overallScore,
+    required this.competencyLevel,
+    required this.identifiedCompetencies,
+    required this.strengths,
+    required this.growthAreas,
+    required this.recommendations,
+    required this.detailedScores,
+    required this.feedbackSummary,
+    required this.processedAt,
+    this.isComplete = true,
+  });
+
+  factory SPARAssessmentResult.fromJson(Map<String, dynamic> json) {
+    return SPARAssessmentResult(
+      id: json['id'] ?? '',
+      overallScore: (json['overallScore'] ?? 0).toDouble(),
+      competencyLevel: json['competencyLevel'] ?? 'Developing',
+      identifiedCompetencies: List<String>.from(json['identifiedCompetencies'] ?? []),
+      strengths: List<String>.from(json['strengths'] ?? []),
+      growthAreas: List<String>.from(json['growthAreas'] ?? []),
+      recommendations: (json['recommendations'] as List? ?? [])
+          .map((r) => AssessmentRecommendation.fromJson(r))
+          .toList(),
+      detailedScores: Map<String, dynamic>.from(json['detailedScores'] ?? {}),
+      feedbackSummary: json['feedbackSummary'] ?? '',
+      processedAt: json['processedAt'] != null 
+          ? DateTime.parse(json['processedAt'])
+          : DateTime.now(),
+      isComplete: json['isComplete'] ?? true,
+    );
+  }
+
+  // Mock assessment result for demonstration
+  factory SPARAssessmentResult.mock() {
+    return SPARAssessmentResult(
+      id: 'mock_${DateTime.now().millisecondsSinceEpoch}',
+      overallScore: 8.4,
+      competencyLevel: 'Proficient',
+      identifiedCompetencies: [
+        'AS.07.01 - Animal Health Maintenance',
+        'AS.01.02 - Animal Husbandry Practices',
+        'AS.02.01 - Animal Nutrition Knowledge'
+      ],
+      strengths: [
+        'Detailed observation of animal behavior and physical condition',
+        'Systematic approach to health monitoring procedures',
+        'Clear documentation of treatment protocols'
+      ],
+      growthAreas: [
+        'Include specific measurements (weight, temperature)',
+        'Document frequency of observations',
+        'Connect observations to FFA degree requirements'
+      ],
+      recommendations: [
+        AssessmentRecommendation(
+          type: 'immediate',
+          priority: 'high',
+          title: 'Add Quantitative Data',
+          description: 'Include specific measurements and metrics to strengthen your documentation.',
+          actionSteps: [
+            'Record animal weight if available',
+            'Note temperature readings',
+            'Document feed consumption amounts'
+          ]
+        ),
+        AssessmentRecommendation(
+          type: 'skill_development',
+          priority: 'medium',
+          title: 'Expand Health Monitoring',
+          description: 'Develop more comprehensive health assessment skills.',
+          actionSteps: [
+            'Learn to use body condition scoring',
+            'Practice taking vital signs',
+            'Study common health indicators'
+          ]
+        )
+      ],
+      detailedScores: {
+        'content_quality': 8.2,
+        'technical_accuracy': 8.8,
+        'ffa_alignment': 8.0,
+        'learning_demonstration': 8.6,
+        'reflection_depth': 8.1
+      },
+      feedbackSummary: 'This entry demonstrates strong animal care knowledge and systematic observation skills. Your documentation shows understanding of proper health monitoring procedures. To improve, focus on adding quantitative measurements and connecting your work to specific FFA degree requirements.',
+      processedAt: DateTime.now(),
+    );
+  }
+}
+
+class AssessmentRecommendation {
+  final String type; // 'immediate', 'skill_development', 'ffa_requirement'
+  final String priority; // 'high', 'medium', 'low'
+  final String title;
+  final String description;
+  final List<String> actionSteps;
+
+  AssessmentRecommendation({
+    required this.type,
+    required this.priority,
+    required this.title,
+    required this.description,
+    required this.actionSteps,
+  });
+
+  factory AssessmentRecommendation.fromJson(Map<String, dynamic> json) {
+    return AssessmentRecommendation(
+      type: json['type'] ?? '',
+      priority: json['priority'] ?? 'medium',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      actionSteps: List<String>.from(json['actionSteps'] ?? []),
+    );
+  }
 }

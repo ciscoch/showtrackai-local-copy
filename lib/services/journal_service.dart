@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
 import 'n8n_webhook_service.dart';
+import 'ai_assessment_service.dart';
 
 /// Journal service for real-time database operations
 /// Handles CRUD operations, AI processing, and search with Supabase
@@ -13,6 +14,7 @@ class JournalService {
   
   static final _supabase = Supabase.instance.client;
   static final _uuid = const Uuid();
+  static final _aiAssessmentService = AiAssessmentService();
 
   /// Create a new journal entry
   static Future<JournalEntry> createEntry(JournalEntry entry) async {
@@ -20,6 +22,9 @@ class JournalService {
     if (currentUser == null) {
       throw Exception('User not authenticated');
     }
+
+    final traceId = entry.traceId ?? 'unknown';
+    print('[TRACE_ID: $traceId] 💾 Creating journal entry for user: ${currentUser.id}');
 
     try {
       // Generate ID if not provided
@@ -60,33 +65,46 @@ class JournalService {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         isSynced: true,
+        // Preserve distributed tracing
+        source: entry.source,
+        notes: entry.notes,
+        traceId: entry.traceId,
       );
 
       final token = _supabase.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
 
+      print('[TRACE_ID: $traceId] 🌐 HTTP POST to Netlify function: journal-create');
+      
       final response = await http.post(
         Uri.parse('$_baseUrl/.netlify/functions/journal-create'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'X-Trace-ID': traceId, // Add trace ID to headers for end-to-end correlation
         },
         body: jsonEncode(entryWithId.toJson()),
       ).timeout(const Duration(seconds: 30));
+
+      print('[TRACE_ID: $traceId] 📡 Netlify response: ${response.statusCode} (${response.body.length} bytes)');
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         final createdEntry = JournalEntry.fromJson(data['data']);
         
+        print('[TRACE_ID: $traceId] ✅ Journal entry created successfully: ${createdEntry.id}');
+        
         // Trigger enhanced AI processing asynchronously
+        print('[TRACE_ID: $traceId] 🤖 Starting background AI processing');
         _processWithEnhancedAIAsync(createdEntry);
         
         return createdEntry;
       } else {
+        print('[TRACE_ID: $traceId] ❌ Failed to create entry: ${response.statusCode}');
         throw Exception('Failed to create entry: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      print('Error creating entry: $e');
+      print('[TRACE_ID: $traceId] 💥 Error creating entry: $e');
       throw Exception('Failed to create journal entry: ${e.toString()}');
     }
   }
@@ -98,6 +116,9 @@ class JournalService {
       throw Exception('User not authenticated');
     }
 
+    final traceId = entry.traceId ?? 'unknown';
+    print('[TRACE_ID: $traceId] 📝 Updating journal entry: ${entry.id}');
+
     try {
       final updatedEntry = entry.copyWith(
         updatedAt: DateTime.now(),
@@ -107,23 +128,31 @@ class JournalService {
       final token = _supabase.auth.currentSession?.accessToken;
       if (token == null) throw Exception('Not authenticated');
 
+      print('[TRACE_ID: $traceId] 🌐 HTTP PUT to Netlify function: journal-update');
+      
       final response = await http.put(
         Uri.parse('$_baseUrl/.netlify/functions/journal-update'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'X-Trace-ID': traceId, // Add trace ID to headers for end-to-end correlation
         },
         body: jsonEncode(updatedEntry.toJson()),
       ).timeout(const Duration(seconds: 30));
 
+      print('[TRACE_ID: $traceId] 📡 Netlify response: ${response.statusCode} (${response.body.length} bytes)');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return JournalEntry.fromJson(data['data']);
+        final updatedResult = JournalEntry.fromJson(data['data']);
+        print('[TRACE_ID: $traceId] ✅ Journal entry updated successfully');
+        return updatedResult;
       } else {
+        print('[TRACE_ID: $traceId] ❌ Failed to update entry: ${response.statusCode}');
         throw Exception('Failed to update entry: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      print('Error updating entry: $e');
+      print('[TRACE_ID: $traceId] 💥 Error updating entry: $e');
       throw Exception('Failed to update journal entry: ${e.toString()}');
     }
   }
@@ -362,6 +391,195 @@ class JournalService {
         'chapterReady': false,
         'stateReady': false,
       };
+    }
+  }
+
+  // ============================================================================
+  // AI ASSESSMENT INTEGRATION METHODS
+  // ============================================================================
+
+  /// Get AI assessment for a journal entry
+  static Future<AiAssessment?> getAiAssessment(String journalEntryId) async {
+    try {
+      return await _aiAssessmentService.getAssessmentForJournalEntry(journalEntryId);
+    } catch (e) {
+      print('Error fetching AI assessment for journal entry $journalEntryId: $e');
+      return null;
+    }
+  }
+
+  /// Check if a journal entry has an AI assessment
+  static Future<bool> hasAiAssessment(String journalEntryId) async {
+    try {
+      return await _aiAssessmentService.hasAssessment(journalEntryId);
+    } catch (e) {
+      print('Error checking AI assessment for journal entry $journalEntryId: $e');
+      return false;
+    }
+  }
+
+  /// Get AI assessment status by trace ID
+  static Future<Map<String, dynamic>?> getAssessmentStatus(String traceId) async {
+    try {
+      return await _aiAssessmentService.getAssessmentStatus(traceId);
+    } catch (e) {
+      print('Error fetching assessment status for trace ID $traceId: $e');
+      return null;
+    }
+  }
+
+  /// Get competency progress for the current user
+  static Future<List<CompetencyProgress>> getCompetencyProgress({int daysBack = 30}) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      return await _aiAssessmentService.getCompetencyProgress(currentUser.id, daysBack: daysBack);
+    } catch (e) {
+      print('Error fetching competency progress: $e');
+      return [];
+    }
+  }
+
+  /// Get high quality assessed entries for the current user
+  static Future<List<AiAssessment>> getHighQualityAssessments({
+    double minQualityScore = 8.0,
+    int limit = 10,
+  }) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      return await _aiAssessmentService.getHighQualityAssessments(
+        currentUser.id,
+        minQualityScore: minQualityScore,
+        limit: limit,
+      );
+    } catch (e) {
+      print('Error fetching high quality assessments: $e');
+      return [];
+    }
+  }
+
+  /// Search assessments by competency for the current user
+  static Future<List<AiAssessment>> searchAssessmentsByCompetency(String competencyCode) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      return await _aiAssessmentService.searchAssessmentsByCompetency(currentUser.id, competencyCode);
+    } catch (e) {
+      print('Error searching assessments by competency: $e');
+      return [];
+    }
+  }
+
+  /// Get comprehensive assessment statistics for the current user
+  static Future<Map<String, dynamic>> getAssessmentStatistics() async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      return await _aiAssessmentService.getAssessmentStatistics(currentUser.id);
+    } catch (e) {
+      print('Error fetching assessment statistics: $e');
+      return {
+        'totalAssessments': 0,
+        'averageQualityScore': 0.0,
+        'averageEngagementScore': 0.0,
+        'averageLearningDepthScore': 0.0,
+        'totalCompetencies': 0,
+        'totalFfaStandards': 0,
+        'totalStrengths': 0,
+        'totalRecommendations': 0,
+        'assessmentTrend': 'Error',
+      };
+    }
+  }
+
+  /// Get all AI assessments for the current user
+  static Future<List<AiAssessment>> getUserAiAssessments({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      return await _aiAssessmentService.getAssessmentsForUser(
+        currentUser.id,
+        limit: limit,
+        offset: offset,
+      );
+    } catch (e) {
+      print('Error fetching user AI assessments: $e');
+      return [];
+    }
+  }
+
+  /// Get enhanced FFA degree progress with AI assessment data
+  static Future<Map<String, dynamic>> getEnhancedFfaDegreeProgress() async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      // Get basic FFA progress
+      final basicProgress = await getFfaDegreeProgress();
+      
+      // Get AI assessment statistics
+      final assessmentStats = await getAssessmentStatistics();
+      
+      // Get competency progress
+      final competencyProgress = await getCompetencyProgress(daysBack: 365);
+      
+      // Calculate enhanced metrics
+      final proficientCompetencies = competencyProgress
+          .where((cp) => cp.progressTrend == 'Consistent' || cp.progressTrend == 'Proficient')
+          .length;
+      
+      final averageCompetencyScore = competencyProgress.isNotEmpty
+          ? competencyProgress
+              .where((cp) => cp.avgQualityScore != null)
+              .map((cp) => cp.avgQualityScore!)
+              .reduce((a, b) => a + b) / competencyProgress.length
+          : 0.0;
+
+      return {
+        ...basicProgress,
+        // AI-enhanced metrics
+        'totalAiAssessments': assessmentStats['totalAssessments'],
+        'averageQualityScore': assessmentStats['averageQualityScore'],
+        'proficientCompetencies': proficientCompetencies,
+        'totalCompetenciesTracked': competencyProgress.length,
+        'averageCompetencyScore': averageCompetencyScore,
+        'assessmentTrend': assessmentStats['assessmentTrend'],
+        'hasAiInsights': assessmentStats['totalAssessments'] > 0,
+        // Quality gates with AI criteria
+        'greenhandReadyAi': (basicProgress['greenhandReady'] as bool) && 
+                           averageCompetencyScore >= 6.0,
+        'chapterReadyAi': (basicProgress['chapterReady'] as bool) && 
+                         averageCompetencyScore >= 7.0 && 
+                         proficientCompetencies >= 3,
+        'stateReadyAi': (basicProgress['stateReady'] as bool) && 
+                       averageCompetencyScore >= 8.0 && 
+                       proficientCompetencies >= 5,
+      };
+    } catch (e) {
+      print('Error calculating enhanced FFA progress: $e');
+      // Fallback to basic progress
+      return await getFfaDegreeProgress();
     }
   }
 }

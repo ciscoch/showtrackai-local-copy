@@ -12,6 +12,8 @@ import 'models/animal.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'debug/theme_diagnostic.dart';
+import 'debug/toast_test_widget.dart';
+import 'widgets/toast_notification_widget.dart';
 
 void main() async {
   print('🚀 Starting ShowTrackAI Journaling App');
@@ -59,26 +61,27 @@ class ShowTrackAIJournaling extends StatelessWidget {
   Widget build(BuildContext context) {
     print('🎨 Building MaterialApp...');
     
-    return MaterialApp(
-      title: 'ShowTrackAI Journaling',
-      theme: AppTheme.lightTheme.copyWith(
-        // Extra safety: ensure all backgrounds are explicitly white
-        scaffoldBackgroundColor: Colors.white,
-        canvasColor: Colors.white,
-        colorScheme: AppTheme.lightTheme.colorScheme.copyWith(
-          surface: Colors.white,
+    return ToastOverlay(
+      child: MaterialApp(
+        title: 'ShowTrackAI Journaling',
+        theme: AppTheme.lightTheme.copyWith(
+          // Extra safety: ensure all backgrounds are explicitly white
+          scaffoldBackgroundColor: Colors.white,
+          canvasColor: Colors.white,
+          colorScheme: AppTheme.lightTheme.colorScheme.copyWith(
+            surface: Colors.white,
+          ),
         ),
-      ),
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/login',
-      // Add error handling
-      builder: (context, child) {
-        print('🏗️ MaterialApp builder called with child: ${child?.runtimeType}');
-        return Container(
-          color: Colors.white,
-          child: child,
-        );
-      },
+        debugShowCheckedModeBanner: false,
+        initialRoute: '/login',
+        // Add error handling
+        builder: (context, child) {
+          print('🏗️ MaterialApp builder called with child: ${child?.runtimeType}');
+          return Container(
+            color: Colors.white,
+            child: child,
+          );
+        },
       routes: {
         '/': (context) {
           print('🏠 Navigating to root route (redirecting to login)');
@@ -91,6 +94,10 @@ class ShowTrackAIJournaling extends StatelessWidget {
         '/debug': (context) {
           print('🔍 Navigating to debug route');
           return const ThemeDiagnosticScreen();
+        },
+        '/debug/toast': (context) {
+          print('🍞 Navigating to toast test route');
+          return const ToastTestWidget();
         },
         '/dashboard': (context) => const DashboardScreen(),
         '/journal': (context) => const JournalListPage(),
@@ -135,6 +142,7 @@ class ShowTrackAIJournaling extends StatelessWidget {
         // Return null to let the default route handling take over
         return null;
       },
+      ),
     );
   }
 }
