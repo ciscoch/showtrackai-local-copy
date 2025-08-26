@@ -59,10 +59,10 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 - [x] Tool inputs override (optional): `tool_inputs.category`, `tool_inputs.query` (defaults to retrieval_query) ✅
 
 ### Validation (before submit)
-- [ ] Block submit if `user_id` or `animal_id` missing
-- [ ] Block submit if `entry_text` empty
-- [ ] Warn if `entry_date` missing; allow continue with today
-- [ ] If weather fetch attempted and fails, proceed without weather but log warning
+- [x] Block submit if `user_id` or `animal_id` missing ✅
+- [x] Block submit if `entry_text` empty ✅
+- [x] Warn if `entry_date` missing; allow continue with today ✅
+- [x] If weather fetch attempted and fails, proceed without weather but log warning ✅
 
 ### Review & confirm
 - [ ] “Preview assessment” area (read-only once SPAR returns)
