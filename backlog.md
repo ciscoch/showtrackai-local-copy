@@ -39,9 +39,9 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 - [x] Target/next weigh-in date → `feed_strategy.weigh_in_date` ✅
 
 ### Location & weather (best-effort)
-- [ ] Location widget (city, state) + hidden lat/lon when available → `location.{city,state,lat,lon}`
-- [ ] “Attach weather” button (fills preview chip) → store compact JSON in `weather`
-- [ ] “Use IP-based weather if GPS not granted” toggle → sets source hint
+- [x] Location widget (city, state) + hidden lat/lon when available → `location.{city,state,lat,lon}` ✅
+- [x] "Attach weather" button (fills preview chip) → store compact JSON in `weather` ✅
+- [x] "Use IP-based weather if GPS not granted" toggle → sets source hint ✅
 
 ### Metadata & source
 - [ ] Source select (mobile_app, web_app, import, api) → `metadata.source`

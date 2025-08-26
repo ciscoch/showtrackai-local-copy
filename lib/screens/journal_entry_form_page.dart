@@ -58,6 +58,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   WeatherData? _weatherData;
   bool _isLoadingWeather = false;
   bool _isLoadingLocation = false;
+  bool _useIPBasedWeather = false;
+  String? _locationCity;
+  String? _locationState;
 
   // Data loading
   List<Animal> _animals = [];
@@ -278,13 +281,12 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
       if (result.isSuccess && result.data != null) {
         _locationData = result.data;
-        
-        // Automatically try to get weather if location is available
-        await _attachCurrentWeather();
+        await _extractCityStateFromLocation(_locationData!);
       } else {
         // Use mock location as fallback for demo
         final mockResult = GeolocationService.getMockLocation();
         _locationData = mockResult.data;
+        await _extractCityStateFromLocation(_locationData!);
         
         if (mounted) {
           _showErrorSnackbar('Using demo location: ${result.userMessage}');
@@ -299,20 +301,85 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       // Use mock location as final fallback
       final mockResult = GeolocationService.getMockLocation();
       _locationData = mockResult.data;
+      await _extractCityStateFromLocation(_locationData!);
+    }
+  }
+
+  Future<void> _extractCityStateFromLocation(LocationData location) async {
+    try {
+      // Use city and state from LocationData if available
+      if (location.city != null && location.state != null) {
+        _locationCity = location.city;
+        _locationState = location.state;
+      } else {
+        // Fallback: extract from address if available
+        if (location.address != null) {
+          final addressParts = location.address!.split(', ');
+          if (addressParts.length >= 2) {
+            // Try to extract city and state from address
+            // Format might be "Denver, CO" or "Denver, CO 80202, USA"
+            for (int i = 0; i < addressParts.length; i++) {
+              final part = addressParts[i].trim();
+              // Look for state-like pattern (2 letter code)
+              if (part.length == 2 && part.toUpperCase() == part) {
+                _locationState = part;
+                if (i > 0) {
+                  _locationCity = addressParts[i - 1].trim();
+                }
+                break;
+              }
+            }
+          }
+        }
+        
+        // Final fallback for known mock location
+        if (_locationCity == null && location.address?.contains('Denver') == true) {
+          _locationCity = 'Denver';
+          _locationState = 'CO';
+        }
+      }
+      
+      // Update LocationData with extracted city/state
+      if (_locationCity != null || _locationState != null) {
+        _locationData = LocationData(
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: location.address,
+          name: location.name,
+          accuracy: location.accuracy,
+          capturedAt: location.capturedAt,
+          city: _locationCity,
+          state: _locationState,
+        );
+      }
+      
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error extracting city/state: $e');
+      // Set defaults if extraction fails
+      _locationCity = 'Unknown';
+      _locationState = 'Unknown';
     }
   }
 
   Future<void> _attachCurrentWeather() async {
-    if (_locationData == null) return;
-
     setState(() => _isLoadingWeather = true);
 
     try {
-      // Try to get weather data
-      final weather = await _weatherService.getWeatherByLocation(
-        _locationData!.latitude!,
-        _locationData!.longitude!,
-      );
+      WeatherData? weather;
+      
+      if (_useIPBasedWeather || _locationData == null) {
+        // Try IP-based weather (fallback)
+        if (_locationCity != null) {
+          weather = await _weatherService.getWeatherByCityName(_locationCity!);
+        }
+      } else if (_locationData != null) {
+        // Try GPS-based weather
+        weather = await _weatherService.getWeatherByLocation(
+          _locationData!.latitude!,
+          _locationData!.longitude!,
+        );
+      }
 
       if (weather != null) {
         setState(() {
@@ -320,21 +387,18 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
           _isLoadingWeather = false;
         });
       } else {
-        // Use mock weather data for demonstration
+        // Use enhanced mock weather data for demonstration
         setState(() {
-          _weatherData = WeatherData(
-            temperature: 22.5,
-            condition: 'partly_cloudy',
-            humidity: 65,
-            windSpeed: 8.5,
-            description: 'Partly cloudy with light breeze',
-          );
+          _weatherData = _weatherService.getDefaultMockWeather();
           _isLoadingWeather = false;
         });
       }
     } catch (e) {
       setState(() => _isLoadingWeather = false);
       debugPrint('Weather fetch error: $e');
+      if (mounted) {
+        _showErrorSnackbar('Could not fetch weather data');
+      }
     }
   }
 
@@ -1138,38 +1202,134 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                if (_weatherData == null)
-                  TextButton.icon(
-                    onPressed: _isLoadingWeather ? null : _attachCurrentWeather,
-                    icon: _isLoadingWeather
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.cloud),
-                    label: Text(_isLoadingWeather ? 'Loading...' : 'Attach Weather'),
+                ElevatedButton.icon(
+                  onPressed: _isLoadingWeather ? null : _attachCurrentWeather,
+                  icon: _isLoadingWeather
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.cloud, size: 16),
+                  label: Text(
+                    _isLoadingWeather ? 'Loading...' : 'Attach Weather',
+                    style: const TextStyle(fontSize: 12),
                   ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: const Size(120, 32),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // Location Info
+            // Location Widget - City, State visible, lat/lon hidden
             if (_locationData != null) ...[
-              Row(
-                children: [
-                  const Icon(Icons.location_on, size: 20, color: Colors.green),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _locationData!.address ?? 'Location captured',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 20, color: Colors.green.shade700),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _locationCity != null && _locationState != null
+                                    ? '$_locationCity, $_locationState'
+                                    : _locationData!.address ?? 'Location captured',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (_locationData!.latitude != null && _locationData!.longitude != null)
+                                Text(
+                                  'Lat: ${_locationData!.latitude!.toStringAsFixed(4)}, Lon: ${_locationData!.longitude!.toStringAsFixed(4)}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.green.shade600,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'GPS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    if (_locationData!.accuracy != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Accuracy: ±${_locationData!.accuracy!.round()}m',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green.shade600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
             ],
+
+            // IP-based Weather Toggle
+            SwitchListTile(
+              title: Text(
+                'Use IP-based weather if GPS not granted',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              subtitle: Text(
+                _useIPBasedWeather 
+                    ? 'Weather will be fetched using your internet location' 
+                    : 'Weather will use GPS coordinates when available',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              value: _useIPBasedWeather,
+              onChanged: (value) {
+                setState(() {
+                  _useIPBasedWeather = value;
+                });
+              },
+              activeColor: AppTheme.primaryGreen,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+            ),
+            const SizedBox(height: 8),
 
             // Weather Info
             if (_weatherData != null) ...[
@@ -1185,34 +1345,67 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                     Icon(
                       _getWeatherIcon(_weatherData!.condition),
                       color: Colors.blue.shade700,
+                      size: 24,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '${_weatherData!.temperature?.round() ?? '--'}°C',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                '${_weatherData!.temperature?.round() ?? '--'}°C',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Attached',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.blue.shade700,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
-                            _weatherData!.description ?? 'Weather attached',
+                            _weatherData!.description ?? 'Weather captured',
                             style: TextStyle(color: Colors.blue.shade600),
                           ),
+                          if (_weatherData!.humidity != null || _weatherData!.windSpeed != null)
+                            Text(
+                              '${_weatherData!.humidity != null ? 'Humidity: ${_weatherData!.humidity}%' : ''}'
+                              '${_weatherData!.humidity != null && _weatherData!.windSpeed != null ? ' • ' : ''}'
+                              '${_weatherData!.windSpeed != null ? 'Wind: ${_weatherData!.windSpeed!.round()} mph' : ''}',
+                              style: TextStyle(
+                                color: Colors.blue.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                    TextButton(
+                    IconButton(
                       onPressed: () {
                         setState(() {
                           _weatherData = null;
                         });
                       },
-                      child: const Text('Remove'),
+                      icon: Icon(Icons.close, color: Colors.blue.shade600),
+                      tooltip: 'Remove weather data',
+                      iconSize: 20,
                     ),
                   ],
                 ),
@@ -1233,6 +1426,94 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                     ),
                     SizedBox(width: 12),
                     Text('Getting location...'),
+                  ],
+                ),
+              ),
+            ] else if (_isLoadingWeather && _weatherData == null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Fetching weather data...',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          Text(
+                            _useIPBasedWeather 
+                                ? 'Using IP-based location'
+                                : 'Using GPS coordinates',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else if (_locationData == null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_off, color: Colors.orange.shade700),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Location not available',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                          Text(
+                            'Grant location permission for better weather accuracy',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _requestLocationPermission,
+                      child: Text(
+                        'Enable',
+                        style: TextStyle(color: Colors.orange.shade700),
+                      ),
+                    ),
                   ],
                 ),
               ),

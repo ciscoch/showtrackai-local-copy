@@ -123,12 +123,23 @@ class JournalEntry {
         'location_name': locationData?.name,
         'location_accuracy': locationData?.accuracy,
         'location_captured_at': locationData?.capturedAt?.toIso8601String(),
-        // Weather data
+        'location_city': locationData?.city,
+        'location_state': locationData?.state,
+        // Weather data (expanded format for compatibility)
         'weather_temperature': weatherData?.temperature,
         'weather_condition': weatherData?.condition,
         'weather_humidity': weatherData?.humidity,
         'weather_wind_speed': weatherData?.windSpeed,
         'weather_description': weatherData?.description,
+        // Weather data (compact JSON format)
+        'weather_data_json': weatherData != null ? {
+          'temp': weatherData!.temperature,
+          'condition': weatherData!.condition,
+          'desc': weatherData!.description,
+          'humidity': weatherData!.humidity,
+          'wind': weatherData!.windSpeed,
+          'captured_at': DateTime.now().toIso8601String(),
+        } : null,
         // New fields
         'attachment_urls': attachmentUrls,
         'tags': tags,
@@ -199,6 +210,8 @@ class JournalEntry {
                 capturedAt: json['location_captured_at'] != null
                     ? DateTime.parse(json['location_captured_at'])
                     : null,
+                city: json['location_city'],
+                state: json['location_state'],
               )
             : null,
         // Weather data
@@ -392,6 +405,8 @@ class LocationData {
   final String? name;
   final double? accuracy;
   final DateTime? capturedAt;
+  final String? city;
+  final String? state;
 
   LocationData({
     this.latitude,
@@ -400,6 +415,8 @@ class LocationData {
     this.name,
     this.accuracy,
     this.capturedAt,
+    this.city,
+    this.state,
   });
 
   Map<String, dynamic> toJson() => {
@@ -409,6 +426,8 @@ class LocationData {
         'name': name,
         'accuracy': accuracy,
         'capturedAt': capturedAt?.toIso8601String(),
+        'city': city,
+        'state': state,
       };
 
   factory LocationData.fromJson(Map<String, dynamic> json) => LocationData(
@@ -420,6 +439,8 @@ class LocationData {
         capturedAt: json['capturedAt'] != null
             ? DateTime.parse(json['capturedAt'])
             : null,
+        city: json['city'],
+        state: json['state'],
       );
 }
 

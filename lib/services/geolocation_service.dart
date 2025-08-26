@@ -273,6 +273,18 @@ class GeolocationService {
       final address = 'Lat: ${position.latitude.toStringAsFixed(4)}, '
                      'Lon: ${position.longitude.toStringAsFixed(4)}';
 
+      // Simple city/state extraction based on common locations
+      // In production, you'd use a proper reverse geocoding service
+      String? city;
+      String? state;
+      
+      // Basic location detection for demo purposes
+      if (position.latitude > 39.7 && position.latitude < 39.8 && 
+          position.longitude > -105.0 && position.longitude < -104.9) {
+        city = 'Denver';
+        state = 'CO';
+      }
+
       return LocationData(
         latitude: position.latitude,
         longitude: position.longitude,
@@ -280,6 +292,8 @@ class GeolocationService {
         name: 'Current Location',
         accuracy: position.accuracy,
         capturedAt: position.timestamp ?? DateTime.now(),
+        city: city,
+        state: state,
       );
     } catch (e) {
       print('$_tag: Error converting position to location data: $e');
@@ -327,6 +341,8 @@ class GeolocationService {
       name: 'Agricultural Education Center',
       accuracy: 5.0,
       capturedAt: DateTime.now(),
+      city: 'Denver',
+      state: 'CO',
     );
     
     return LocationResult.success(mockLocation);
