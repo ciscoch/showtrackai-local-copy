@@ -2,7 +2,7 @@
 /// Contains common show breeds organized by species for FFA/4-H projects
 library livestock_breeds;
 
-import '../models/animal_species.dart';
+import '../models/animal.dart';
 
 /// Map of animal species to their most common show breeds
 /// Includes both purebred and crossbred options for each species
@@ -47,7 +47,7 @@ const Map<AnimalSpecies, List<String>> livestockBreeds = {
 
   // GOAT BREEDS  
   // Market goats and breeding does popular in youth shows
-  AnimalSpecies.goats: [
+  AnimalSpecies.goat: [
     // Meat Breeds - Most Common in Market Shows
     'Boer',
     'Kiko', 
@@ -214,7 +214,7 @@ const Map<AnimalSpecies, List<String>> livestockBreeds = {
 
   // RABBIT BREEDS
   // Market rabbits and breeding does for youth programs
-  AnimalSpecies.rabbits: [
+  AnimalSpecies.rabbit: [
     // Meat Breeds - Most Common for Market Rabbits
     'New Zealand White',
     'New Zealand Red',
@@ -282,7 +282,7 @@ const Map<AnimalSpecies, List<String>> popularCrosses = {
     'Maine-Anjou x Angus',
   ],
   
-  AnimalSpecies.goats: [
+  AnimalSpecies.goat: [
     'Boer x Spanish',
     'Boer x Kiko',
     'Percentage Boer',
@@ -315,7 +315,7 @@ const Map<AnimalSpecies, List<String>> popularCrosses = {
     'Heritage Cross',
   ],
   
-  AnimalSpecies.rabbits: [
+  AnimalSpecies.rabbit: [
     'New Zealand x Californian',
     'Rex x New Zealand',
     'Flemish x New Zealand',
