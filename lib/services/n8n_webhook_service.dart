@@ -98,6 +98,7 @@ class N8NWebhookService {
           'financialValue': entry.financialValue,
           'evidenceType': entry.evidenceType,
           'countsForDegree': entry.countsForDegree,
+          'feedStrategy': entry.feedStrategy?.toJson(),
         },
         'userContext': {
           'userId': user.id,

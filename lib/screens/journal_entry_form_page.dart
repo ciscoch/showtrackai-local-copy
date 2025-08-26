@@ -105,6 +105,8 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     _challengesController.addListener(_markAsChanged);
     _improvementsController.addListener(_markAsChanged);
     _tagsController.addListener(_markAsChanged);
+    _currentWeightController.addListener(_markAsChanged);
+    _targetWeightController.addListener(_markAsChanged);
     
     // Load any existing draft
     _loadDraft();
@@ -149,6 +151,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         'hoursLogged': _hoursLogged,
         'financialValue': _financialValue,
         'evidenceType': _evidenceType,
+        'currentWeight': _currentWeightController.text,
+        'targetWeight': _targetWeightController.text,
+        'nextWeighInDate': _nextWeighInDate?.toIso8601String(),
         'savedAt': DateTime.now().toIso8601String(),
       };
 
@@ -248,6 +253,13 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     _evidenceType = entry.evidenceType;
     _locationData = entry.locationData;
     _weatherData = entry.weatherData;
+
+    // Populate feed strategy data
+    if (entry.feedStrategy != null) {
+      _currentWeightController.text = entry.feedStrategy!.currentWeight?.toString() ?? '';
+      _targetWeightController.text = entry.feedStrategy!.targetWeight?.toString() ?? '';
+      _nextWeighInDate = entry.feedStrategy!.weighInDate;
+    }
 
     if (entry.tags != null) {
       _tagsController.text = entry.tags!.join(', ');
@@ -440,6 +452,19 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
             .toList();
       }
 
+      // Create feed strategy if any weight data is provided
+      FeedStrategy? feedStrategy;
+      final currentWeight = double.tryParse(_currentWeightController.text);
+      final targetWeight = double.tryParse(_targetWeightController.text);
+      
+      if (currentWeight != null || targetWeight != null || _nextWeighInDate != null) {
+        feedStrategy = FeedStrategy(
+          currentWeight: currentWeight,
+          targetWeight: targetWeight,
+          weighInDate: _nextWeighInDate,
+        );
+      }
+
       final entry = JournalEntry(
         id: widget.existingEntry?.id,
         userId: user.id,
@@ -451,6 +476,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         animalId: _selectedAnimalId,
         aetSkills: _selectedAETSkills,
         ffaStandards: _selectedFFAStandards,
+        feedStrategy: feedStrategy,
         objectives: _learningObjectives.isNotEmpty ? _learningObjectives : null,
         challenges: _challengesController.text.trim().isEmpty
             ? null
@@ -1620,8 +1646,15 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       child: Column(
         children: [
           ListTile(
-            leading: const Icon(Icons.monitor_weight),
-            title: const Text('Weight & Feeding Tracking'),
+            leading: const Icon(Icons.monitor_weight, color: AppTheme.primaryGreen),
+            title: const Text(
+              'Weight & Feeding Strategy',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              _showWeightPanel ? 'Track weight progress and feeding goals' : 'Tap to expand weight tracking',
+              style: const TextStyle(fontSize: 12),
+            ),
             trailing: IconButton(
               icon: Icon(_showWeightPanel ? Icons.expand_less : Icons.expand_more),
               onPressed: () {
@@ -1635,17 +1668,71 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Weight information section
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Weight Management',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Track current weight and set targets for your animal\'s growth plan.',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Weight input fields
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           controller: _currentWeightController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
-                            labelText: 'Current Weight (lbs)',
-                            prefixIcon: Icon(Icons.scale),
+                          decoration: InputDecoration(
+                            labelText: 'Current Weight',
+                            suffixText: 'lbs',
+                            prefixIcon: const Icon(Icons.scale, color: AppTheme.primaryGreen),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                            ),
+                            hintText: '0.0',
                           ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final weight = double.tryParse(value);
+                              if (weight == null) {
+                                return 'Enter a valid weight';
+                              }
+                              if (weight <= 0) {
+                                return 'Weight must be positive';
+                              }
+                            }
+                            return null;
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -1653,35 +1740,149 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                         child: TextFormField(
                           controller: _targetWeightController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
-                            labelText: 'Target Weight (lbs)',
-                            prefixIcon: Icon(Icons.flag),
+                          decoration: InputDecoration(
+                            labelText: 'Target Weight',
+                            suffixText: 'lbs',
+                            prefixIcon: const Icon(Icons.flag, color: AppTheme.primaryGreen),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                            ),
+                            hintText: '0.0',
                           ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final weight = double.tryParse(value);
+                              if (weight == null) {
+                                return 'Enter a valid weight';
+                              }
+                              if (weight <= 0) {
+                                return 'Weight must be positive';
+                              }
+                              // Check if target is greater than current
+                              final currentWeight = double.tryParse(_currentWeightController.text);
+                              if (currentWeight != null && weight <= currentWeight) {
+                                return 'Target should be > current';
+                              }
+                            }
+                            return null;
+                          },
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  
+                  // Date picker
                   InkWell(
                     onTap: () => _selectNextWeighInDate(context),
                     child: InputDecorator(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Next Weigh-in Date',
-                        prefixIcon: Icon(Icons.schedule),
+                        prefixIcon: const Icon(Icons.schedule, color: AppTheme.primaryGreen),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                        ),
+                        suffixIcon: const Icon(Icons.arrow_drop_down),
                       ),
-                      child: Text(
-                        _nextWeighInDate == null
-                            ? 'Select date'
-                            : _formatDate(_nextWeighInDate!),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _nextWeighInDate == null
+                                  ? 'Select target weigh-in date'
+                                  : _formatDate(_nextWeighInDate!),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _nextWeighInDate == null ? Colors.grey.shade600 : null,
+                              ),
+                            ),
+                          ),
+                          if (_nextWeighInDate != null)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _nextWeighInDate = null;
+                                });
+                              },
+                              child: const Text('Clear'),
+                            ),
+                        ],
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  
+                  // Weight progress information
+                  if (_currentWeightController.text.isNotEmpty && _targetWeightController.text.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: _buildWeightProgressInfo(),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildWeightProgressInfo() {
+    final current = double.tryParse(_currentWeightController.text);
+    final target = double.tryParse(_targetWeightController.text);
+    
+    if (current == null || target == null) return const SizedBox.shrink();
+    
+    final difference = target - current;
+    final isGainNeeded = difference > 0;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              isGainNeeded ? Icons.trending_up : Icons.trending_down,
+              color: Colors.blue.shade700,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Weight Goal Analysis',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${isGainNeeded ? 'Gain needed' : 'Loss needed'}: ${difference.abs().toStringAsFixed(1)} lbs',
+          style: const TextStyle(fontSize: 14),
+        ),
+        if (_nextWeighInDate != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Days until weigh-in: ${_nextWeighInDate!.difference(DateTime.now()).inDays}',
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ],
     );
   }
 

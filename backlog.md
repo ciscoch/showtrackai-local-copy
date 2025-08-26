@@ -34,9 +34,9 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 - [x] Learning objectives tokens/chips → `learning_objectives[]` ✅
 
 ### Weight/feeding mini-panel (normalizes `feed_strategy`)
-- [ ] Current weight (number, lbs) → `feed_strategy.current_weight`
-- [ ] Target weight (number, lbs) → `feed_strategy.target_weight`
-- [ ] Target/next weigh-in date → `feed_strategy.weigh_in_date`
+- [x] Current weight (number, lbs) → `feed_strategy.current_weight` ✅
+- [x] Target weight (number, lbs) → `feed_strategy.target_weight` ✅
+- [x] Target/next weigh-in date → `feed_strategy.weigh_in_date` ✅
 
 ### Location & weather (best-effort)
 - [ ] Location widget (city, state) + hidden lat/lon when available → `location.{city,state,lat,lon}`

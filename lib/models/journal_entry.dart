@@ -9,6 +9,7 @@ class JournalEntry {
   final List<String> aetSkills;
   final String? animalId;
   final FeedData? feedData;
+  final FeedStrategy? feedStrategy;
   final List<String>? objectives;
   final List<String>? learningOutcomes;
   final String? challenges;
@@ -55,6 +56,7 @@ class JournalEntry {
     required this.aetSkills,
     this.animalId,
     this.feedData,
+    this.feedStrategy,
     this.objectives,
     this.learningOutcomes,
     this.challenges,
@@ -99,6 +101,7 @@ class JournalEntry {
         'animal_id': animalId,
         'metadata': {
           if (feedData != null) 'feedData': feedData!.toJson(),
+          if (feedStrategy != null) 'feed_strategy': feedStrategy!.toJson(),
           if (competencyTracking != null) 'competencyTracking': competencyTracking!.toJson(),
         },
         'learning_objectives': objectives,
@@ -154,6 +157,9 @@ class JournalEntry {
         animalId: json['animal_id'],
         feedData: json['metadata']?['feedData'] != null
             ? FeedData.fromJson(json['metadata']['feedData'])
+            : null,
+        feedStrategy: json['metadata']?['feed_strategy'] != null
+            ? FeedStrategy.fromJson(json['metadata']['feed_strategy'])
             : null,
         objectives: json['learning_objectives'] != null
             ? List<String>.from(json['learning_objectives'])
@@ -258,6 +264,37 @@ class FeedData {
         amount: json['amount'].toDouble(),
         cost: json['cost'].toDouble(),
         feedConversionRatio: json['feedConversionRatio']?.toDouble(),
+      );
+}
+
+/// Feed strategy tracking for weight management
+class FeedStrategy {
+  final double? currentWeight;
+  final double? targetWeight;
+  final DateTime? weighInDate;
+  final String? notes;
+
+  FeedStrategy({
+    this.currentWeight,
+    this.targetWeight,
+    this.weighInDate,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'current_weight': currentWeight,
+        'target_weight': targetWeight,
+        'weigh_in_date': weighInDate?.toIso8601String(),
+        'notes': notes,
+      };
+
+  factory FeedStrategy.fromJson(Map<String, dynamic> json) => FeedStrategy(
+        currentWeight: json['current_weight']?.toDouble(),
+        targetWeight: json['target_weight']?.toDouble(),
+        weighInDate: json['weigh_in_date'] != null
+            ? DateTime.parse(json['weigh_in_date'])
+            : null,
+        notes: json['notes'],
       );
 }
 
