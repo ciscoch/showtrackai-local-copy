@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../models/location_weather.dart';
+import '../models/journal_entry.dart' show LocationData;
 
 /// Service for handling geolocation permissions and GPS data
 /// Provides comprehensive location services for the ShowTrackAI app

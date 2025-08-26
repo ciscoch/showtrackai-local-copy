@@ -2,7 +2,7 @@
 // Simple text-based location input - no GPS or permissions required
 
 import 'package:flutter/material.dart';
-import 'package:showtrackai_journaling/models/location_weather.dart';
+import '../models/journal_entry.dart';
 
 class LocationInputField extends StatefulWidget {
   final void Function(LocationData?, WeatherData?) onLocationChanged;
@@ -30,7 +30,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
     super.initState();
     _currentLocation = widget.initialLocation;
     _currentWeather = widget.initialWeather;
-    _controller.text = widget.initialLocation?.locationName ?? '';
+    _controller.text = widget.initialLocation?.name ?? '';
   }
 
   @override
@@ -91,13 +91,13 @@ class _LocationInputFieldState extends State<LocationInputField> {
               ),
               onChanged: (value) {
                 _currentLocation = LocationData(
-                  locationName: value.trim().isEmpty ? null : value.trim(),
+                  name: value.trim().isEmpty ? null : value.trim(),
                 );
                 widget.onLocationChanged(_currentLocation, _currentWeather);
                 setState(() {});
               },
             ),
-            if (_currentLocation?.hasLocation == true) ...[
+            if (_currentLocation?.name != null && _currentLocation!.name!.isNotEmpty) ...[
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -115,7 +115,7 @@ class _LocationInputFieldState extends State<LocationInputField> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Location set: ${_currentLocation!.locationName}',
+                      'Location set: ${_currentLocation!.name}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).primaryColor,

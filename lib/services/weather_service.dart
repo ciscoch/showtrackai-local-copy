@@ -1,7 +1,7 @@
 // lib/services/weather_service.dart
 // Stub weather service - can be enhanced later with city-based queries
 
-import 'package:showtrackai_journaling/models/location_weather.dart';
+import '../models/journal_entry.dart' show WeatherData;
 
 class WeatherService {
   // Stub: Previously used coordinates, now disabled
@@ -20,13 +20,13 @@ class WeatherService {
   
   // Get a simple weather description
   String getWeatherDescription(WeatherData? weather) {
-    if (weather == null || !weather.hasWeather) {
+    if (weather == null) {
       return 'Weather data not available';
     }
     
     final parts = <String>[];
-    if (weather.tempC != null) {
-      parts.add(weather.temperatureDisplay);
+    if (weather.temperature != null) {
+      parts.add('${weather.temperature!.round()}°C');
     }
     if (weather.description != null) {
       parts.add(weather.description!);
@@ -37,8 +37,11 @@ class WeatherService {
   
   // Mock weather for testing (optional)
   WeatherData getMockWeather() {
-    return const WeatherData(
-      tempC: 22.5,
+    return WeatherData(
+      temperature: 22.5,
+      condition: 'partly_cloudy',
+      humidity: 65,
+      windSpeed: 8.5,
       description: 'Partly cloudy',
     );
   }

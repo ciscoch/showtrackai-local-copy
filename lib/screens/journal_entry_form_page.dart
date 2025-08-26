@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/journal_entry.dart';
 import '../models/animal.dart';
-import '../models/location_weather.dart';
 import '../services/journal_service.dart';
 import '../services/animal_service.dart';
 import '../services/weather_service.dart';
@@ -127,7 +126,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      final animals = await AnimalService.getUserAnimals(user.id);
+      final animals = await AnimalService().getAnimals();
       setState(() {
         _animals = animals;
         _isLoadingAnimals = false;
@@ -1020,7 +1019,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Target Weight (lbs)',
-                            prefixIcon: Icon(Icons.target),
+                            prefixIcon: Icon(Icons.flag),
                           ),
                         ),
                       ),

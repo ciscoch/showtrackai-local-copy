@@ -68,7 +68,7 @@ class _JournalListPageState extends State<JournalListPage> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final animals = await AnimalService.getUserAnimals(user.id);
+        final animals = await AnimalService().getAnimals();
         setState(() {
           _animals = animals;
         });
@@ -93,17 +93,13 @@ class _JournalListPageState extends State<JournalListPage> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final newEntries = await JournalService.getUserEntries(
-        user.id,
+      final newEntries = await JournalService.getEntries(
         offset: _currentPage * _pageSize,
         limit: _pageSize,
         animalId: _selectedAnimalFilter,
         category: _selectedCategoryFilter,
         startDate: _selectedDateRange?.start,
         endDate: _selectedDateRange?.end,
-        searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
-        sortBy: _getSortField(),
-        ascending: _getSortAscending(),
       );
 
       setState(() {

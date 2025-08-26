@@ -11,7 +11,7 @@
 - [x] Journal entry form with weather + geolocation ✅
 - [x] Supabase RLS (owner only) ✅
 - [x] connect journal to n8n workflow at https://showtrackai.app.n8n.cloud/workflow/IA4KVsPotkhtYfW8 ✅
-- [ ] Push to git code_automation brnach on https://github.com/ciscoch/showtrackai-local-copy.git do not merge to main
+- [x] Push to git code_automation branch on https://github.com/ciscoch/showtrackai-local-copy.git do not merge to main ✅
 ## UI/UX — Journal entry → SPAR integration
 
 ### Core form fields (Journal payload → journal_entries)

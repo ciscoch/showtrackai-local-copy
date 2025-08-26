@@ -1032,9 +1032,9 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
       );
 
       if (widget.initialEntry == null) {
-        await journalService.createEntry(entry);
+        await JournalService.createEntry(entry);
       } else {
-        await journalService.updateEntry(entry);
+        await JournalService.updateEntry(entry);
       }
 
       if (mounted) {
