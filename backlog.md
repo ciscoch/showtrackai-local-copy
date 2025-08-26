@@ -44,8 +44,8 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 - [x] "Use IP-based weather if GPS not granted" toggle → sets source hint ✅
 
 ### Metadata & source
-- [ ] Source select (mobile_app, web_app, import, api) → `metadata.source`
-- [ ] Optional notes textarea → `metadata.notes`
+- [x] Source select (mobile_app, web_app, import, api) → `metadata.source` ✅
+- [x] Optional notes textarea → `metadata.notes` ✅
 
 ### Retrieval query (for vector + planner)
 - [ ] Hidden field auto-composed: `${entry_text}\nFFA: ${ffa_standards}\nObjectives: ${learning_objectives}\nWeight update: cw=${current_weight} • tw=${target_weight} • d=${entry_date}`

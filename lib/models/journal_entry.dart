@@ -45,6 +45,10 @@ class JournalEntry {
   final DateTime? lastSyncAttempt;
   final String? syncError;
 
+  // Metadata fields
+  final String? source;
+  final String? notes;
+
   JournalEntry({
     this.id,
     required this.userId,
@@ -86,6 +90,9 @@ class JournalEntry {
     this.isSynced = false,
     this.lastSyncAttempt,
     this.syncError,
+    // Metadata fields
+    this.source,
+    this.notes,
   });
 
   Map<String, dynamic> toJson() => {
@@ -103,6 +110,8 @@ class JournalEntry {
           if (feedData != null) 'feedData': feedData!.toJson(),
           if (feedStrategy != null) 'feed_strategy': feedStrategy!.toJson(),
           if (competencyTracking != null) 'competencyTracking': competencyTracking!.toJson(),
+          if (source != null) 'source': source,
+          if (notes != null) 'notes': notes,
         },
         'learning_objectives': objectives,
         'learning_outcomes': learningOutcomes,
@@ -245,6 +254,9 @@ class JournalEntry {
             ? DateTime.parse(json['last_sync_attempt'])
             : null,
         syncError: json['sync_error'],
+        // Metadata fields
+        source: json['metadata']?['source'],
+        notes: json['metadata']?['notes'],
       );
 }
 

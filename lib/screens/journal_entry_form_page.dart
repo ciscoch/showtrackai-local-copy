@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/journal_entry.dart';
@@ -53,6 +54,10 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   double? _financialValue;
   String? _evidenceType;
 
+  // Metadata fields
+  String _selectedSource = 'web_app';
+  final _notesController = TextEditingController();
+
   // Location and Weather
   LocationData? _locationData;
   WeatherData? _weatherData;
@@ -96,6 +101,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     _tagsController.dispose();
     _currentWeightController.dispose();
     _targetWeightController.dispose();
+    _notesController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -110,6 +116,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     _tagsController.addListener(_markAsChanged);
     _currentWeightController.addListener(_markAsChanged);
     _targetWeightController.addListener(_markAsChanged);
+    _notesController.addListener(_markAsChanged);
     
     // Load any existing draft
     _loadDraft();
@@ -157,6 +164,8 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         'currentWeight': _currentWeightController.text,
         'targetWeight': _targetWeightController.text,
         'nextWeighInDate': _nextWeighInDate?.toIso8601String(),
+        'selectedSource': _selectedSource,
+        'notes': _notesController.text,
         'savedAt': DateTime.now().toIso8601String(),
       };
 
@@ -188,6 +197,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
   Future<void> _initializeForm() async {
     try {
+      // Detect platform and set source
+      _detectAndSetSource();
+
       // Load user's animals
       await _loadAnimals();
 
@@ -215,6 +227,19 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         _showErrorSnackbar('Failed to initialize form: ${e.toString()}');
       }
     }
+  }
+
+  void _detectAndSetSource() {
+    // Auto-detect source based on platform
+    if (kIsWeb) {
+      // Running in web browser
+      _selectedSource = 'web_app';
+    } else {
+      // Running on native mobile platform
+      _selectedSource = 'mobile_app';
+    }
+    
+    debugPrint('Auto-detected source: $_selectedSource (kIsWeb: $kIsWeb)');
   }
 
   Future<void> _loadAnimals() async {
@@ -267,6 +292,10 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     if (entry.tags != null) {
       _tagsController.text = entry.tags!.join(', ');
     }
+
+    // Populate metadata fields from existing entry
+    _selectedSource = entry.source ?? 'web_app'; // Use existing or default
+    _notesController.text = entry.notes ?? ''; // Use existing or empty
   }
 
   Future<void> _requestLocationPermission() async {
@@ -560,6 +589,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         isPublic: false,
         isSynced: false,
         createdAt: widget.existingEntry?.createdAt,
+        // Metadata fields
+        source: _selectedSource,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
       // Save to database
@@ -843,6 +875,10 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
             // Additional Fields Section
             _buildAdditionalFieldsSection(),
+            const SizedBox(height: 16),
+
+            // Metadata Section
+            _buildMetadataSection(),
             const SizedBox(height: 16),
 
             // FFA Degree Information
@@ -2302,6 +2338,166 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                   _evidenceType = value;
                 });
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetadataSection() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline, color: AppTheme.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Entry Metadata',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            
+            // Source dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedSource,
+              decoration: InputDecoration(
+                labelText: 'Entry Source',
+                prefixIcon: const Icon(Icons.source, color: AppTheme.primaryGreen),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                ),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'mobile_app',
+                  child: Row(
+                    children: [
+                      Icon(Icons.phone_android, size: 20, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text('Mobile App'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'web_app',
+                  child: Row(
+                    children: [
+                      Icon(Icons.web, size: 20, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text('Web App'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'import',
+                  child: Row(
+                    children: [
+                      Icon(Icons.file_upload, size: 20, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text('Imported'),
+                    ],
+                  ),
+                ),
+                DropdownMenuItem(
+                  value: 'api',
+                  child: Row(
+                    children: [
+                      Icon(Icons.api, size: 20, color: Colors.grey),
+                      SizedBox(width: 8),
+                      Text('API/External'),
+                    ],
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedSource = value!;
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Notes field (collapsible)
+            ExpansionTile(
+              leading: const Icon(Icons.note_add, color: AppTheme.primaryGreen),
+              title: const Text(
+                'Additional Notes',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+              subtitle: Text(
+                _notesController.text.isEmpty 
+                    ? 'Tap to add optional notes or metadata'
+                    : 'Notes: ${_notesController.text.length} characters',
+                style: const TextStyle(fontSize: 12),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'What can you add here?',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '• Supervisor feedback or comments\n• Additional context not captured elsewhere\n• Technical details or specifications\n• Links to related resources\n• Personal reflections and insights',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notesController,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: 'Add any additional notes, context, or metadata...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                        onChanged: (value) {
+                          setState(() {}); // Update subtitle
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),

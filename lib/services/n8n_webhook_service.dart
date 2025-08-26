@@ -99,6 +99,9 @@ class N8NWebhookService {
           'evidenceType': entry.evidenceType,
           'countsForDegree': entry.countsForDegree,
           'feedStrategy': entry.feedStrategy?.toJson(),
+          // Metadata fields
+          'source': entry.source,
+          'notes': entry.notes,
         },
         'userContext': {
           'userId': user.id,
@@ -144,6 +147,9 @@ class N8NWebhookService {
           'content': entry.description,
           'date': entry.date.toIso8601String(),
           'category': entry.category,
+          // Metadata fields
+          'source': entry.source,
+          'notes': entry.notes,
         },
         'userContext': {
           'userId': _supabase.auth.currentUser?.id,
