@@ -20,6 +20,7 @@ import '../widgets/toast_notification_widget.dart';
 import '../widgets/feed_data_card.dart';
 import '../widgets/assessment_preview_card.dart';
 import '../widgets/processing_status_indicator.dart';
+import '../constants/livestock_breeds.dart';
 
 class JournalEntryFormPage extends StatefulWidget {
   final String? animalId;
@@ -64,6 +65,8 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
   double? _hoursLogged;
   double? _financialValue;
   String? _evidenceType;
+  String? _selectedBreed;
+  final _customBreedController = TextEditingController();
 
   // Metadata fields
   String _selectedSource = 'web_app';
@@ -146,6 +149,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     _currentWeightController.dispose();
     _targetWeightController.dispose();
     _notesController.dispose();
+    _customBreedController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -267,6 +271,11 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
       } else if (_animals.isNotEmpty) {
         _selectedAnimalId = _animals.first.id;
       }
+      
+      // Initialize breed for selected animal (if not editing existing entry)
+      if (_selectedAnimalId != null && widget.existingEntry == null) {
+        _initializeBreedForAnimal(_selectedAnimalId!);
+      }
 
       // Pre-populate if editing existing entry
       if (widget.existingEntry != null) {
@@ -353,7 +362,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
     // Populate metadata fields from existing entry
     _selectedSource = entry.source ?? 'web_app'; // Use existing or default
-    _notesController.text = entry.notes ?? ''; // Use existing or empty
+    _parseNotesAndBreed(entry.notes ?? ''); // Parse notes and extract breed info
     
     // Generate new IDs for edited entries to create new trace
     _runId = _uuid.v4();
@@ -769,7 +778,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         createdAt: widget.existingEntry?.createdAt,
         // Metadata fields
         source: _selectedSource,
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        notes: _buildNotesWithBreed(),
         // Distributed tracing
         traceId: _traceId,
       );
@@ -801,7 +810,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         Future.delayed(const Duration(milliseconds: 6500), () {
           if (mounted) {
             if (_sendToSPAROrchestrator) {
-              _simulateAssessmentResult();();
+              _simulateAssessmentResult();
             } else {
               Navigator.of(context).pop(savedEntry);
             }
@@ -812,6 +821,97 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+    }
+  }
+
+  /// Build notes field including breed information
+  String? _buildNotesWithBreed() {
+    final userNotes = _notesController.text.trim();
+    final breedInfo = _getBreedInfo();
+    
+    if (breedInfo.isEmpty && userNotes.isEmpty) {
+      return null;
+    }
+    
+    if (breedInfo.isEmpty) {
+      return userNotes;
+    }
+    
+    if (userNotes.isEmpty) {
+      return breedInfo;
+    }
+    
+    return '$breedInfo\n\n$userNotes';
+  }
+  
+  /// Get breed information for the selected animal
+  String _getBreedInfo() {
+    if (_selectedAnimalId == null || _selectedBreed == null) {
+      return '';
+    }
+    
+    final selectedAnimal = _animals.firstWhere(
+      (animal) => animal.id == _selectedAnimalId,
+      orElse: () => throw Exception('Selected animal not found'),
+    );
+    
+    final breed = _selectedBreed == 'Other' 
+        ? _customBreedController.text.trim()
+        : _selectedBreed!;
+    
+    if (breed.isEmpty) return '';
+    
+    return 'Breed: $breed (${selectedAnimal.speciesDisplay})';
+  }
+
+  /// Parse notes field and extract breed information for existing entries
+  void _parseNotesAndBreed(String notes) {
+    final lines = notes.split('\n');
+    final breedRegex = RegExp(r'^Breed:\s*(.+?)\s*\([^)]+\)$');
+    
+    String cleanedNotes = '';
+    String? extractedBreed;
+    
+    for (final line in lines) {
+      final match = breedRegex.firstMatch(line.trim());
+      if (match != null) {
+        extractedBreed = match.group(1)?.trim();
+      } else if (line.trim().isNotEmpty) {
+        if (cleanedNotes.isNotEmpty) cleanedNotes += '\n';
+        cleanedNotes += line;
+      }
+    }
+    
+    // Set the cleaned notes (without breed info)
+    _notesController.text = cleanedNotes;
+    
+    // Set breed information if found and animal is loaded
+    if (extractedBreed != null && _selectedAnimalId != null && _animals.isNotEmpty) {
+      _initializeBreedForAnimal(_selectedAnimalId!, extractedBreed);
+    }
+  }
+
+  /// Initialize breed for selected animal
+  void _initializeBreedForAnimal(String animalId, [String? breedHint]) {
+    final selectedAnimal = _animals.firstWhere(
+      (animal) => animal.id == animalId,
+      orElse: () => throw Exception('Selected animal not found'),
+    );
+    
+    final availableBreeds = getBreedsForSpecies(selectedAnimal.species);
+    String? breedToSet = breedHint ?? selectedAnimal.breed;
+    
+    if (breedToSet != null && breedToSet.isNotEmpty) {
+      if (availableBreeds.contains(breedToSet)) {
+        _selectedBreed = breedToSet;
+        _customBreedController.clear();
+      } else {
+        _selectedBreed = 'Other';
+        _customBreedController.text = breedToSet;
+      }
+    } else {
+      _selectedBreed = null;
+      _customBreedController.clear();
     }
   }
 
@@ -1236,43 +1336,133 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
                 ),
               )
             else
-              DropdownButtonFormField<String>(
-                value: _selectedAnimalId,
-                decoration: const InputDecoration(
-                  hintText: 'Select an animal',
-                  prefixIcon: Icon(Icons.pets),
-                ),
-                items: _animals.map((animal) {
-                  return DropdownMenuItem(
-                    value: animal.id,
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getAnimalIcon(animal.species),
-                          size: 20,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        Text('${animal.name} (${animal.speciesDisplay})'),
-                      ],
+              Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _selectedAnimalId,
+                    decoration: const InputDecoration(
+                      hintText: 'Select an animal',
+                      prefixIcon: Icon(Icons.pets),
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedAnimalId = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select an animal';
-                  }
-                  return null;
-                },
+                    items: _animals.map((animal) {
+                      return DropdownMenuItem(
+                        value: animal.id,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getAnimalIcon(animal.species),
+                              size: 20,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Text('${animal.name} (${animal.speciesDisplay})'),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedAnimalId = value;
+                        // Reset breed selection when animal changes
+                        _selectedBreed = null;
+                        _customBreedController.clear();
+                        // Pre-populate from animal's breed if available
+                        if (value != null) {
+                          final selectedAnimal = _animals.firstWhere(
+                            (animal) => animal.id == value,
+                          );
+                          if (selectedAnimal.breed != null && selectedAnimal.breed!.isNotEmpty) {
+                            final availableBreeds = getBreedsForSpecies(selectedAnimal.species);
+                            if (availableBreeds.contains(selectedAnimal.breed)) {
+                              _selectedBreed = selectedAnimal.breed;
+                            } else {
+                              _selectedBreed = 'Other';
+                              _customBreedController.text = selectedAnimal.breed!;
+                            }
+                          }
+                        }
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select an animal';
+                      }
+                      return null;
+                    },
+                  ),
+                  if (_selectedAnimalId != null) ...[
+                    const SizedBox(height: 12),
+                    _buildBreedSelector(),
+                  ],
+                ],
               ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildBreedSelector() {
+    if (_selectedAnimalId == null) return const SizedBox.shrink();
+    
+    final selectedAnimal = _animals.firstWhere(
+      (animal) => animal.id == _selectedAnimalId,
+    );
+    final availableBreeds = getBreedsForSpecies(selectedAnimal.species);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Breed *',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _selectedBreed,
+          decoration: const InputDecoration(
+            hintText: 'Select breed',
+            prefixIcon: Icon(Icons.category),
+          ),
+          items: availableBreeds.map((breed) {
+            return DropdownMenuItem(
+              value: breed,
+              child: Text(breed),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedBreed = value;
+              if (value != 'Other') {
+                _customBreedController.clear();
+              }
+            });
+          },
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a breed';
+            }
+            return null;
+          },
+        ),
+        if (_selectedBreed == 'Other') ...[
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _customBreedController,
+            decoration: const InputDecoration(
+              labelText: 'Custom Breed *',
+              hintText: 'Enter breed name',
+              prefixIcon: Icon(Icons.edit),
+            ),
+            validator: (value) {
+              if (_selectedBreed == 'Other' && (value == null || value.trim().isEmpty)) {
+                return 'Please enter breed name';
+              }
+              return null;
+            },
+          ),
+        ],
+      ],
     );
   }
 
