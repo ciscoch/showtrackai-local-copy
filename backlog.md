@@ -62,6 +62,8 @@
 
 ## Now
 
+- [] Add Breed Drop-down box with common show breeds for each species. make mandatory
+
 - [] The Netlify deploy errored, with the following guidance provided:
 
 **Diagnosis:**
@@ -78,122 +80,12 @@ The build failure is due to multiple errors in the `journal_entry_form_page.dart
    - Address the conflicting imports of `JournalCategories` and `FFAConstants` from different files in the `journal_entry_form_page.dart` file to avoid naming conflicts.
 
 E
+#NOW
 
-# Feeds on Journal Entry — Task Backlog
 
-**Goal:** Add a “Feeds” section to the Journal Entry flow so users can record feeds by **brand** (e.g., Jacoby) and **feed name** (e.g., Red Tag Sheep & Goat Developer), log **quantity** (feeds in **lbs**, hay in **flakes**), and quickly **Use Last** to auto-fill.  
-**DB:** Uses the updated schema (`feed_brands`, `feed_products`, `journal_feed_items`, `user_feed_recent`) with RLS in place.
 
----
+- [ ] Add a “Feeds” section to the Journal Entry flow so users can record feeds by **brand** (e.g., Jacoby) and **feed name** (e.g., Red Tag Sheep & Goat Developer), log **quantity** (feeds in **lbs**, hay in **flakes**), and quickly **Use Last** to auto-fill.Uses the updated schema (`feed_brands`, `feed_products`, `journal_feed_items`, `user_feed_recent`) with RLS in place.
 
-## Context & Assumptions
-
-- `feed_brands(id, name, is_active, created_at)`
-- `feed_products(id, brand_id, name, species text[], type text, is_active, created_at)`
-  - Unique per brand on `(brand_id, lower(name))`.
-- `journal_feed_items(id, entry_id, brand_id?, product_id?, is_hay bool, quantity numeric, unit text, note?, created_at)`
-  - Constraint: `is_hay=true` ⇒ `unit='flakes'` & `brand_id/product_id` **null**; else `is_hay=false` ⇒ `unit='lbs'` & `product_id` **not null**.
-- `user_feed_recent(user_id pk, brand_id?, product_id?, is_hay, quantity, unit, updated_at)`
-- RLS:
-  - `journal_feed_items`: owner-only via parent `journal_entries.user_id = auth.uid()`
-  - `user_feed_recent`: `user_id = auth.uid()`
-- Brands catalog should include: **Purina, Jacoby, Sunglo, Lindner, ADM/MoorMan’s ShowTec, Nutrena, Bluebonnet, Kalmbach, Umbarger, Show String**.
-- Products seeded per brand/species (MVP set; can expand later).
-
----
-
-## EPIC: Journal Entry — Feeds
-
-### [FEEDS-001] Catalog: Complete brand & product seeding
-**Type:** data  
-**Priority:** P1  
-**Estimate:** 0.5–1 day  
-**Owner:** BE  
-**AC:**
-- [ ] These brands exist and are active: Purina, Jacoby, Sunglo, Lindner, ADM/MoorMan’s ShowTec, Nutrena, Bluebonnet, Kalmbach, Umbarger, Show String.
-- [ ] Each brand has 3–6 representative products mapped to `species` (`goat|sheep|swine|cattle`) and `type` (`feed|mineral|supplement`).
-- [ ] Product uniqueness per brand enforced (case-insensitive).
-- [ ] PostgREST schema reloaded (`notify pgrst, 'reload schema';`).
-
-**Notes:**
-- Use a single idempotent seed script (`on conflict ... do update set is_active=true`).
-- Keep names ASCII or use dollar-quoted strings to avoid editor quoting issues.
-
----
-
-### [FEEDS-002] Read APIs: Brands & products (with species filter)
-**Type:** backend  
-**Priority:** P1  
-**Estimate:** 0.5 day  
-**Owner:** BE  
-**AC:**
-- [ ] Brands endpoint/query: `select id,name from feed_brands where is_active order by name;`
-- [ ] Products endpoint/query supports brand and optional species filter:
-  - SQL: `select id,name,species,type from feed_products where is_active and brand_id = :brand and (:species is null or :species = any(species)) order by name;`
-  - REST (PostgREST) example:  
-    `/rest/v1/feed_products?select=id,name,species,type&is_active=eq.true&brand_id=eq.<uuid>&species=cs.{goat}`
-- [ ] Dart example provided to FE (see FEEDS-005).
-
----
-
-### [FEEDS-003] “Use Last” read
-**Type:** backend  
-**Priority:** P1  
-**Estimate:** 0.25 day  
-**Owner:** BE  
-**AC:**
-- [ ] Query returns a single memory for `auth.uid()`:  
-  `select brand_id,product_id,is_hay,quantity,unit from user_feed_recent where user_id = auth.uid();`
-- [ ] When present, FE can fully prefill the modal; when absent, FE disables **Use Last**.
-
----
-
-### [FEEDS-004] Feeds card UI (Journal Entry)
-**Type:** frontend  
-**Priority:** P1  
-**Estimate:** 1 day  
-**Owner:** FE  
-**AC:**
-- [ ] Card titled **Feed Data** shows empty state “No feeds selected.”
-- [ ] Buttons: **+ Add Feed**, **Use Last** (disabled if no memory).
-- [ ] List of feed tiles with edit/remove actions.
-- [ ] “Required” indicator if no feed lines and entry demands nutrition logging.
-
----
-
-### [FEEDS-005] Add Feed modal (hay toggle, dependent selects, quantity)
-**Type:** frontend  
-**Priority:** P1  
-**Estimate:** 1.5–2 days  
-**Owner:** FE  
-**AC:**
-- [ ] **Is Hay?** checkbox:
-  - If checked: show **Quantity (flakes)** (integer or 0.5 increments per spec), hide brand/product, lock `unit='flakes'`.
-  - If unchecked: show **Brand** (searchable) ⇒ **Feed Name** (searchable; filtered by Brand and optionally by species), **Quantity (lbs)** (step 0.25, default 1.0), lock `unit='lbs'`.
-- [ ] Submitting adds/updates a tile:
-  - Feed: `Brand — Product · {qty} lbs`
-  - Hay: `Hay · {flakes} flakes`
-- [ ] Modal supports Edit (prefill) and Cancel.
-
-**Dart data access (example):**
-```dart
-final brands = await supabase
-  .from('feed_brands')
-  .select('id,name')
-  .eq('is_active', true)
-  .order('name');
-
-final query = supabase
-  .from('feed_products')
-  .select('id,name,species,type')
-  .eq('is_active', true)
-  .eq('brand_id', brandId); // brandId = selected brand UUID
-
-if (species != null && species.isNotEmpty) {
-  query.contains('species', [species]); // e.g., ['goat']
-}
-
-final products = await query.order('name');
 
 
 ## Recently Completed Tasks ✅
@@ -241,6 +133,8 @@ final products = await query.order('name');
   - Unmatched parentheses and brackets
   - Duplicate function declarations
   - Conflicting imports (JournalCategories, FFAConstants)
+
+
 
 ## Remaining Tasks 📋
 

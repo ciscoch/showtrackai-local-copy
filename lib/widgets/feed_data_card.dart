@@ -72,6 +72,7 @@ class _FeedDataCardState extends State<FeedDataCard> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Use Last Button with enhanced visual feedback
         OutlinedButton.icon(
           onPressed: _isLoadingRecentFeeds ? null : _useLastFeeds,
           icon: _isLoadingRecentFeeds
@@ -80,11 +81,29 @@ class _FeedDataCardState extends State<FeedDataCard> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.history, size: 16),
-          label: const Text('Use Last'),
+              : Icon(
+                  Icons.history,
+                  size: 16,
+                  color: Colors.blue.shade700,
+                ),
+          label: Text(
+            'Use Last',
+            style: TextStyle(
+              color: _isLoadingRecentFeeds ? null : Colors.blue.shade700,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             minimumSize: const Size(80, 32),
+            side: BorderSide(
+              color: _isLoadingRecentFeeds 
+                  ? Colors.grey.shade300 
+                  : Colors.blue.shade300,
+            ),
+            backgroundColor: _isLoadingRecentFeeds 
+                ? null 
+                : Colors.blue.shade50,
           ),
         ),
         const SizedBox(width: 8),
@@ -154,6 +173,56 @@ class _FeedDataCardState extends State<FeedDataCard> {
               fontSize: 14,
               color: Colors.grey.shade500,
             ),
+          ),
+          const SizedBox(height: 16),
+          // Quick action buttons in empty state
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: _isLoadingRecentFeeds ? null : _useLastFeeds,
+                icon: _isLoadingRecentFeeds
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      )
+                    : Icon(Icons.history, size: 14, color: Colors.blue.shade600),
+                label: Text(
+                  'Use Recent',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'or',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: _addFeed,
+                icon: Icon(Icons.add, size: 14, color: Colors.green.shade600),
+                label: Text(
+                  'Add New',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -382,7 +451,7 @@ class _FeedDataCardState extends State<FeedDataCard> {
   }
 }
 
-/// Recent Feeds Selection Dialog
+/// Recent Feeds Selection Dialog with Enhanced UX
 class _RecentFeedsDialog extends StatefulWidget {
   final List<UserFeedRecent> recentFeeds;
 
@@ -397,42 +466,136 @@ class _RecentFeedsDialogState extends State<_RecentFeedsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final groupedFeeds = _groupFeedsByDate();
+    
     return AlertDialog(
-      title: const Text('Select Recent Feeds'),
+      title: Row(
+        children: [
+          Icon(Icons.history, color: Colors.green.shade700, size: 20),
+          const SizedBox(width: 8),
+          const Text('Select Recent Feeds'),
+          const Spacer(),
+          if (_selectedFeeds.isNotEmpty)
+            Chip(
+              label: Text('${_selectedFeeds.length}'),
+              backgroundColor: Colors.green.shade100,
+              labelStyle: TextStyle(
+                color: Colors.green.shade800,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
+      ),
       content: SizedBox(
         width: double.maxFinite,
-        child: ListView.builder(
-          shrinkWrap: true,
-          itemCount: widget.recentFeeds.length,
-          itemBuilder: (context, index) {
-            final recentFeed = widget.recentFeeds[index];
-            final isSelected = _selectedFeeds.contains(recentFeed);
-            
-            return CheckboxListTile(
-              value: isSelected,
-              onChanged: (selected) {
-                setState(() {
-                  if (selected == true) {
-                    _selectedFeeds.add(recentFeed);
-                  } else {
-                    _selectedFeeds.remove(recentFeed);
-                  }
-                });
-              },
-              title: Text(_formatRecentFeedDisplay(recentFeed)),
-              subtitle: Text(
-                'Last used: ${_formatDate(recentFeed.lastUsedAt)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Quick select actions
+            if (widget.recentFeeds.length > 1)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _selectAll,
+                      icon: const Icon(Icons.select_all, size: 16),
+                      label: const Text('Select All'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _selectedFeeds.isEmpty ? null : _clearSelection,
+                      icon: const Icon(Icons.clear_all, size: 16),
+                      label: const Text('Clear All'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              secondary: Icon(
-                recentFeed.isHay ? Icons.grass : Icons.grain,
-                color: Colors.green,
+            
+            // Grouped feed list
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: groupedFeeds.length,
+                itemBuilder: (context, groupIndex) {
+                  final group = groupedFeeds[groupIndex];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Date header
+                      if (groupedFeeds.length > 1 || group['label'] != 'Recent')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Text(
+                            group['label'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      
+                      // Feeds for this date
+                      ...group['feeds'].map<Widget>((recentFeed) {
+                        final isSelected = _selectedFeeds.contains(recentFeed);
+                        
+                        return CheckboxListTile(
+                          value: isSelected,
+                          onChanged: (selected) {
+                            setState(() {
+                              if (selected == true) {
+                                _selectedFeeds.add(recentFeed);
+                              } else {
+                                _selectedFeeds.remove(recentFeed);
+                              }
+                            });
+                          },
+                          title: Text(
+                            _formatRecentFeedDisplay(recentFeed),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          subtitle: Text(
+                            'Last used: ${_formatDate(recentFeed.lastUsedAt)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          secondary: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: recentFeed.isHay 
+                                  ? Colors.orange.shade100 
+                                  : Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              recentFeed.isHay ? Icons.grass : Icons.grain,
+                              color: recentFeed.isHay 
+                                  ? Colors.orange.shade700 
+                                  : Colors.green.shade700,
+                              size: 20,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        );
+                      }).toList(),
+                      
+                      if (groupIndex < groupedFeeds.length - 1)
+                        Divider(color: Colors.grey.shade200),
+                    ],
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
       actions: [
@@ -440,11 +603,16 @@ class _RecentFeedsDialogState extends State<_RecentFeedsDialog> {
           onPressed: () => Navigator.of(context).pop(null),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        ElevatedButton.icon(
           onPressed: _selectedFeeds.isEmpty
               ? null
               : () => Navigator.of(context).pop(_selectedFeeds.toList()),
-          child: Text('Add ${_selectedFeeds.length} Feed${_selectedFeeds.length != 1 ? 's' : ''}'),
+          icon: const Icon(Icons.add, size: 16),
+          label: Text('Add ${_selectedFeeds.length} Feed${_selectedFeeds.length != 1 ? 's' : ''}'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+          ),
         ),
       ],
     );
@@ -474,6 +642,67 @@ class _RecentFeedsDialogState extends State<_RecentFeedsDialog> {
     } else {
       return '${date.month}/${date.day}/${date.year}';
     }
+  }
+
+  /// Group feeds by date for better UX organization
+  List<Map<String, dynamic>> _groupFeedsByDate() {
+    if (widget.recentFeeds.isEmpty) return [];
+
+    final now = DateTime.now();
+    final groups = <String, List<UserFeedRecent>>{};
+
+    for (final feed in widget.recentFeeds) {
+      final diff = now.difference(feed.lastUsedAt);
+      String groupKey;
+
+      if (diff.inDays == 0) {
+        groupKey = 'Today';
+      } else if (diff.inDays == 1) {
+        groupKey = 'Yesterday';
+      } else if (diff.inDays < 7) {
+        groupKey = 'This Week';
+      } else if (diff.inDays < 30) {
+        groupKey = 'This Month';
+      } else {
+        groupKey = 'Older';
+      }
+
+      groups.putIfAbsent(groupKey, () => []).add(feed);
+    }
+
+    // Convert to ordered list with proper display order
+    final orderedKeys = ['Today', 'Yesterday', 'This Week', 'This Month', 'Older'];
+    final result = <Map<String, dynamic>>[];
+
+    for (final key in orderedKeys) {
+      if (groups.containsKey(key)) {
+        result.add({
+          'label': key,
+          'feeds': groups[key]!..sort((a, b) => b.lastUsedAt.compareTo(a.lastUsedAt)),
+        });
+      }
+    }
+
+    // If only one group and it's recent, don't show group headers
+    if (result.length == 1 && (result[0]['label'] == 'Today' || result[0]['label'] == 'Yesterday')) {
+      result[0]['label'] = 'Recent';
+    }
+
+    return result;
+  }
+
+  /// Select all feeds in the dialog
+  void _selectAll() {
+    setState(() {
+      _selectedFeeds.addAll(widget.recentFeeds);
+    });
+  }
+
+  /// Clear all selections in the dialog
+  void _clearSelection() {
+    setState(() {
+      _selectedFeeds.clear();
+    });
   }
 }
 
