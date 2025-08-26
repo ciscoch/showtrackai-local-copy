@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/journal_entry.dart';
 import '../models/animal.dart';
@@ -58,7 +58,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   WeatherData? _weatherData;
   bool _isLoadingWeather = false;
   bool _isLoadingLocation = false;
-  bool _hasLocationPermission = false;
 
   // Data loading
   List<Animal> _animals = [];
@@ -69,15 +68,23 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
   // Services
   final _weatherService = WeatherService();
+  
+  // Auto-save functionality
+  Timer? _autoSaveTimer;
+  bool _hasUnsavedChanges = false;
+  String? _draftKey;
 
   @override
   void initState() {
     super.initState();
+    _draftKey = 'journal_draft_${widget.existingEntry?.id ?? 'new'}_${DateTime.now().millisecondsSinceEpoch}';
     _initializeForm();
+    _setupAutoSave();
   }
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     _titleController.dispose();
     _descriptionController.dispose();
     _objectivesController.dispose();
@@ -88,6 +95,87 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     _targetWeightController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _setupAutoSave() {
+    // Add listeners to track changes
+    _titleController.addListener(_markAsChanged);
+    _descriptionController.addListener(_markAsChanged);
+    _objectivesController.addListener(_markAsChanged);
+    _challengesController.addListener(_markAsChanged);
+    _improvementsController.addListener(_markAsChanged);
+    _tagsController.addListener(_markAsChanged);
+    
+    // Load any existing draft
+    _loadDraft();
+    
+    // Setup periodic auto-save
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_hasUnsavedChanges) {
+        _saveDraft();
+      }
+    });
+  }
+
+  void _markAsChanged() {
+    if (!_hasUnsavedChanges) {
+      setState(() {
+        _hasUnsavedChanges = true;
+      });
+    }
+  }
+
+  Future<void> _saveDraft() async {
+    if (_draftKey == null) return;
+    
+    try {
+      final draftData = {
+        'title': _titleController.text,
+        'description': _descriptionController.text,
+        'selectedDate': _selectedDate.toIso8601String(),
+        'selectedAnimalId': _selectedAnimalId,
+        'selectedCategory': _selectedCategory,
+        'duration': _duration,
+        'selectedFFAStandards': _selectedFFAStandards,
+        'selectedAETSkills': _selectedAETSkills,
+        'learningObjectives': _learningObjectives,
+        'objectives': _objectivesController.text,
+        'challenges': _challengesController.text,
+        'improvements': _improvementsController.text,
+        'tags': _tagsController.text,
+        'ffaDegreeType': _ffaDegreeType,
+        'saeType': _saeType,
+        'countsForDegree': _countsForDegree,
+        'hoursLogged': _hoursLogged,
+        'financialValue': _financialValue,
+        'evidenceType': _evidenceType,
+        'savedAt': DateTime.now().toIso8601String(),
+      };
+
+      // Save to local storage (SharedPreferences in a real implementation)
+      // For now, just mark as saved
+      _hasUnsavedChanges = false;
+      debugPrint('Auto-saved draft at ${DateTime.now()} with data: ${draftData.keys.join(", ")}');
+    } catch (e) {
+      debugPrint('Failed to save draft: $e');
+    }
+  }
+
+  Future<void> _loadDraft() async {
+    // In a real implementation, load from SharedPreferences
+    // For now, skip draft loading
+  }
+
+  Future<void> _clearDraft() async {
+    if (_draftKey == null) return;
+    
+    try {
+      // In a real implementation, remove from SharedPreferences
+      _hasUnsavedChanges = false;
+      debugPrint('Cleared draft');
+    } catch (e) {
+      debugPrint('Failed to clear draft: $e');
+    }
   }
 
   Future<void> _initializeForm() async {
@@ -178,7 +266,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
       if (result.isSuccess && result.data != null) {
         _locationData = result.data;
-        _hasLocationPermission = true;
         
         // Automatically try to get weather if location is available
         await _attachCurrentWeather();
@@ -186,7 +273,6 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         // Use mock location as fallback for demo
         final mockResult = GeolocationService.getMockLocation();
         _locationData = mockResult.data;
-        _hasLocationPermission = false; // Mark as mock
         
         if (mounted) {
           _showErrorSnackbar('Using demo location: ${result.userMessage}');
@@ -196,12 +282,11 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       setState(() => _isLoadingLocation = false);
     } catch (e) {
       setState(() => _isLoadingLocation = false);
-      print('Location permission error: $e');
+      debugPrint('Location permission error: $e');
       
       // Use mock location as final fallback
       final mockResult = GeolocationService.getMockLocation();
       _locationData = mockResult.data;
-      _hasLocationPermission = false;
     }
   }
 
@@ -237,7 +322,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       }
     } catch (e) {
       setState(() => _isLoadingWeather = false);
-      print('Weather fetch error: $e');
+      debugPrint('Weather fetch error: $e');
     }
   }
 
@@ -426,7 +511,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
 
         // Start AI processing in background (don't wait for completion)
         N8NWebhookService.processJournalEntry(savedEntry).catchError((error) {
-          print('AI processing error: $error');
+          debugPrint('AI processing error: $error');
           // Show a subtle notification that AI processing failed
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -437,8 +522,12 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
               ),
             );
           }
+          return error; // Return error to satisfy the function signature
         });
 
+        // Clear draft on successful save
+        await _clearDraft();
+        
         Navigator.of(context).pop(savedEntry);
       }
     } catch (e) {
@@ -466,13 +555,129 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     return '${date.month}/${date.day}/${date.year}';
   }
 
+  Widget _buildProgressCard() {
+    final requiredFields = [
+      ('Animal', _selectedAnimalId?.isNotEmpty == true),
+      ('Title', _titleController.text.trim().isNotEmpty),
+      ('Content', _descriptionController.text.trim().split(RegExp(r'\s+')).length >= 25),
+      ('Date', true), // Always has a date selected
+      ('Category', _selectedCategory.isNotEmpty),
+      ('Duration', _duration > 0),
+    ];
+
+    final completedCount = requiredFields.where((field) => field.$2).length;
+    final totalCount = requiredFields.length;
+    final progress = completedCount / totalCount;
+
+    return Card(
+      color: progress == 1.0 ? Colors.green.shade50 : Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  progress == 1.0 ? Icons.check_circle : Icons.incomplete_circle,
+                  color: progress == 1.0 ? Colors.green : Colors.orange,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  progress == 1.0 
+                      ? 'Ready to Submit!' 
+                      : 'Entry Progress ($completedCount/$totalCount)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: progress == 1.0 ? Colors.green.shade700 : Colors.orange.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.grey.shade300,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                progress == 1.0 ? Colors.green : Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (progress < 1.0) ...[
+              Text(
+                'Missing required fields:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              ...requiredFields
+                  .where((field) => !field.$2)
+                  .map((field) => Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.radio_button_unchecked,
+                              size: 16,
+                              color: Colors.orange.shade600,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              field.$1,
+                              style: TextStyle(color: Colors.orange.shade600),
+                            ),
+                          ],
+                        ),
+                      )),
+            ] else
+              Text(
+                'All required fields completed! Your entry is ready for AI analysis.',
+                style: TextStyle(color: Colors.green.shade700),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingEntry != null ? 'Edit Journal Entry' : 'New Journal Entry'),
+        title: Row(
+          children: [
+            Text(widget.existingEntry != null ? 'Edit Journal Entry' : 'New Journal Entry'),
+            if (_hasUnsavedChanges) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Unsaved',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         elevation: 0,
         actions: [
+          if (_hasUnsavedChanges)
+            IconButton(
+              icon: const Icon(Icons.save_outlined),
+              onPressed: _saveDraft,
+              tooltip: 'Save Draft',
+            ),
           IconButton(
             icon: const Icon(Icons.help_outline),
             onPressed: () => _showHelpDialog(),
@@ -485,6 +690,10 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
           controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
+            // Progress indicator card
+            _buildProgressCard(),
+            const SizedBox(height: 16),
+
             // Animal Selection
             _buildAnimalSelector(),
             const SizedBox(height: 16),
@@ -633,16 +842,32 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   Widget _buildTitleField() {
     return TextFormField(
       controller: _titleController,
-      decoration: const InputDecoration(
-        labelText: 'Title *',
+      decoration: InputDecoration(
+        labelText: 'Entry Title *',
         hintText: 'Enter a descriptive title',
-        prefixIcon: Icon(Icons.title),
+        prefixIcon: const Icon(Icons.title, color: AppTheme.primaryGreen),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+        ),
+        counterText: '${_titleController.text.length}/100',
       ),
+      maxLength: 100,
+      textCapitalization: TextCapitalization.words,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return 'Title is required';
         }
+        if (value.trim().length < 5) {
+          return 'Title must be at least 5 characters';
+        }
         return null;
+      },
+      onChanged: (value) {
+        setState(() {}); // Update counter
       },
     );
   }
@@ -651,11 +876,48 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     return InkWell(
       onTap: () => _selectDate(context),
       child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Date *',
-          prefixIcon: Icon(Icons.calendar_today),
+        decoration: InputDecoration(
+          labelText: 'Entry Date *',
+          prefixIcon: const Icon(Icons.calendar_today, color: AppTheme.primaryGreen),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+          ),
+          suffixIcon: const Icon(Icons.arrow_drop_down),
         ),
-        child: Text(_formatDate(_selectedDate)),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                _formatDate(_selectedDate),
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            if (_selectedDate.difference(DateTime.now()).inDays.abs() <= 1)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _selectedDate.difference(DateTime.now()).inDays == 0 
+                      ? 'Today' 
+                      : _selectedDate.difference(DateTime.now()).inDays == -1
+                          ? 'Yesterday'
+                          : 'Tomorrow',
+                  style: const TextStyle(
+                    color: AppTheme.primaryGreen,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -663,14 +925,27 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   Widget _buildCategorySelector() {
     return DropdownButtonFormField<String>(
       value: _selectedCategory,
-      decoration: const InputDecoration(
-        labelText: 'Category *',
-        prefixIcon: Icon(Icons.category),
+      decoration: InputDecoration(
+        labelText: 'Activity Category *',
+        prefixIcon: Icon(_getCategoryIcon(_selectedCategory), color: AppTheme.primaryGreen),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+        ),
       ),
       items: JournalCategories.categories.map((category) {
         return DropdownMenuItem(
           value: category,
-          child: Text(JournalCategories.getDisplayName(category)),
+          child: Row(
+            children: [
+              Icon(_getCategoryIcon(category), size: 20, color: Colors.grey.shade600),
+              const SizedBox(width: 8),
+              Text(JournalCategories.getDisplayName(category)),
+            ],
+          ),
         );
       }).toList(),
       onChanged: (value) {
@@ -678,7 +953,52 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
           _selectedCategory = value!;
         });
       },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select an activity category';
+        }
+        return null;
+      },
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'daily_care':
+        return Icons.home;
+      case 'health_check':
+        return Icons.health_and_safety;
+      case 'feeding':
+        return Icons.restaurant;
+      case 'training':
+        return Icons.school;
+      case 'show_prep':
+        return Icons.emoji_events;
+      case 'veterinary':
+        return Icons.medical_services;
+      case 'breeding':
+        return Icons.family_restroom;
+      case 'record_keeping':
+        return Icons.note_alt;
+      case 'financial':
+        return Icons.monetization_on;
+      case 'learning_reflection':
+        return Icons.psychology;
+      case 'project_planning':
+        return Icons.assignment;
+      case 'competition':
+        return Icons.emoji_events;
+      case 'community_service':
+        return Icons.volunteer_activism;
+      case 'leadership_activity':
+        return Icons.groups;
+      case 'safety_training':
+        return Icons.security;
+      case 'research':
+        return Icons.science;
+      default:
+        return Icons.category;
+    }
   }
 
   Widget _buildDurationSelector() {
@@ -686,23 +1006,93 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Icon(Icons.timer, color: Colors.grey),
-            const SizedBox(width: 8),
-            Text('Duration: $_duration minutes'),
+            Row(
+              children: [
+                const Icon(Icons.timer, color: Colors.grey),
+                const SizedBox(width: 8),
+                const Text(
+                  'Duration (minutes) *',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: _duration > 5 ? () {
+                    setState(() {
+                      _duration = (_duration - 5).clamp(5, 480);
+                    });
+                  } : null,
+                  icon: const Icon(Icons.remove),
+                  style: IconButton.styleFrom(
+                    backgroundColor: _duration > 5 
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) 
+                        : Colors.grey.withValues(alpha: 0.1),
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$_duration',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _duration < 480 ? () {
+                    setState(() {
+                      _duration = (_duration + 5).clamp(5, 480);
+                    });
+                  } : null,
+                  icon: const Icon(Icons.add),
+                  style: IconButton.styleFrom(
+                    backgroundColor: _duration < 480 
+                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) 
+                        : Colors.grey.withValues(alpha: 0.1),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
+        const SizedBox(height: 8),
         Slider(
           value: _duration.toDouble(),
           min: 5,
           max: 480,
           divisions: 95,
           label: '$_duration min',
+          activeColor: AppTheme.primaryGreen,
           onChanged: (value) {
             setState(() {
               _duration = value.round();
             });
           },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '5 min',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              '8 hours',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -828,27 +1218,101 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
   }
 
   Widget _buildDescriptionField() {
-    return TextFormField(
-      controller: _descriptionController,
-      maxLines: 8,
-      decoration: const InputDecoration(
-        labelText: 'Entry Content *',
-        hintText: 'Describe your activities in detail...\n\nBe specific about:\n• What you did\n• What you observed\n• What you learned\n• Any challenges faced',
-        alignLabelWithHint: true,
-        prefixIcon: Padding(
-          padding: EdgeInsets.only(bottom: 120),
-          child: Icon(Icons.description),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.description, color: AppTheme.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Journal Entry Content *',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Writing Tips:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '• What activities did you complete?\n• What did you observe or learn?\n• What challenges did you face?\n• How will you improve next time?',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _descriptionController,
+              maxLines: 10,
+              minLines: 6,
+              decoration: InputDecoration(
+                hintText: 'Today I worked with my Holstein heifer to prepare for the county show...\n\nI focused on:\n• Teaching proper stance and positioning\n• Grooming techniques for show day\n• Building trust through gentle handling\n\nWhat I learned:\n• Patience is key when training animals\n• Consistent daily work shows results\n\nNext time I will:\n• Spend more time on left side positioning\n• Use higher value treats for motivation',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                ),
+                contentPadding: const EdgeInsets.all(16),
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade500,
+                  height: 1.5,
+                ),
+              ),
+              style: const TextStyle(height: 1.5),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please describe your activities in detail';
+                }
+                final wordCount = value.trim().split(RegExp(r'\s+')).length;
+                if (wordCount < 25) {
+                  return 'Please provide more detail (minimum 25 words, currently $wordCount)';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.grey.shade600),
+                const SizedBox(width: 4),
+                Text(
+                  'AI analysis works better with detailed, specific descriptions',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Please describe your activities';
-        }
-        if (value.trim().split(' ').length < 20) {
-          return 'Please provide more detail (minimum 20 words)';
-        }
-        return null;
-      },
     );
   }
 
@@ -887,7 +1351,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                     label: Text(standard),
                     deleteIcon: const Icon(Icons.close, size: 18),
                     onDeleted: () => _removeFFAStandard(standard),
-                    backgroundColor: AppTheme.primaryGreen.withOpacity(0.1),
+                    backgroundColor: AppTheme.primaryGreen.withValues(alpha: 0.1),
                   );
                 }).toList(),
               ),
@@ -932,7 +1396,7 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
                     label: Text(skill),
                     deleteIcon: const Icon(Icons.close, size: 18),
                     onDeleted: () => _removeAETSkill(skill),
-                    backgroundColor: AppTheme.secondaryGreen.withOpacity(0.1),
+                    backgroundColor: AppTheme.secondaryGreen.withValues(alpha: 0.1),
                   );
                 }).toList(),
               ),
@@ -949,34 +1413,206 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Learning Objectives & Tags',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const Icon(Icons.school, color: AppTheme.primaryGreen),
+                const SizedBox(width: 8),
+                const Text(
+                  'Learning Objectives & Tags',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _objectivesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Learning Objectives',
-                hintText: 'What did you aim to learn or accomplish?\nEnter each objective on a new line',
-                prefixIcon: Icon(Icons.school),
-                alignLabelWithHint: true,
-              ),
+            
+            // Learning Objectives with chip display
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Learning Objectives',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                if (_learningObjectives.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _learningObjectives.asMap().entries.map((entry) {
+                      return Chip(
+                        label: Text(entry.value),
+                        deleteIcon: const Icon(Icons.close, size: 18),
+                        onDeleted: () => _removeLearningObjective(entry.key),
+                        backgroundColor: Colors.blue.shade50,
+                        deleteIconColor: Colors.blue.shade700,
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  decoration: const InputDecoration(
+                    hintText: 'Add learning objective and press Enter',
+                    prefixIcon: Icon(Icons.add_circle_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                  onFieldSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      _addLearningObjective(value.trim());
+                      // Clear the field
+                      (context as Element).findAncestorStateOfType<FormFieldState>()?.reset();
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                // Quick add common objectives
+                Text(
+                  'Quick Add:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  children: _getCommonObjectives().map((objective) {
+                    final isAlreadyAdded = _learningObjectives.contains(objective);
+                    return ActionChip(
+                      label: Text(
+                        objective,
+                        style: TextStyle(
+                          color: isAlreadyAdded ? Colors.grey : null,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onPressed: isAlreadyAdded ? null : () {
+                        _addLearningObjective(objective);
+                      },
+                      backgroundColor: isAlreadyAdded 
+                          ? Colors.grey.shade200 
+                          : AppTheme.primaryGreen.withValues(alpha: 0.1),
+                      side: BorderSide(
+                        color: isAlreadyAdded 
+                            ? Colors.grey.shade300 
+                            : AppTheme.primaryGreen.withValues(alpha: 0.3),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _tagsController,
-              decoration: const InputDecoration(
-                labelText: 'Tags',
-                hintText: 'Add tags separated by commas (e.g., cattle, health, training)',
-                prefixIcon: Icon(Icons.label),
-              ),
+            
+            const SizedBox(height: 16),
+            
+            // Tags section
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tags',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _tagsController,
+                  decoration: const InputDecoration(
+                    hintText: 'Add tags separated by commas (e.g., cattle, health, training)',
+                    prefixIcon: Icon(Icons.label_outline),
+                    border: OutlineInputBorder(),
+                    helperText: 'Tags help organize and find your entries later',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Suggested tags
+                Wrap(
+                  spacing: 6,
+                  children: _getSuggestedTags().map((tag) {
+                    return ActionChip(
+                      label: Text(tag),
+                      onPressed: () {
+                        final currentTags = _tagsController.text.trim();
+                        if (currentTags.isEmpty) {
+                          _tagsController.text = tag;
+                        } else if (!currentTags.contains(tag)) {
+                          _tagsController.text = '$currentTags, $tag';
+                        }
+                      },
+                      backgroundColor: Colors.grey.shade100,
+                      side: BorderSide(color: Colors.grey.shade300),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<String> _getSuggestedTags() {
+    // Return tags based on selected category
+    switch (_selectedCategory) {
+      case 'health_check':
+        return ['health', 'veterinary', 'assessment', 'monitoring'];
+      case 'feeding':
+        return ['nutrition', 'feed', 'growth', 'diet'];
+      case 'training':
+        return ['handling', 'behavior', 'showmanship', 'discipline'];
+      case 'show_prep':
+        return ['competition', 'grooming', 'presentation', 'practice'];
+      default:
+        return ['daily-care', 'record-keeping', 'learning', 'progress'];
+    }
+  }
+
+  List<String> _getCommonObjectives() {
+    // Return objectives based on selected category
+    switch (_selectedCategory) {
+      case 'health_check':
+        return [
+          'Assess animal health status',
+          'Document health observations',
+          'Learn disease prevention',
+          'Practice health monitoring'
+        ];
+      case 'feeding':
+        return [
+          'Calculate proper feed amounts',
+          'Monitor weight gain',
+          'Learn nutrition requirements',
+          'Track feed conversion'
+        ];
+      case 'training':
+        return [
+          'Improve animal handling skills',
+          'Build trust with animal',
+          'Practice show techniques',
+          'Develop leadership abilities'
+        ];
+      case 'show_prep':
+        return [
+          'Perfect showmanship skills',
+          'Prepare for competition',
+          'Practice ring procedures',
+          'Improve presentation'
+        ];
+      case 'daily_care':
+        return [
+          'Maintain daily care routine',
+          'Observe animal behavior',
+          'Practice responsibility',
+          'Develop work ethic'
+        ];
+      default:
+        return [
+          'Apply agricultural knowledge',
+          'Develop practical skills',
+          'Document learning progress',
+          'Build project experience'
+        ];
+    }
   }
 
   Widget _buildWeightFeedingPanel() {

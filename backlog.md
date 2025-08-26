@@ -15,7 +15,7 @@
 ## UI/UX — Journal entry → SPAR integration
 
 ## Now
-- [ ] Fix supabase authentication error: main.dart.js:101168 
+- [x] Fix supabase authentication error: main.dart.js:101168 ✅ 
  POST https://zifbuzsdhparxlhsifdi.supabase.co/auth/v1/token?grant_type=password 400 (Bad Request)
 
 main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(message: Invalid login credentials, statusCode: 400, code: invalid_credentials)
@@ -23,15 +23,15 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 
 
 ### Core form fields (Journal payload → journal_entries)
-- [ ] User selector (required) → sets `user_id`
-- [ ] Animal selector (required) → sets `animal_id`
-- [ ] Title text input (default: "Journal Entry") → `title`
-- [ ] Rich text / multiline input (required) → `entry_text`
-- [ ] Date picker (YYYY-MM-DD) → `entry_date`
-- [ ] Category select (training, feeding, health, show, general) → `category`
-- [ ] Duration number (minutes) with stepper → `duration_minutes`
-- [ ] FFA standards multi-select chips (e.g., AS.06.02, AS.07.01) → `ffa_standards[]`
-- [ ] Learning objectives tokens/chips → `learning_objectives[]`
+- [x] User selector (required) → sets `user_id` ✅
+- [x] Animal selector (required) → sets `animal_id` ✅
+- [x] Title text input (default: "Journal Entry") → `title` ✅
+- [x] Rich text / multiline input (required) → `entry_text` ✅
+- [x] Date picker (YYYY-MM-DD) → `entry_date` ✅
+- [x] Category select (training, feeding, health, show, general) → `category` ✅
+- [x] Duration number (minutes) with stepper → `duration_minutes` ✅
+- [x] FFA standards multi-select chips (e.g., AS.06.02, AS.07.01) → `ffa_standards[]` ✅
+- [x] Learning objectives tokens/chips → `learning_objectives[]` ✅
 
 ### Weight/feeding mini-panel (normalizes `feed_strategy`)
 - [ ] Current weight (number, lbs) → `feed_strategy.current_weight`
