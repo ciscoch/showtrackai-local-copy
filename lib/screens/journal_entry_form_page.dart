@@ -5,7 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
 import '../models/animal.dart';
+import '../models/feed.dart';
+import '../models/ffa_constants.dart';
 import '../services/journal_service.dart';
+import '../services/feed_service.dart';
 import '../services/animal_service.dart';
 import '../services/weather_service.dart';
 import '../services/geolocation_service.dart';
@@ -13,6 +16,7 @@ import '../services/n8n_webhook_service.dart';
 import '../services/journal_toast_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/toast_notification_widget.dart';
+import '../widgets/feed_data_card.dart';
 
 class JournalEntryFormPage extends StatefulWidget {
   final String? animalId;
@@ -77,6 +81,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
   bool _isSubmitting = false;
   bool _showWeightPanel = false;
   DateTime? _nextWeighInDate;
+
+  // Feed data
+  List<FeedItem> _feedItems = [];
 
   // Services
   final _weatherService = WeatherService();
@@ -202,6 +209,8 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         'toolInputsQuery': _toolInputsQuery,
         'showAdvancedSettings': _showAdvancedSettings,
         'savedAt': DateTime.now().toIso8601String(),
+        // Feed items
+        'feedItems': _feedItems.map((item) => item.toJson()).toList(),
       };
 
       // Save to local storage (SharedPreferences in a real implementation)
@@ -338,6 +347,11 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     // Generate new IDs for edited entries to create new trace
     _runId = _uuid.v4();
     _traceId = _uuid.v4(); // New trace for edited entry
+
+    // Load feed items if editing existing entry
+    if (entry.id != null) {
+      _loadFeedItems(entry.id!);
+    }
   }
 
   Future<void> _requestLocationPermission() async {
@@ -558,6 +572,53 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     });
   }
 
+  Future<void> _loadFeedItems(String entryId) async {
+    try {
+      final feedItems = await FeedService.getFeedItemsForEntry(entryId);
+      setState(() {
+        _feedItems = feedItems;
+      });
+    } catch (e) {
+      debugPrint('Failed to load feed items: $e');
+      // Not critical, just means no feed items to display
+    }
+  }
+
+  void _onFeedItemsChanged(List<FeedItem> feedItems) {
+    setState(() {
+      _feedItems = feedItems;
+      _markAsChanged();
+    });
+  }
+
+  Future<void> _saveFeedItems(String entryId) async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      debugPrint('💾 Saving ${_feedItems.length} feed items for entry: $entryId');
+
+      for (final feedItem in _feedItems) {
+        // Create feed item with proper entry ID and user ID
+        final itemToSave = feedItem.copyWith(
+          entryId: entryId,
+          userId: user.id,
+        );
+
+        await FeedService.saveFeedItem(itemToSave);
+      }
+
+      debugPrint('✅ Successfully saved ${_feedItems.length} feed items');
+    } catch (e) {
+      debugPrint('❌ Error saving feed items: $e');
+      // Non-critical error - don't block journal submission
+      // Just show a warning message
+      if (mounted) {
+        _showError('Journal saved successfully, but some feed items could not be saved: ${e.toString()}');
+      }
+    }
+  }
+
   /// Compose retrieval query for AI processing
   /// Format: entry_text\nFFA: ffa_standards\nObjectives: learning_objectives\nWeight update: cw=current_weight • tw=target_weight • d=entry_date
   String _composeRetrievalQuery() {
@@ -601,6 +662,29 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     // Weight update: cw=850 • tw=900 • d=1/15/2025
     
     return parts.join('\n');
+  }
+
+  Future<void> _submitJournal() async {
+    if (!_formKey.currentState!.validate()) {
+      // Show validation error toast
+      JournalToast.validationError('required fields');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    // Use the comprehensive journal toast submission flow
+    await JournalToast.showSubmissionFlow(
+      onSubmit: () => _performSubmission(),
+      onViewEntry: () {
+        // TODO: Navigate to entry detail view
+        debugPrint('Navigate to journal entry detail view');
+      },
+      onRetry: () {
+        // Retry submission
+        _submitJournal();
+      },
+    );
   }
 
   Future<void> _submitJournal() async {
@@ -708,6 +792,11 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
         savedEntry = await JournalService.updateEntry(entry);
       } else {
         savedEntry = await JournalService.createEntry(entry);
+      }
+
+      // Save feed items after journal entry is saved
+      if (_feedItems.isNotEmpty && savedEntry.id != null) {
+        await _saveFeedItems(savedEntry.id!);
       }
 
       // Clear draft on successful save
@@ -830,6 +919,37 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
+  }
+
+  IconData _getAnimalIcon(String species) {
+    switch (species.toLowerCase()) {
+      case 'cattle':
+      case 'cow':
+      case 'beef':
+      case 'dairy':
+        return Icons.agriculture;
+      case 'goat':
+        return Icons.pets;
+      case 'sheep':
+      case 'lamb':
+        return Icons.pets_outlined;
+      case 'swine':
+      case 'pig':
+      case 'hog':
+        return Icons.savings;
+      case 'horse':
+      case 'equine':
+        return Icons.directions_run;
+      case 'poultry':
+      case 'chicken':
+      case 'duck':
+      case 'turkey':
+        return Icons.egg_alt;
+      case 'rabbit':
+        return Icons.cruelty_free;
+      default:
+        return Icons.pets;
+    }
   }
 
   Widget _buildProgressCard() {
@@ -1024,6 +1144,16 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
             // Learning Objectives Section
             _buildLearningObjectivesSection(),
+            const SizedBox(height: 16),
+
+            // Feed Data Section
+            FeedDataCard(
+              feedItems: _feedItems,
+              onFeedItemsChanged: _onFeedItemsChanged,
+              selectedAnimal: _selectedAnimalId != null 
+                  ? _animals.firstWhere((a) => a.id == _selectedAnimalId, orElse: () => _animals.first)
+                  : null,
+            ),
             const SizedBox(height: 16),
 
             // Weight/Feeding Panel (Collapsible)
@@ -3963,6 +4093,295 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
       default:
         return Icons.wb_sunny;
     }
+  }
+
+  Widget _buildSubmitButton() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submitJournal,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey.shade300,
+          disabledForegroundColor: Colors.grey.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: _isSubmitting ? 0 : 2,
+        ),
+        child: _isSubmitting
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Saving Journal Entry...',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.save_alt, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.existingEntry != null ? 'Update Entry' : 'Save Entry',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  if (_feedItems.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${_feedItems.length} feed${_feedItems.length != 1 ? 's' : ''}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+
+  void _showFFAStandardsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select FFA Standards'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView(
+            children: FFAConstants.animalSystemsStandards.map((standard) {
+              final isSelected = _selectedFFAStandards.contains(standard);
+              return CheckboxListTile(
+                value: isSelected,
+                onChanged: (selected) {
+                  setState(() {
+                    if (selected == true) {
+                      _selectedFFAStandards.add(standard);
+                    } else {
+                      _selectedFFAStandards.remove(standard);
+                    }
+                  });
+                },
+                title: Text(
+                  standard,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                dense: true,
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAETSkillsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select AET Skills'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: ListView(
+            children: AETSkillCategories.categories.entries.map((entry) {
+              return ExpansionTile(
+                title: Text(
+                  entry.key,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                children: entry.value.map((skill) {
+                  final isSelected = _selectedAETSkills.contains(skill);
+                  return CheckboxListTile(
+                    value: isSelected,
+                    onChanged: (selected) {
+                      setState(() {
+                        if (selected == true) {
+                          _selectedAETSkills.add(skill);
+                        } else {
+                          _selectedAETSkills.remove(skill);
+                        }
+                      });
+                    },
+                    title: Text(
+                      skill,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    dense: true,
+                  );
+                }).toList(),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Journal Entry Help'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Creating Quality Journal Entries',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Describe your activities in detail (minimum 25 words)\n'
+                '• Include specific observations and measurements\n'
+                '• Connect activities to FFA standards\n'
+                '• Add learning objectives and reflections\n'
+                '• Include feed information if applicable\n'
+                '• Use location and weather data when relevant\n'
+                '• Tag entries for easy searching',
+                style: TextStyle(height: 1.4),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Feed Data Features',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Record specific feeds given to animals\n'
+                '• Track hay by flakes or other feeds by weight\n'
+                '• Use "Use Last" to quickly add recent feeds\n'
+                '• Edit or remove feed items as needed',
+                style: TextStyle(height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mock method for assessment simulation (development/demo purposes)
+  void _simulateAssessmentResult() {
+    setState(() {
+      _showAssessmentPreview = true;
+      _assessmentResult = SPARAssessmentResult.mock();
+    });
+  }
+
+  Widget _buildAssessmentPreview() {
+    if (_assessmentResult == null) return const SizedBox.shrink();
+
+    return Card(
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.psychology, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Text(
+                  'AI Assessment Results',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${(_assessmentResult!.overallScore).toStringAsFixed(1)}/10',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(_assessmentResult!.feedbackSummary),
+            const SizedBox(height: 12),
+            if (_assessmentResult!.strengths.isNotEmpty) ...[
+              Text(
+                'Strengths:',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700),
+              ),
+              ...(_assessmentResult!.strengths.map((strength) => 
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('• $strength', style: const TextStyle(fontSize: 14)),
+                )
+              )),
+              const SizedBox(height: 8),
+            ],
+            if (_assessmentResult!.growthAreas.isNotEmpty) ...[
+              Text(
+                'Areas for Growth:',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange.shade700),
+              ),
+              ...(_assessmentResult!.growthAreas.map((area) => 
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text('• $area', style: const TextStyle(fontSize: 14)),
+                )
+              )),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
