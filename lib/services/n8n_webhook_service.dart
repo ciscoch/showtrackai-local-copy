@@ -20,7 +20,7 @@ class N8NWebhookService {
   static final _random = Random();
 
   /// Main method to process journal entry with AI
-  static Future<N8NAnalysisResult> processJournalEntry(JournalEntry entry) async {
+  static Future<N8NAnalysisResult> processJournalEntry(JournalEntry entry, {String? retrievalQuery}) async {
     try {
       // Check if we already have a cached result for this entry
       final cachedResult = await _getCachedResult(entry.id!);
@@ -29,7 +29,12 @@ class N8NWebhookService {
       }
 
       // Prepare comprehensive webhook payload
-      final payload = await _buildWebhookPayload(entry);
+      final payload = await _buildWebhookPayload(entry, retrievalQuery: retrievalQuery);
+      
+      // Debug log the retrieval query
+      if (retrievalQuery != null && retrievalQuery.isNotEmpty) {
+        print('N8N Webhook: Sending retrieval query: $retrievalQuery');
+      }
       
       // Attempt to send webhook with retry logic
       final result = await _sendWebhookWithRetry(payload);
@@ -51,7 +56,7 @@ class N8NWebhookService {
   }
 
   /// Build comprehensive webhook payload
-  static Future<Map<String, dynamic>> _buildWebhookPayload(JournalEntry entry) async {
+  static Future<Map<String, dynamic>> _buildWebhookPayload(JournalEntry entry, {String? retrievalQuery}) async {
     try {
       // Get user information for age-appropriate responses
       final user = _supabase.auth.currentUser;
@@ -84,6 +89,7 @@ class N8NWebhookService {
           'title': entry.title,
           'description': entry.description,
           'content': entry.description, // Main content for analysis
+          'retrievalQuery': retrievalQuery, // Composed query for AI processing
           'date': entry.date.toIso8601String(),
           'duration': entry.duration,
           'category': entry.category,
@@ -145,6 +151,7 @@ class N8NWebhookService {
           'title': entry.title,
           'description': entry.description,
           'content': entry.description,
+          'retrievalQuery': retrievalQuery, // Composed query for AI processing
           'date': entry.date.toIso8601String(),
           'category': entry.category,
           // Metadata fields

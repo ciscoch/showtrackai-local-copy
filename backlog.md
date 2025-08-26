@@ -48,8 +48,8 @@ main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(messa
 - [x] Optional notes textarea → `metadata.notes` ✅
 
 ### Retrieval query (for vector + planner)
-- [ ] Hidden field auto-composed: `${entry_text}\nFFA: ${ffa_standards}\nObjectives: ${learning_objectives}\nWeight update: cw=${current_weight} • tw=${target_weight} • d=${entry_date}`
-  → submit as `retrieval_query`
+- [x] Hidden field auto-composed: `${entry_text}\nFFA: ${ffa_standards}\nObjectives: ${learning_objectives}\nWeight update: cw=${current_weight} • tw=${target_weight} • d=${entry_date}`
+  → submit as `retrieval_query` ✅
 
 ### SPAR run controls (Advanced, collapsible)
 - [ ] “Send to SPAR Orchestrator” checkbox (default ON)

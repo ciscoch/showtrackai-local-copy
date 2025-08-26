@@ -517,6 +517,51 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
     });
   }
 
+  /// Compose retrieval query for AI processing
+  /// Format: entry_text\nFFA: ffa_standards\nObjectives: learning_objectives\nWeight update: cw=current_weight • tw=target_weight • d=entry_date
+  String _composeRetrievalQuery() {
+    final parts = <String>[];
+    
+    // Main entry text
+    final entryText = _descriptionController.text.trim();
+    if (entryText.isNotEmpty) {
+      parts.add(entryText);
+    }
+    
+    // FFA Standards
+    if (_selectedFFAStandards.isNotEmpty) {
+      parts.add('FFA: ${_selectedFFAStandards.join(', ')}');
+    }
+    
+    // Learning Objectives
+    if (_learningObjectives.isNotEmpty) {
+      parts.add('Objectives: ${_learningObjectives.join(', ')}');
+    }
+    
+    // Weight update information
+    final currentWeight = _currentWeightController.text.trim();
+    final targetWeight = _targetWeightController.text.trim();
+    if (currentWeight.isNotEmpty || targetWeight.isNotEmpty) {
+      final weightParts = <String>[];
+      if (currentWeight.isNotEmpty) {
+        weightParts.add('cw=$currentWeight');
+      }
+      if (targetWeight.isNotEmpty) {
+        weightParts.add('tw=$targetWeight');
+      }
+      weightParts.add('d=${_formatDate(_selectedDate)}');
+      parts.add('Weight update: ${weightParts.join(' • ')}');
+    }
+    
+    // Example output:
+    // Today I worked with my Holstein heifer to prepare for the county show...
+    // FFA: AS.01.01 - Analyze the role of animals in agriculture, AS.07.01 - Demonstrate animal health maintenance
+    // Objectives: Improve animal handling skills, Build trust with animal
+    // Weight update: cw=850 • tw=900 • d=1/15/2025
+    
+    return parts.join('\n');
+  }
+
   Future<void> _submitJournal() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -631,8 +676,12 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage> {
           ),
         );
 
+        // Compose retrieval query for AI processing
+        final retrievalQuery = _composeRetrievalQuery();
+        debugPrint('Composed retrieval query: $retrievalQuery');
+        
         // Start AI processing in background (don't wait for completion)
-        N8NWebhookService.processJournalEntry(savedEntry).catchError((error) {
+        N8NWebhookService.processJournalEntry(savedEntry, retrievalQuery: retrievalQuery).catchError((error) {
           debugPrint('AI processing error: $error');
           // Show a subtle notification that AI processing failed
           if (mounted) {
