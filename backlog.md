@@ -14,6 +14,14 @@
 - [x] Push to git code_automation branch on https://github.com/ciscoch/showtrackai-local-copy.git do not merge to main ✅
 ## UI/UX — Journal entry → SPAR integration
 
+## Now
+- [ ] Fix supabase authentication error: main.dart.js:101168 
+ POST https://zifbuzsdhparxlhsifdi.supabase.co/auth/v1/token?grant_type=password 400 (Bad Request)
+
+main.dart.js:32343 ⚠️ Supabase authentication failed: AuthApiException(message: Invalid login credentials, statusCode: 400, code: invalid_credentials)
+
+
+
 ### Core form fields (Journal payload → journal_entries)
 - [ ] User selector (required) → sets `user_id`
 - [ ] Animal selector (required) → sets `animal_id`

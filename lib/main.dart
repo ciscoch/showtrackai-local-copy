@@ -19,7 +19,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   try {
-    // Initialize Supabase with updated credentials
+    // Initialize Supabase with working credentials (validated via API test)
     print('🔗 Initializing Supabase...');
     await Supabase.initialize(
       url: 'https://zifbuzsdhparxlhsifdi.supabase.co',
