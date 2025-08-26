@@ -48,6 +48,9 @@ class JournalEntry {
   // Metadata fields
   final String? source;
   final String? notes;
+  
+  // Distributed tracing field
+  final String? traceId; // UUID v4 for end-to-end correlation
 
   JournalEntry({
     this.id,
@@ -93,6 +96,8 @@ class JournalEntry {
     // Metadata fields
     this.source,
     this.notes,
+    // Distributed tracing
+    this.traceId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -163,6 +168,7 @@ class JournalEntry {
         'is_synced': isSynced,
         'last_sync_attempt': lastSyncAttempt?.toIso8601String(),
         'sync_error': syncError,
+        'trace_id': traceId,
       };
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
@@ -257,6 +263,8 @@ class JournalEntry {
         // Metadata fields
         source: json['metadata']?['source'],
         notes: json['metadata']?['notes'],
+        // Distributed tracing
+        traceId: json['trace_id'],
       );
 
   JournalEntry copyWith({
@@ -301,6 +309,7 @@ class JournalEntry {
     String? syncError,
     String? source,
     String? notes,
+    String? traceId,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -344,6 +353,7 @@ class JournalEntry {
       syncError: syncError ?? this.syncError,
       source: source ?? this.source,
       notes: notes ?? this.notes,
+      traceId: traceId ?? this.traceId,
     );
   }
 }

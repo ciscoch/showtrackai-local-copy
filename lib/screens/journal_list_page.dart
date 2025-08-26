@@ -5,6 +5,7 @@ import '../models/animal.dart';
 import '../services/journal_service.dart';
 import '../services/animal_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/weather_pill.dart';
 import 'journal_entry_form_page.dart';
 
 class JournalListPage extends StatefulWidget {
@@ -725,16 +726,17 @@ class _JournalListPageState extends State<JournalListPage> {
                     ),
                     const SizedBox(width: 4),
                   ],
-                  if (entry.weatherData != null) ...[
-                    Icon(
-                      Icons.wb_cloudy,
-                      size: 16,
-                      color: Colors.blue[600],
-                    ),
-                    const SizedBox(width: 4),
-                  ],
                 ],
               ),
+              
+              // Weather Pill Display
+              if (entry.weatherData != null) ...[
+                const SizedBox(height: 8),
+                WeatherPill(
+                  weatherData: entry.weatherData!,
+                  compact: true,
+                ),
+              ],
 
               // Tags
               if (entry.tags != null && entry.tags!.isNotEmpty) ...[
@@ -882,27 +884,7 @@ class _JournalListPageState extends State<JournalListPage> {
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.wb_cloudy,
-                              color: Colors.blue.shade700,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${entry.weatherData!.temperature?.round() ?? '--'}°C - ${entry.weatherData!.description ?? 'Weather data captured'}',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      WeatherPillExpanded(weatherData: entry.weatherData!),
                       const SizedBox(height: 16),
                     ],
 
