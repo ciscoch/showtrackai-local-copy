@@ -124,7 +124,14 @@ class _LoginScreenState extends State<LoginScreen> {
         if (e.toString().contains('timeout')) {
           errorMessage = 'Connection timeout - please check your internet connection';
         } else if (e.toString().contains('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password';
+          if (email == 'test-elite@example.com') {
+            errorMessage = 'Test user not found. Please create user in Supabase Dashboard or use Demo Mode';
+          } else {
+            errorMessage = 'Invalid email or password';
+          }
+        } else if (e.toString().contains('Test user not found')) {
+          errorMessage = 'Test user needs to be created in Supabase Dashboard';
+          _showTestUserCreationDialog();
         } else if (e.toString().contains('ERR_NAME_NOT_RESOLVED')) {
           errorMessage = 'Cannot reach server - please check your connection';
         } else if (e.toString().contains('ERR_TIMED_OUT')) {
@@ -160,6 +167,98 @@ class _LoginScreenState extends State<LoginScreen> {
         duration: const Duration(seconds: 2),
       ),
     );
+  }
+
+  void _showTestUserCreationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Create Test User'),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('The test user needs to be created in Supabase Dashboard:'),
+                SizedBox(height: 16),
+                Text('1. Go to Supabase Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('2. Navigate to Authentication > Users'),
+                Text('3. Click "Add User"'),
+                Text('4. Enter:'),
+                SizedBox(height: 8),
+                Card(
+                  color: Color(0xFFF5F5F5),
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Email: test-elite@example.com', style: TextStyle(fontFamily: 'monospace')),
+                        Text('Password: test123456', style: TextStyle(fontFamily: 'monospace')),
+                        Text('Auto Confirm User: ✓', style: TextStyle(fontFamily: 'monospace')),
+                        Text('Email Confirm: ✓', style: TextStyle(fontFamily: 'monospace')),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text('5. Click "Create User"'),
+                SizedBox(height: 16),
+                Text('Or use Demo Mode to test the app without Supabase.'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Got it'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _signInAsDemo();
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+              child: const Text('Use Demo Mode'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _signInAsDemo() async {
+    print('🎭 Signing in as demo user');
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Simulate authentication delay
+      await Future.delayed(const Duration(seconds: 1));
+      
+      _showSuccessMessage('Signed in as Demo User');
+      Navigator.of(context).pushReplacementNamed('/dashboard');
+    } catch (e) {
+      print('❌ Demo sign in failed: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Demo mode failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
 
@@ -326,6 +425,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: const Text('Quick Sign In (Test User)', style: TextStyle(fontSize: 16)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Demo Mode Button
+              ElevatedButton.icon(
+                onPressed: _isLoading ? null : _signInAsDemo,
+                icon: const Icon(Icons.play_circle_outline),
+                label: const Text('Demo Mode (No Account)', style: TextStyle(fontSize: 16)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
