@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/journal_entry_form.dart';
 import 'screens/login_screen.dart';
+import 'screens/animal_create_screen.dart';
+import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'debug/theme_diagnostic.dart';
 
@@ -19,6 +21,10 @@ void main() async {
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU',
     );
     print('✅ Supabase initialized successfully');
+    
+    // Initialize AuthService
+    AuthService().initialize();
+    print('✅ AuthService initialized');
     
     // Test connection with a simple query
     try {
@@ -84,7 +90,8 @@ class ShowTrackAIJournaling extends StatelessWidget {
         '/dashboard': (context) => const DashboardScreen(),
         '/journal/new': (context) => const JournalEntryForm(),
         '/projects': (context) => const Placeholder(), // TODO: Add projects screen
-        '/animals': (context) => const Placeholder(), // TODO: Add animals screen
+        '/animals': (context) => const Placeholder(), // TODO: Add animals list screen
+        '/animals/create': (context) => const AnimalCreateScreen(),
         '/records': (context) => const Placeholder(), // TODO: Add records screen
         '/tasks': (context) => const Placeholder(), // TODO: Add tasks screen
         '/profile': (context) => const Placeholder(), // TODO: Add profile screen

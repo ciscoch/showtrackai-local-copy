@@ -1,39 +1,35 @@
-#!/usr/bin/env bash
+#!/#!/usr/bin/env bash
 set -euo pipefail
 
-GOAL="${1:-improve the codebase}"
 BRANCH="cc-cycle-$(date +%Y%m%d-%H%M%S)"
-
-# Start a working branch (safe if not a git repo)
-if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git checkout -b "$BRANCH"
-fi
-
-echo "▶️  Starting perpetual cycle for: $GOAL"
-echo "    Branch: ${BRANCH}"
+git checkout -b "$BRANCH" || true
 
 while true; do
+  TASK=$(./scripts/next_task.sh || true)
+
+  if [ -z "$TASK" ]; then
+    echo "🎉 Backlog empty — idling…"
+    sleep 30
+    continue
+  fi
+
   echo ""
-  echo "— Cycle begin — $(date)"
-  claude "/generate $GOAL"
+  echo "▶️ Working on: $TASK"
+
+  claude "/generate $TASK"
   claude "/review"
   claude "/refactor"
   claude "/optimize"
 
-  # If checks fail, give Claude a chance to self-heal
   if ! scripts/healthcheck.sh; then
-    echo "❌ Healthcheck failed — invoking /fix-tests"
     claude "/fix-tests"
-  else
-    echo "✅ Healthcheck OK"
   fi
 
-  # Optional: push progress every loop (best for CI)
-  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    git push -u origin "$BRANCH" || true
-  fi
+  # Mark task complete in BACKLOG.md
+  sed -i.bak "0,/- \[ \] $TASK/{s/- \[ \] $TASK/- [x] $TASK/}" BACKLOG.md
+  git add BACKLOG.md
+  git commit -m "mark '$TASK' done"
 
-  # Backoff to avoid hammering tools/CI
+  git push -u origin "$BRANCH" || true
   sleep 10
 done
-
