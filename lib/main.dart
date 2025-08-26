@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/journal_entry_form.dart';
+import 'screens/journal_entry_form_page.dart';
+import 'screens/journal_list_page.dart';
 import 'screens/login_screen.dart';
+import 'screens/animal_create_screen.dart';
+import 'screens/animal_list_screen.dart';
+import 'screens/animal_detail_screen.dart';
+import 'models/animal.dart';
+import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'debug/theme_diagnostic.dart';
 
@@ -19,6 +26,10 @@ void main() async {
       anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU',
     );
     print('✅ Supabase initialized successfully');
+    
+    // Initialize AuthService
+    AuthService().initialize();
+    print('✅ AuthService initialized');
     
     // Test connection with a simple query
     try {
@@ -82,13 +93,47 @@ class ShowTrackAIJournaling extends StatelessWidget {
           return const ThemeDiagnosticScreen();
         },
         '/dashboard': (context) => const DashboardScreen(),
-        '/journal/new': (context) => const JournalEntryForm(),
+        '/journal': (context) => const JournalListPage(),
+        '/journal/new': (context) => const JournalEntryFormPage(),
         '/projects': (context) => const Placeholder(), // TODO: Add projects screen
-        '/animals': (context) => const Placeholder(), // TODO: Add animals screen
+        '/animals': (context) => const AnimalListScreen(),
+        '/animals/create': (context) => const AnimalCreateScreen(),
         '/records': (context) => const Placeholder(), // TODO: Add records screen
         '/tasks': (context) => const Placeholder(), // TODO: Add tasks screen
         '/profile': (context) => const Placeholder(), // TODO: Add profile screen
         '/settings': (context) => const Placeholder(), // TODO: Add settings screen
+      },
+      onGenerateRoute: (settings) {
+        // Handle dynamic routes like animal detail pages
+        if (settings.name?.startsWith('/animals/') == true) {
+          final uri = Uri.parse(settings.name!);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[1] != 'create') {
+            // This is an animal detail route: /animals/{id}
+            final animalId = uri.pathSegments[1];
+            final animal = settings.arguments as Animal?;
+            if (animal != null) {
+              return MaterialPageRoute<bool>(
+                builder: (context) => AnimalDetailScreen(animal: animal),
+                settings: settings,
+              );
+            }
+          }
+        }
+        
+        // Handle journal detail routes
+        if (settings.name?.startsWith('/journal/') == true) {
+          final uri = Uri.parse(settings.name!);
+          if (uri.pathSegments.length == 2 && uri.pathSegments[1] != 'new') {
+            // This could be a journal detail route
+            return MaterialPageRoute(
+              builder: (context) => const Placeholder(), // TODO: Add journal detail screen
+              settings: settings,
+            );
+          }
+        }
+        
+        // Return null to let the default route handling take over
+        return null;
       },
     );
   }

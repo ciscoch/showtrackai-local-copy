@@ -1,0 +1,481 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(npm run:*)",
+      "Bash(npx expo install:*)",
+      "Bash(pkill:*)",
+      "Bash(true)",
+      "Bash(npx expo:*)",
+      "Bash(git init:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mv:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(npm install:*)",
+      "Bash(npx react-native start:*)",
+      "Bash(kill:*)",
+      "Bash(grep:*)",
+      "Bash(npm start)",
+      "Bash(rg:*)",
+      "Bash(pdftotext:*)",
+      "Bash(python3:*)",
+      "Bash(touch:*)",
+      "Bash(node:*)",
+      "Bash(cat:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(expo --version)",
+      "Bash(watchman:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(curl:*)",
+      "Bash(claude-code usage)",
+      "Bash(claude usage)",
+      "Bash(npx create-expo-app:*)",
+      "Bash(git add:*)",
+      "Bash(git remote add:*)",
+      "Bash(npm start:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git revert:*)",
+      "Bash(expo start:*)",
+      "Bash(timeout 20s npm run web)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(chmod:*)",
+      "Bash(npm test)",
+      "Bash(git pull:*)",
+      "Bash(git rm:*)",
+      "Bash(./commands/run-verification.sh:*)",
+      "Bash(./commands/simple-verification.sh:*)",
+      "Bash(./commands/supabase-status-check.sh:*)",
+      "Bash(sed:*)",
+      "Bash(npx react-native bundle:*)",
+      "Bash(EXPO_PUBLIC_SUPABASE_URL=https://zifbuzsdhparxlhsifdi.supabase.co EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU node verify-medical-integration.js)",
+      "WebFetch(domain:docs.posthog.com)",
+      "WebFetch(domain:posthog.com)",
+      "Bash(npx @sentry/wizard:*)",
+      "WebFetch(domain:sentry.io)",
+      "WebFetch(domain:docs.sentry.io)",
+      "Bash(npm view:*)",
+      "WebFetch(domain:www.google.com)",
+      "WebFetch(domain:help.getzep.com)",
+      "WebFetch(domain:n8n.io)",
+      "WebFetch(domain:docs.getzep.com)",
+      "WebFetch(domain:docs.n8n.io)",
+      "Bash(npx metro start:*)",
+      "Bash(npm ls:*)",
+      "Bash(ln:*)",
+      "Bash(npx eas build:*)",
+      "Bash(npx eas:*)",
+      "Bash(pod install:*)",
+      "Bash(sudo xcode-select:*)",
+      "Bash(npx http-server:*)",
+      "Bash(git stash push:*)",
+      "Bash(git reset:*)",
+      "Bash(expo install:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(./quick-curl-test.sh:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(./simple-test.sh)",
+      "Bash(./comprehensive-ai-test.sh)",
+      "Bash(./quick-student-test.sh:*)",
+      "Bash(./test-ffa-integration.sh:*)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/single-ffa-test.sh)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/dual-ffa-test.sh)",
+      "Bash(./single-ffa-test.sh:*)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/comprehensive-ai-tools-test.sh)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/tool-activation-test.sh:*)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/debug-ffa-data-flow.sh:*)",
+      "Bash(./tool-activation-test.sh:*)",
+      "Bash(./comprehensive-ai-tools-test.sh:*)",
+      "Bash(./debug-ffa-data-flow.sh:*)",
+      "Bash(./webhook-data-debug.sh:*)",
+      "Bash(./zep-nodes-debug.sh:*)",
+      "Bash(./force-tool-choice-test.sh:*)",
+      "Bash(./simple-data-test.sh:*)",
+      "Bash(./schema-compliant-tools-test.sh:*)",
+      "Bash(./force-ffa-competency-test.sh:*)",
+      "Bash(./assistant-schema-bypass-test.sh:*)",
+      "Bash(./ffa-tool-validator-test.sh:*)",
+      "Bash(\"/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/test-scripts/tools-agent-validation-test.sh\")",
+      "Bash(psql:*)",
+      "Bash(docker run:*)",
+      "Bash(env)",
+      "WebFetch(domain:showtrackai.app.n8n.cloud)",
+      "Bash(echo:*)",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_file",
+      "mcp__filesystem__directory_tree",
+      "mcp__filesystem__search_files",
+      "mcp__n8n-mcp__n8n_diagnostic",
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__n8n-mcp__tools_documentation",
+      "mcp__n8n-mcp__search_nodes",
+      "mcp__n8n-mcp__get_node_essentials",
+      "mcp__n8n-mcp__get_node_info",
+      "mcp__n8n-mcp__validate_node_operation",
+      "mcp__n8n-mcp__get_node_for_task",
+      "mcp__n8n-mcp__list_tasks",
+      "Bash(./test-revenue-optimization-sql.sh:*)",
+      "Bash(./test-session-type-router.sh:*)",
+      "Bash(./test-production-webhook.sh:*)",
+      "mcp__n8n-mcp__list_nodes",
+      "mcp__n8n-mcp__search_templates",
+      "mcp__filesystem__create_directory",
+      "mcp__filesystem__write_file",
+      "Bash(./test-live-feed-strategy.sh:*)",
+      "Bash(./test-feed-strategy-workflow-complete.sh:*)",
+      "mcp__n8n-mcp__search_node_properties",
+      "mcp__n8n-mcp__get_property_dependencies",
+      "mcp__n8n-mcp__validate_node_minimal",
+      "mcp__n8n-mcp__get_node_documentation",
+      "WebFetch(domain:community.n8n.io)",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "mcp__n8n-mcp__n8n_get_workflow_details",
+      "mcp__n8n-mcp__n8n_validate_workflow",
+      "mcp__puppeteer__puppeteer_fill",
+      "mcp__puppeteer__puppeteer_click",
+      "mcp__n8n-mcp__n8n_update_partial_workflow",
+      "mcp__n8n-mcp__n8n_update_full_workflow",
+      "mcp__n8n-mcp__n8n_list_workflows",
+      "mcp__n8n-mcp__n8n_get_workflow",
+      "mcp__n8n-mcp__n8n_get_workflow_structure",
+      "mcp__filesystem__read_multiple_files",
+      "mcp__n8n-mcp__n8n_trigger_webhook_workflow",
+      "mcp__n8n-mcp__n8n_health_check",
+      "mcp__n8n-mcp__n8n_get_execution",
+      "mcp__n8n-mcp__n8n_list_executions",
+      "mcp__n8n-mcp__validate_workflow",
+      "mcp__n8n-mcp__validate_workflow_expressions",
+      "mcp__n8n-mcp__n8n_get_workflow_minimal",
+      "mcp__n8n-mcp__validate_workflow_connections",
+      "mcp__filesystem__edit_file",
+      "mcp__n8n-mcp__get_templates_for_task",
+      "mcp__n8n-mcp__list_node_templates",
+      "mcp__n8n-mcp__get_template",
+      "mcp__n8n-mcp__get_database_statistics",
+      "mcp__supabase-community-supabase-mcp__list_tables",
+      "mcp__supabase-community-supabase-mcp__get_project_url",
+      "mcp__supabase-community-supabase-mcp__execute_sql",
+      "mcp__wonderwhy-er-desktop-commander__start_process",
+      "mcp__wonderwhy-er-desktop-commander__read_process_output",
+      "mcp__wonderwhy-er-desktop-commander__write_file",
+      "mcp__wonderwhy-er-desktop-commander__get_file_info",
+      "mcp__wonderwhy-er-desktop-commander__interact_with_process",
+      "mcp__terminal-controller-mcp__read_file",
+      "Bash(wc:*)",
+      "mcp__supabase-community-supabase-mcp__get_logs",
+      "Bash(npx create-next-app:*)",
+      "Bash(npx shadcn:*)",
+      "mcp__terminal-controller-mcp__execute_command",
+      "Bash(npx eslint:*)",
+      "Bash(awk:*)",
+      "WebFetch(domain:lucide.dev)",
+      "mcp__filesystem__read_text_file",
+      "Bash(pstree:*)",
+      "Bash(brew install:*)",
+      "Bash(ccusage)",
+      "Bash(npx:*)",
+      "Bash(npx jest:*)",
+      "Bash(npm test:*)",
+      "Bash(timeout 10s npm run dev)",
+      "Bash(gtimeout:*)",
+      "Bash(supabase status:*)",
+      "Bash(supabase start:*)",
+      "Bash(supabase stop:*)",
+      "mcp__wonderwhy-er-desktop-commander__read_file",
+      "mcp__wonderwhy-er-desktop-commander__list_directory",
+      "mcp__wonderwhy-er-desktop-commander__search_files",
+      "Bash(git config:*)",
+      "Bash(vercel:*)",
+      "Bash(openssl rand:*)",
+      "mcp__wonderwhy-er-desktop-commander__create_directory",
+      "mcp__wonderwhy-er-desktop-commander__edit_block",
+      "Bash(npx serve:*)",
+      "WebFetch(domain:sensational-cobbler-af474d.netlify.app)",
+      "mcp__wonderwhy-er-desktop-commander__search_code",
+      "Bash(netlify:*)",
+      "mcp__wonderwhy-er-desktop-commander__get_config",
+      "mcp__wonderwhy-er-desktop-commander__set_config_value",
+      "mcp__terminal-controller-mcp__change_directory",
+      "mcp__terminal-controller-mcp__get_current_directory",
+      "Bash(flutter create:*)",
+      "Bash(./deployment/web_deployment/build_scripts/build_web.sh:*)",
+      "Bash(export:*)",
+      "Bash(flutter:*)",
+      "Bash(/Users/francisco/Documents/CAUDE/ShowTrackAI-Fresh/deploy_flutter_staging.sh)",
+      "Bash(/Users/francisco/Documents/CAUDE/ShowTrackAI-Fresh/build_web_staging.sh)",
+      "Bash(/Users/francisco/Documents/CAUDE/ShowTrackAI-Fresh/simple_build_web.sh)",
+      "Bash(./build_web_staging.sh:*)",
+      "Bash(/Users/francisco/Documents/CALUDE/ShowTrackAI-Fresh/build_web_staging.sh)",
+      "Bash(./deploy-staging.sh:*)",
+      "Bash(./flutter/bin/flutter --version)",
+      "Bash(./flutter/bin/flutter clean)",
+      "Bash(./flutter/bin/flutter pub get)",
+      "Bash(./flutter/bin/flutter build:*)",
+      "Bash(timeout 120 bash -c 'echo -e \"\"\\\\n\\\\n\\\\n\"\" | netlify deploy --dir=build/web')",
+      "Bash(zip:*)",
+      "Bash(surge:*)",
+      "WebFetch(domain:stupendous-pasca-b88723.netlify.app)",
+      "Bash(dart analyze:*)",
+      "Bash(open https://app.netlify.com/drop)",
+      "mcp__supabase-community-supabase-mcp__search_docs",
+      "Bash(./scripts/validate-deployment.sh:*)",
+      "mcp__filesystem__get_file_info",
+      "Bash(./scripts/verify-animal-cards.sh:*)",
+      "Bash(./scripts/verify-netlify-deployment.sh:*)",
+      "Bash(./scripts/build-with-env.sh:*)",
+      "mcp__supabase-community-supabase-mcp__get_anon_key",
+      "Bash(supabase projects:*)",
+      "Bash(supabase link:*)",
+      "Bash(supabase db reset:*)",
+      "Bash(./add_demo_animals.sh:*)",
+      "Bash(./add_all_demo_data.sh:*)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter --version)",
+      "WebFetch(domain:mellifluous-speculoos-46225c.netlify.app)",
+      "Bash(supabase db remote execute:*)",
+      "Bash(source .env)",
+      "Bash(timeout:*)",
+      "Bash(supabase sql:*)",
+      "Bash(supabase db:*)",
+      "Bash(gh pr create:*)",
+      "mcp__filesystem__move_file",
+      "Bash(unzip:*)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter clean)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter pub get)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter build web --release)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter test lib/data/services/livestock_data_service_test.dart)",
+      "Bash(FLUTTER_SUPABASE_URL=\"https://test.supabase.co\" FLUTTER_SUPABASE_ANON_KEY=\"test-key-123\" bash ./build-with-env.sh)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(uvx:*)",
+      "Bash(./test-mcp-servers.sh:*)",
+      "Bash(bash:*)",
+      "Bash(ccusage blocks:*)",
+      "Bash(open http://localhost:3001)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter build web --release --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY)",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_console_messages",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_projects",
+      "mcp__supabase__execute_sql",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter run -d chrome --web-port=3003 --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY)",
+      "Bash(open http://localhost:3003)",
+      "Bash(git clone:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(bun:*)",
+      "Bash(./build-with-env.sh)",
+      "Bash(open http://localhost:5173)",
+      "Bash(./_flutter/bin/flutter --version)",
+      "Bash(./_flutter/bin/flutter pub get)",
+      "Bash(./_flutter/bin/flutter build web --release)",
+      "Bash(./_flutter/bin/flutter run -d web-server --web-port 8085 --web-hostname localhost)",
+      "Bash(dart run:*)",
+      "Bash(./_flutter/bin/flutter clean)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_close",
+      "Bash(./test-animal-creation.sh:*)",
+      "Bash(./test-minimal-animal.sh:*)",
+      "Bash(./test-correct-schema.sh:*)",
+      "Bash(./test-final-goat.sh:*)",
+      "Bash(./test-verify-insert.sh:*)",
+      "Bash(./test-local-animal.sh:*)",
+      "Bash(dart:*)",
+      "Bash(git stash:*)",
+      "Bash(claude doctor)",
+      "Bash(claude --version)",
+      "Bash(npm:*)",
+      "Bash(git worktree add:*)",
+      "Bash(git clean:*)",
+      "Bash(./force-netlify-rebuild.sh:*)",
+      "Bash(/Users/francisco/Downloads/flutter/bin/flutter run -d chrome --web-port=3003)",
+      "mcp__context7__resolve-library-id",
+      "WebSearch",
+      "mcp__context7__get-library-docs",
+      "Bash(open http://localhost:3008)",
+      "Bash(open http://localhost:3011)",
+      "Bash(open test-profile-ui.html)",
+      "mcp__supabase-community-supabase-mcp__apply_migration",
+      "Bash(./run_tests.sh:*)",
+      "Bash(open http://localhost:56566)",
+      "Bash(/Users/francisco/Documents/CALUDE/showtrackai-flutter-clean/test-n8n-simple.sh)",
+      "Bash(/Users/francisco/Documents/CALUDE/showtrackai-flutter-clean/test-webhook-success.sh)",
+      "Bash(/Users/francisco/Documents/CALUDE/showtrackai-flutter-clean/test-correct-user-id.sh)",
+      "Bash(/Users/francisco/Documents/CALUDE/showtrackai-flutter-clean/test-with-state-abbreviation.sh)",
+      "Bash(git tag:*)",
+      "mcp__netlify__netlify-project-services",
+      "mcp__netlify__netlify-deploy-services",
+      "Bash(supabase:*)",
+      "Bash(SUPABASE_PROJECT_REF=zifbuzsdhparxlhsifdi supabase db inspect)",
+      "Bash(./run_signal_flow_tests.sh:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(./build-local.sh:*)",
+      "Bash(open http://localhost:8086)",
+      "Bash(open /Users/francisco/Documents/CALUDE/journaling-netlify-integration/test-local-ui.html)",
+      "Bash(open http://127.0.0.1:8080)",
+      "Bash(git --version)",
+      "Bash(tree:*)",
+      "Bash(SUPABASE_URL=https://zifbuzsdhparxlhsifdi.supabase.co SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU flutter build web --release --dart-define SUPABASE_URL=https://zifbuzsdhparxlhsifdi.supabase.co --dart-define SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU --web-renderer canvaskit)",
+      "Bash(/Users/francisco/Documents/CALUDE/showtrackai-local-copy/test-webhook.sh)"
+    ],
+    "deny": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "filesystem",
+    "brave-search",
+    "git",
+    "postgres",
+    "Sentry",
+    "puppeteer",
+    "n8n-mcp",
+    "terminal-controller-mcp"
+  ],
+  {
+    "hooks": {
+      "PreToolUse": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/pre_tool_use.py"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type PreToolUse --summarize"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type PreToolUse"
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/post_tool_use.py"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type PostToolUse --summarize"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type PostToolUse"
+            }
+          ]
+        }
+      ],
+      "Notification": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/notification.py --notify"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type Notification --summarize"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type Notification"
+            }
+          ]
+        }
+      ],
+      "Stop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/stop.py --chat"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type Stop --add-chat"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type Stop"
+            }
+          ]
+        }
+      ],
+      "SubagentStop": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/subagent_stop.py"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type SubagentStop"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type SubagentStop"
+            }
+          ]
+        }
+      ],
+      "PreCompact": [
+        {
+          "matcher": "",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type PreCompact"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type PreCompact"
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/user_prompt_submit.py --log-only"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/send_event.py --source-app ShowTrackAI --event-type UserPromptSubmit --summarize"
+            },
+            {
+              "type": "command",
+              "command": "uv run /Users/francisco/Documents/CALUDE/.claude/hooks/obs.py --source-app ShowTrackAI --event-type UserPromptSubmit"
+            }
+          ]
+        }
+      ]
+    }
+  }
+

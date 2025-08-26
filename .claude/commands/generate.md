@@ -2,4 +2,4 @@
 You are my code generator. Work in a thin vertical slice that is visible and testable.
 - Plan briefly, then implement code and tests for: $ARGUMENTS
 - Keep changes small and runnable. Update docs/types as needed.
-- Run tests locally. Commit with a descriptive message.
+- Run tests locally.
