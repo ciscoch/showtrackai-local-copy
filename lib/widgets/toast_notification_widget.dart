@@ -123,7 +123,7 @@ class _ToastWidgetState extends State<ToastWidget>
             color: _getBackgroundColor(),
             child: Semantics(
               label: '${widget.notification.type.name} notification: ${widget.notification.message}',
-              role: SemanticsRole.statusBar,
+              liveRegion: true,
               child: Container(
                 constraints: const BoxConstraints(
                   maxWidth: 400,

@@ -583,7 +583,7 @@ class _AddFeedModalState extends State<AddFeedModal> {
     try {
       final products = await FeedService.getProducts(
         brandId,
-        species: widget.selectedAnimal?.species,
+        species: widget.selectedAnimal?.species.name,
       );
       setState(() {
         _products = products;

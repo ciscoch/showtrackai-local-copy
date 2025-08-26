@@ -718,7 +718,7 @@ class FeedService {
             *,
             brand:feed_brands(*)
           ''')
-          .in_('name', productNames)
+          .inFilter('name', productNames)
           .eq('is_active', true);
 
       final products = (productsResponse as List)

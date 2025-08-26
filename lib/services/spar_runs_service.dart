@@ -82,7 +82,7 @@ class SPARRunsService {
       };
       
       if (plan != null) {
-        updates['plan'] = plan;
+        updates['plan'] = jsonEncode(plan);
       }
       
       await _supabase
@@ -292,7 +292,7 @@ class SPARRunsService {
       
       // Calculate success rate
       if (runs.isNotEmpty) {
-        stats['success_rate'] = stats['completed'] / runs.length;
+        stats['success_rate'] = (stats['completed'] ?? 0) / runs.length;
       }
       
       return stats;
@@ -357,7 +357,7 @@ class SPARRunsService {
           .from('spar_runs')
           .delete()
           .lt('created_at', cutoffDate)
-          .in_('status', statusesToClean)
+          .inFilter('status', statusesToClean)
           .select();
       
       final deletedCount = (response as List).length;
@@ -434,7 +434,7 @@ class SPARRunsService {
       final stuckRuns = await _supabase
           .from('spar_runs')
           .select()
-          .in_('status', [STATUS_PENDING, STATUS_PROCESSING])
+          .inFilter('status', [STATUS_PENDING, STATUS_PROCESSING])
           .lt('created_at', cutoffTime);
       
       for (final run in stuckRuns) {
