@@ -9,6 +9,7 @@ class JournalEntry {
   final List<String> aetSkills;
   final String? animalId;
   final FeedData? feedData;
+  final FeedStrategy? feedStrategy;
   final List<String>? objectives;
   final List<String>? learningOutcomes;
   final String? challenges;
@@ -21,6 +22,32 @@ class JournalEntry {
   final AIInsights? aiInsights;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  
+  // Agricultural specific fields
+  final LocationData? locationData;
+  final WeatherData? weatherData;
+  final List<String>? attachmentUrls;
+  final List<String>? tags;
+  final String? supervisorId;
+  final bool isPublic;
+  final CompetencyTracking? competencyTracking;
+  
+  // FFA specific fields
+  final String? ffaDegreeType;
+  final bool countsForDegree;
+  final String? saType; // SAE Type
+  final double? hoursLogged;
+  final double? financialValue;
+  final String? evidenceType;
+  
+  // Offline sync fields
+  final bool isSynced;
+  final DateTime? lastSyncAttempt;
+  final String? syncError;
+
+  // Metadata fields
+  final String? source;
+  final String? notes;
 
   JournalEntry({
     this.id,
@@ -33,6 +60,7 @@ class JournalEntry {
     required this.aetSkills,
     this.animalId,
     this.feedData,
+    this.feedStrategy,
     this.objectives,
     this.learningOutcomes,
     this.challenges,
@@ -45,6 +73,26 @@ class JournalEntry {
     this.aiInsights,
     this.createdAt,
     this.updatedAt,
+    // New fields
+    this.locationData,
+    this.weatherData,
+    this.attachmentUrls,
+    this.tags,
+    this.supervisorId,
+    this.isPublic = false,
+    this.competencyTracking,
+    this.ffaDegreeType,
+    this.countsForDegree = false,
+    this.saType,
+    this.hoursLogged,
+    this.financialValue,
+    this.evidenceType,
+    this.isSynced = false,
+    this.lastSyncAttempt,
+    this.syncError,
+    // Metadata fields
+    this.source,
+    this.notes,
   });
 
   Map<String, dynamic> toJson() => {
@@ -52,17 +100,69 @@ class JournalEntry {
         'user_id': userId,
         'title': title,
         'description': description,
-        'date': date.toIso8601String(),
-        'duration': duration,
+        'entry_text': description,
+        'entry_date': date.toIso8601String(),
+        'duration_minutes': duration,
         'category': category,
-        'aetSkills': aetSkills,
-        'animalId': animalId,
-        'feedData': feedData?.toJson(),
-        'objectives': objectives,
-        'learningOutcomes': learningOutcomes,
-        'challenges': challenges,
-        'improvements': improvements,
+        'aet_skills': aetSkills,
+        'animal_id': animalId,
+        'metadata': {
+          if (feedData != null) 'feedData': feedData!.toJson(),
+          if (feedStrategy != null) 'feed_strategy': feedStrategy!.toJson(),
+          if (competencyTracking != null) 'competencyTracking': competencyTracking!.toJson(),
+          if (source != null) 'source': source,
+          if (notes != null) 'notes': notes,
+        },
+        'learning_objectives': objectives,
+        'learning_outcomes': learningOutcomes,
+        'challenges_faced': challenges,
+        'improvements_planned': improvements,
         'photos': photos,
+        'quality_score': qualityScore,
+        'ffa_standards': ffaStandards,
+        'learning_concepts': educationalConcepts,
+        'competency_level': competencyLevel,
+        'ai_insights': aiInsights?.toJson(),
+        'created_at': createdAt?.toIso8601String(),
+        'updated_at': updatedAt?.toIso8601String(),
+        // Location data
+        'location_latitude': locationData?.latitude,
+        'location_longitude': locationData?.longitude,
+        'location_address': locationData?.address,
+        'location_name': locationData?.name,
+        'location_accuracy': locationData?.accuracy,
+        'location_captured_at': locationData?.capturedAt?.toIso8601String(),
+        'location_city': locationData?.city,
+        'location_state': locationData?.state,
+        // Weather data (expanded format for compatibility)
+        'weather_temperature': weatherData?.temperature,
+        'weather_condition': weatherData?.condition,
+        'weather_humidity': weatherData?.humidity,
+        'weather_wind_speed': weatherData?.windSpeed,
+        'weather_description': weatherData?.description,
+        // Weather data (compact JSON format)
+        'weather_data_json': weatherData != null ? {
+          'temp': weatherData!.temperature,
+          'condition': weatherData!.condition,
+          'desc': weatherData!.description,
+          'humidity': weatherData!.humidity,
+          'wind': weatherData!.windSpeed,
+          'captured_at': DateTime.now().toIso8601String(),
+        } : null,
+        // New fields
+        'attachment_urls': attachmentUrls,
+        'tags': tags,
+        'supervisor_id': supervisorId,
+        'is_public': isPublic,
+        'ffa_degree_type': ffaDegreeType,
+        'counts_for_degree': countsForDegree,
+        'sae_type': saType,
+        'hours_logged': hoursLogged,
+        'financial_value': financialValue,
+        'evidence_type': evidenceType,
+        'is_synced': isSynced,
+        'last_sync_attempt': lastSyncAttempt?.toIso8601String(),
+        'sync_error': syncError,
       };
 
   factory JournalEntry.fromJson(Map<String, dynamic> json) => JournalEntry(
@@ -77,6 +177,9 @@ class JournalEntry {
         animalId: json['animal_id'],
         feedData: json['metadata']?['feedData'] != null
             ? FeedData.fromJson(json['metadata']['feedData'])
+            : null,
+        feedStrategy: json['metadata']?['feed_strategy'] != null
+            ? FeedStrategy.fromJson(json['metadata']['feed_strategy'])
             : null,
         objectives: json['learning_objectives'] != null
             ? List<String>.from(json['learning_objectives'])
@@ -105,7 +208,144 @@ class JournalEntry {
         updatedAt: json['updated_at'] != null
             ? DateTime.parse(json['updated_at'])
             : null,
+        // Location data
+        locationData: (json['location_latitude'] != null && json['location_longitude'] != null)
+            ? LocationData(
+                latitude: json['location_latitude']?.toDouble(),
+                longitude: json['location_longitude']?.toDouble(),
+                address: json['location_address'],
+                name: json['location_name'],
+                accuracy: json['location_accuracy']?.toDouble(),
+                capturedAt: json['location_captured_at'] != null
+                    ? DateTime.parse(json['location_captured_at'])
+                    : null,
+                city: json['location_city'],
+                state: json['location_state'],
+              )
+            : null,
+        // Weather data
+        weatherData: json['weather_condition'] != null
+            ? WeatherData(
+                temperature: json['weather_temperature']?.toDouble(),
+                condition: json['weather_condition'],
+                humidity: json['weather_humidity'],
+                windSpeed: json['weather_wind_speed']?.toDouble(),
+                description: json['weather_description'],
+              )
+            : null,
+        // New fields
+        attachmentUrls: json['attachment_urls'] != null
+            ? List<String>.from(json['attachment_urls'])
+            : null,
+        tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
+        supervisorId: json['supervisor_id'],
+        isPublic: json['is_public'] ?? false,
+        competencyTracking: json['metadata']?['competencyTracking'] != null
+            ? CompetencyTracking.fromJson(json['metadata']['competencyTracking'])
+            : null,
+        ffaDegreeType: json['ffa_degree_type'],
+        countsForDegree: json['counts_for_degree'] ?? false,
+        saType: json['sae_type'],
+        hoursLogged: json['hours_logged']?.toDouble(),
+        financialValue: json['financial_value']?.toDouble(),
+        evidenceType: json['evidence_type'],
+        isSynced: json['is_synced'] ?? false,
+        lastSyncAttempt: json['last_sync_attempt'] != null
+            ? DateTime.parse(json['last_sync_attempt'])
+            : null,
+        syncError: json['sync_error'],
+        // Metadata fields
+        source: json['metadata']?['source'],
+        notes: json['metadata']?['notes'],
       );
+
+  JournalEntry copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? description,
+    DateTime? date,
+    int? duration,
+    String? category,
+    List<String>? aetSkills,
+    String? animalId,
+    FeedData? feedData,
+    FeedStrategy? feedStrategy,
+    List<String>? objectives,
+    List<String>? learningOutcomes,
+    String? challenges,
+    String? improvements,
+    List<String>? photos,
+    int? qualityScore,
+    List<String>? ffaStandards,
+    List<String>? educationalConcepts,
+    String? competencyLevel,
+    AIInsights? aiInsights,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    LocationData? locationData,
+    WeatherData? weatherData,
+    List<String>? attachmentUrls,
+    List<String>? tags,
+    String? supervisorId,
+    bool? isPublic,
+    CompetencyTracking? competencyTracking,
+    String? ffaDegreeType,
+    bool? countsForDegree,
+    String? saType,
+    double? hoursLogged,
+    double? financialValue,
+    String? evidenceType,
+    bool? isSynced,
+    DateTime? lastSyncAttempt,
+    String? syncError,
+    String? source,
+    String? notes,
+  }) {
+    return JournalEntry(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      date: date ?? this.date,
+      duration: duration ?? this.duration,
+      category: category ?? this.category,
+      aetSkills: aetSkills ?? this.aetSkills,
+      animalId: animalId ?? this.animalId,
+      feedData: feedData ?? this.feedData,
+      feedStrategy: feedStrategy ?? this.feedStrategy,
+      objectives: objectives ?? this.objectives,
+      learningOutcomes: learningOutcomes ?? this.learningOutcomes,
+      challenges: challenges ?? this.challenges,
+      improvements: improvements ?? this.improvements,
+      photos: photos ?? this.photos,
+      qualityScore: qualityScore ?? this.qualityScore,
+      ffaStandards: ffaStandards ?? this.ffaStandards,
+      educationalConcepts: educationalConcepts ?? this.educationalConcepts,
+      competencyLevel: competencyLevel ?? this.competencyLevel,
+      aiInsights: aiInsights ?? this.aiInsights,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      locationData: locationData ?? this.locationData,
+      weatherData: weatherData ?? this.weatherData,
+      attachmentUrls: attachmentUrls ?? this.attachmentUrls,
+      tags: tags ?? this.tags,
+      supervisorId: supervisorId ?? this.supervisorId,
+      isPublic: isPublic ?? this.isPublic,
+      competencyTracking: competencyTracking ?? this.competencyTracking,
+      ffaDegreeType: ffaDegreeType ?? this.ffaDegreeType,
+      countsForDegree: countsForDegree ?? this.countsForDegree,
+      saType: saType ?? this.saType,
+      hoursLogged: hoursLogged ?? this.hoursLogged,
+      financialValue: financialValue ?? this.financialValue,
+      evidenceType: evidenceType ?? this.evidenceType,
+      isSynced: isSynced ?? this.isSynced,
+      lastSyncAttempt: lastSyncAttempt ?? this.lastSyncAttempt,
+      syncError: syncError ?? this.syncError,
+      source: source ?? this.source,
+      notes: notes ?? this.notes,
+    );
+  }
 }
 
 class FeedData {
@@ -140,6 +380,37 @@ class FeedData {
       );
 }
 
+/// Feed strategy tracking for weight management
+class FeedStrategy {
+  final double? currentWeight;
+  final double? targetWeight;
+  final DateTime? weighInDate;
+  final String? notes;
+
+  FeedStrategy({
+    this.currentWeight,
+    this.targetWeight,
+    this.weighInDate,
+    this.notes,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'current_weight': currentWeight,
+        'target_weight': targetWeight,
+        'weigh_in_date': weighInDate?.toIso8601String(),
+        'notes': notes,
+      };
+
+  factory FeedStrategy.fromJson(Map<String, dynamic> json) => FeedStrategy(
+        currentWeight: json['current_weight']?.toDouble(),
+        targetWeight: json['target_weight']?.toDouble(),
+        weighInDate: json['weigh_in_date'] != null
+            ? DateTime.parse(json['weigh_in_date'])
+            : null,
+        notes: json['notes'],
+      );
+}
+
 class AIInsights {
   final QualityAssessment qualityAssessment;
   final List<String> ffaStandards;
@@ -158,6 +429,16 @@ class AIInsights {
     required this.feedback,
     required this.recommendedActivities,
   });
+
+  Map<String, dynamic> toJson() => {
+        'qualityAssessment': qualityAssessment.toJson(),
+        'ffaStandards': ffaStandards,
+        'aetSkillsIdentified': aetSkillsIdentified,
+        'learningConcepts': learningConcepts,
+        'competencyLevel': competencyLevel,
+        'feedback': feedback.toJson(),
+        'recommendedActivities': recommendedActivities,
+      };
 
   factory AIInsights.fromJson(Map<String, dynamic> json) => AIInsights(
         qualityAssessment:
@@ -180,6 +461,11 @@ class QualityAssessment {
     required this.justification,
   });
 
+  Map<String, dynamic> toJson() => {
+        'score': score,
+        'justification': justification,
+      };
+
   factory QualityAssessment.fromJson(Map<String, dynamic> json) =>
       QualityAssessment(
         score: json['score'],
@@ -198,6 +484,12 @@ class Feedback {
     required this.suggestions,
   });
 
+  Map<String, dynamic> toJson() => {
+        'strengths': strengths,
+        'improvements': improvements,
+        'suggestions': suggestions,
+      };
+
   factory Feedback.fromJson(Map<String, dynamic> json) => Feedback(
         strengths: List<String>.from(json['strengths']),
         improvements: List<String>.from(json['improvements']),
@@ -205,40 +497,266 @@ class Feedback {
       );
 }
 
-// AET Skills categories
+/// Location data for journal entries
+class LocationData {
+  final double? latitude;
+  final double? longitude;
+  final String? address;
+  final String? name;
+  final double? accuracy;
+  final DateTime? capturedAt;
+  final String? city;
+  final String? state;
+
+  LocationData({
+    this.latitude,
+    this.longitude,
+    this.address,
+    this.name,
+    this.accuracy,
+    this.capturedAt,
+    this.city,
+    this.state,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'latitude': latitude,
+        'longitude': longitude,
+        'address': address,
+        'name': name,
+        'accuracy': accuracy,
+        'capturedAt': capturedAt?.toIso8601String(),
+        'city': city,
+        'state': state,
+      };
+
+  factory LocationData.fromJson(Map<String, dynamic> json) => LocationData(
+        latitude: json['latitude']?.toDouble(),
+        longitude: json['longitude']?.toDouble(),
+        address: json['address'],
+        name: json['name'],
+        accuracy: json['accuracy']?.toDouble(),
+        capturedAt: json['capturedAt'] != null
+            ? DateTime.parse(json['capturedAt'])
+            : null,
+        city: json['city'],
+        state: json['state'],
+      );
+}
+
+/// Weather data for journal entries
+class WeatherData {
+  final double? temperature;
+  final String? condition;
+  final int? humidity;
+  final double? windSpeed;
+  final String? description;
+
+  WeatherData({
+    this.temperature,
+    this.condition,
+    this.humidity,
+    this.windSpeed,
+    this.description,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'temperature': temperature,
+        'condition': condition,
+        'humidity': humidity,
+        'windSpeed': windSpeed,
+        'description': description,
+      };
+
+  factory WeatherData.fromJson(Map<String, dynamic> json) => WeatherData(
+        temperature: json['temperature']?.toDouble(),
+        condition: json['condition'],
+        humidity: json['humidity'],
+        windSpeed: json['windSpeed']?.toDouble(),
+        description: json['description'],
+      );
+}
+
+/// Competency tracking for FFA standards
+class CompetencyTracking {
+  final List<String> demonstratedSkills;
+  final Map<String, int> skillLevels;
+  final List<String> completedStandards;
+  final double progressPercentage;
+  final DateTime? lastAssessment;
+
+  CompetencyTracking({
+    required this.demonstratedSkills,
+    required this.skillLevels,
+    required this.completedStandards,
+    required this.progressPercentage,
+    this.lastAssessment,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'demonstratedSkills': demonstratedSkills,
+        'skillLevels': skillLevels,
+        'completedStandards': completedStandards,
+        'progressPercentage': progressPercentage,
+        'lastAssessment': lastAssessment?.toIso8601String(),
+      };
+
+  factory CompetencyTracking.fromJson(Map<String, dynamic> json) =>
+      CompetencyTracking(
+        demonstratedSkills: List<String>.from(json['demonstratedSkills'] ?? []),
+        skillLevels: Map<String, int>.from(json['skillLevels'] ?? {}),
+        completedStandards: List<String>.from(json['completedStandards'] ?? []),
+        progressPercentage: json['progressPercentage']?.toDouble() ?? 0.0,
+        lastAssessment: json['lastAssessment'] != null
+            ? DateTime.parse(json['lastAssessment'])
+            : null,
+      );
+}
+
+// AET Skills categories for agricultural education
 class AETSkills {
   static const Map<String, List<String>> categories = {
-    'Animal Care': [
-      'Feeding Management',
-      'Health Monitoring',
-      'Grooming & Hygiene',
-      'Housing Management',
+    'Animal Systems': [
+      'Animal Health Management',
+      'Feeding and Nutrition',
+      'Breeding and Genetics',
+      'Housing and Environment',
       'Record Keeping',
+      'Performance Evaluation',
     ],
-    'Business Management': [
+    'Plant Systems': [
+      'Crop Production',
+      'Soil Management',
+      'Pest Management',
+      'Irrigation Systems',
+      'Harvest and Storage',
+      'Plant Health Assessment',
+    ],
+    'Agricultural Business': [
       'Financial Planning',
+      'Marketing Strategies',
+      'Supply Chain Management',
+      'Risk Management',
       'Cost Analysis',
-      'Marketing',
-      'Sales',
-      'Inventory Management',
+      'Sales and Communication',
     ],
-    'Leadership': [
+    'Leadership Development': [
       'Public Speaking',
-      'Team Collaboration',
+      'Team Leadership',
       'Project Management',
-      'Decision Making',
+      'Critical Thinking',
       'Problem Solving',
+      'Communication Skills',
     ],
-    'Technical Skills': [
+    'Technology Applications': [
+      'Precision Agriculture',
       'Equipment Operation',
-      'Facility Maintenance',
-      'Technology Use',
-      'Safety Practices',
-      'Quality Control',
+      'Data Management',
+      'Safety Protocols',
+      'Quality Assurance',
+      'Innovation Implementation',
+    ],
+    'Environmental Stewardship': [
+      'Sustainable Practices',
+      'Natural Resource Management',
+      'Conservation Techniques',
+      'Environmental Monitoring',
+      'Waste Management',
+      'Ecosystem Understanding',
     ],
   };
 
   static List<String> getAllSkills() {
     return categories.values.expand((skills) => skills).toList();
   }
+
+  static List<String> getSkillsByCategory(String category) {
+    return categories[category] ?? [];
+  }
+}
+
+// Journal categories for agricultural education
+class JournalCategories {
+  static const List<String> categories = [
+    'daily_care',
+    'health_check',
+    'feeding',
+    'training',
+    'show_prep',
+    'veterinary',
+    'breeding',
+    'record_keeping',
+    'financial',
+    'learning_reflection',
+    'project_planning',
+    'competition',
+    'community_service',
+    'leadership_activity',
+    'safety_training',
+    'research',
+    'other',
+  ];
+
+  static const Map<String, String> categoryDisplayNames = {
+    'daily_care': 'Daily Care',
+    'health_check': 'Health Check',
+    'feeding': 'Feeding & Nutrition',
+    'training': 'Training & Handling',
+    'show_prep': 'Show Preparation',
+    'veterinary': 'Veterinary Care',
+    'breeding': 'Breeding Management',
+    'record_keeping': 'Record Keeping',
+    'financial': 'Financial Management',
+    'learning_reflection': 'Learning Reflection',
+    'project_planning': 'Project Planning',
+    'competition': 'Competition',
+    'community_service': 'Community Service',
+    'leadership_activity': 'Leadership Activity',
+    'safety_training': 'Safety Training',
+    'research': 'Research & Learning',
+    'other': 'Other',
+  };
+
+  static String getDisplayName(String category) {
+    return categoryDisplayNames[category] ?? category;
+  }
+}
+
+// FFA Degree types and SAE categories
+class FFAConstants {
+  static const List<String> degreeTypes = [
+    'Discovery FFA Degree',
+    'Greenhand FFA Degree',
+    'Chapter FFA Degree',
+    'State FFA Degree',
+    'American FFA Degree',
+  ];
+
+  static const List<String> saeTypes = [
+    'Entrepreneurship',
+    'Placement',
+    'Research',
+    'Exploratory',
+    'Service Learning',
+    'School-Based Enterprise',
+  ];
+
+  static const List<String> competencyLevels = [
+    'Novice',
+    'Developing',
+    'Proficient',
+    'Advanced',
+    'Expert',
+  ];
+
+  static const List<String> evidenceTypes = [
+    'Written Documentation',
+    'Photo Evidence',
+    'Video Demonstration',
+    'Digital Portfolio',
+    'Performance Assessment',
+    'Peer Evaluation',
+    'Supervisor Verification',
+    'Competition Results',
+  ];
 }

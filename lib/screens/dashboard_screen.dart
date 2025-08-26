@@ -28,13 +28,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
       
-      // For demo purposes, allow access even without authentication
       if (user == null) {
-        print('⚠️ No authenticated user - loading demo data');
-        // Continue with demo data instead of redirecting
-      } else {
-        print('✅ Authenticated user: ${user.email}');
+        print('❌ No authenticated user - redirecting to login');
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+        return;
       }
+      print('✅ Authenticated user: ${user.email}');
 
       // Load all dashboard statistics
       final results = await Future.wait([
@@ -289,6 +290,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 
                                 // NEW: Financial Journal Card (safely added)
                                 const FinancialJournalCard(),
+                                
+                                // NEW: Journal Entries Card
+                                DashboardCard(
+                                  title: 'Journal Entries',
+                                  count: 0, // Will be updated with real count
+                                  icon: Icons.book,
+                                  color: const Color(0xFF9C27B0),
+                                  onTap: () => Navigator.pushNamed(context, '/journal'),
+                                ),
                               ],
                             );
                           },
