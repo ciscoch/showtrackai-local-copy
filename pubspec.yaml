@@ -30,6 +30,10 @@ dependencies:
   # Development utilities
   uuid: ^4.2.1
   
+  # Geolocation and permissions
+  geolocator: ^10.1.0
+  permission_handler: ^11.1.0
+  
   # Weather API (using http package instead of weather package)
 
 dev_dependencies:

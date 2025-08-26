@@ -129,7 +129,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
     return null;
   }
   
-  String? _validateTag(String? value) {
+  String? _validateTagField(String? value) {
     if (value != null && value.isNotEmpty) {
       if (value.length > 20) {
         return 'Tag must be less than 20 characters';
@@ -349,7 +349,7 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
                           }
                         });
                       },
-                      validator: _validateTag,
+                      validator: _validateTagField,
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(20),
                         FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-]')),

@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
+import 'n8n_webhook_service.dart';
 
 /// Comprehensive journal service with offline-first capability
 /// Handles CRUD operations, AI processing, search, and sync with Supabase
@@ -83,8 +84,8 @@ class JournalService {
             // Store locally for offline access
             await _storeEntryLocally(syncedEntry);
             
-            // Trigger AI processing asynchronously
-            _processWithAIAsync(syncedEntry.id!);
+            // Trigger enhanced AI processing asynchronously
+            _processWithEnhancedAIAsync(syncedEntry);
             
             return syncedEntry;
           }
@@ -377,48 +378,30 @@ class JournalService {
     }
   }
 
-  /// Trigger AI processing for an entry
-  static Future<void> processWithAI(String entryId) async {
-    try {
-      if (!await _isOnline()) {
-        throw Exception('AI processing requires internet connection');
-      }
-
-      final entry = await getEntry(entryId);
-      if (entry == null) {
-        throw Exception('Entry not found');
-      }
-
-      // Prepare data for N8N webhook
-      final webhookData = {
-        'entryId': entryId,
-        'userId': entry.userId,
-        'title': entry.title,
-        'description': entry.description,
-        'category': entry.category,
-        'aetSkills': entry.aetSkills,
-        'duration': entry.duration,
-        'animalId': entry.animalId,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      final response = await http.post(
-        Uri.parse(_n8nWebhookUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'ShowTrackAI-Flutter/1.0',
-        },
-        body: jsonEncode(webhookData),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode != 200) {
-        throw Exception('AI processing request failed: ${response.statusCode}');
-      }
-
-      print('AI processing initiated for entry $entryId');
-    } catch (e) {
-      throw Exception('Error processing with AI: $e');
+  /// Enhanced AI processing for journal entries
+  static Future<N8NAnalysisResult> processWithAI(String entryId) async {
+    final entry = await getEntry(entryId);
+    if (entry == null) {
+      throw Exception('Entry not found');
     }
+
+    return await N8NWebhookService.processJournalEntry(entry);
+  }
+
+  /// Trigger AI processing and return result
+  static Future<N8NAnalysisResult?> processWithAIAndReturn(JournalEntry entry) async {
+    try {
+      final result = await N8NWebhookService.processJournalEntry(entry);
+      return result;
+    } catch (e) {
+      print('AI processing failed: $e');
+      return null;
+    }
+  }
+
+  /// Process retry queue for failed AI requests
+  static Future<void> processAIRetryQueue() async {
+    await N8NWebhookService.processRetryQueue();
   }
 
   /// Get user statistics
@@ -537,11 +520,11 @@ class JournalService {
     }
   }
 
-  static Future<void> _processWithAIAsync(String entryId) async {
+  static Future<void> _processWithEnhancedAIAsync(JournalEntry entry) async {
     try {
-      await processWithAI(entryId);
+      await N8NWebhookService.processJournalEntry(entry);
     } catch (e) {
-      print('Async AI processing failed for $entryId: $e');
+      print('Async AI processing failed for ${entry.id}: $e');
     }
   }
 

@@ -41,8 +41,8 @@ class Animal {
   final String? description;
   final String? photoUrl;
   final Map<String, dynamic>? metadata;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   
   const Animal({
     this.id,
@@ -60,10 +60,9 @@ class Animal {
     this.description,
     this.photoUrl,
     this.metadata,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) : createdAt = createdAt ?? const DateTime.fromMillisecondsSinceEpoch(0),
-       updatedAt = updatedAt ?? const DateTime.fromMillisecondsSinceEpoch(0);
+    this.createdAt,
+    this.updatedAt,
+  });
   
   // Calculate age if birthDate is provided
   int? get ageInDays {
@@ -170,10 +169,10 @@ class Animal {
       metadata: json['metadata'] as Map<String, dynamic>?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
+          : null,
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
+          : null,
     );
   }
   
@@ -195,7 +194,7 @@ class Animal {
       'description': description,
       'photo_url': photoUrl,
       'metadata': metadata,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
   }

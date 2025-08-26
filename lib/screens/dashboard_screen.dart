@@ -289,6 +289,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 
                                 // NEW: Financial Journal Card (safely added)
                                 const FinancialJournalCard(),
+                                
+                                // NEW: Journal Entries Card
+                                DashboardCard(
+                                  title: 'Journal Entries',
+                                  count: 0, // Will be updated with real count
+                                  icon: Icons.book,
+                                  color: const Color(0xFF9C27B0),
+                                  onTap: () => Navigator.pushNamed(context, '/journal'),
+                                ),
                               ],
                             );
                           },
