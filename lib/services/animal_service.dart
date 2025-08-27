@@ -200,18 +200,24 @@ class AnimalService {
   }
   
   // Check if tag is already used
-  Future<bool> isTagAvailable(String tag) async {
+  Future<bool> isTagAvailable(String tag, {String? excludeAnimalId}) async {
     try {
       if (_currentUserId == null) {
         throw Exception('User not authenticated');
       }
       
-      final response = await _client
+      var query = _client
           .from('animals')
           .select('id')
           .eq('user_id', _currentUserId!)
-          .eq('tag', tag)
-          .maybeSingle();
+          .eq('tag', tag);
+      
+      // Exclude the current animal if editing
+      if (excludeAnimalId != null) {
+        query = query.neq('id', excludeAnimalId);
+      }
+      
+      final response = await query.maybeSingle();
       
       return response == null;
     } catch (e) {
