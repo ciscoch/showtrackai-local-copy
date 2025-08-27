@@ -332,7 +332,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
       
-      // Bottom Navigation with improved mobile spacing
+      // Enhanced Bottom Navigation with better error handling
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -355,45 +355,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
             unselectedFontSize: 11,
             iconSize: 24,
             onTap: (index) {
-          switch (index) {
-            case 0:
-              // Already on home
-              break;
-            case 1:
-              Navigator.pushNamed(context, '/projects');
-              break;
-            case 2:
-              Navigator.pushNamed(context, '/animals');
-              break;
-            case 3:
-              Navigator.pushNamed(context, '/records');
-              break;
-            case 4:
-              Navigator.pushNamed(context, '/profile');
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder),
-            label: 'Projects',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pets),
-            label: 'Animals',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment),
-            label: 'Records',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+              _handleBottomNavigationTap(context, index);
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.folder),
+                label: 'Projects',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.pets),
+                label: 'Animals',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.assignment),
+                label: 'Records',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Profile',
+              ),
             ],
           ),
         ),
@@ -406,6 +390,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  /// Handles bottom navigation tap with improved error handling and user feedback
+  void _handleBottomNavigationTap(BuildContext context, int index) {
+    try {
+      switch (index) {
+        case 0:
+          // Already on home - do nothing or scroll to top
+          break;
+        case 1:
+          print('🏗️ Navigating to Projects');
+          Navigator.pushNamed(context, '/projects');
+          break;
+        case 2:
+          print('🐄 Navigating to Animals');
+          Navigator.pushNamed(context, '/animals');
+          break;
+        case 3:
+          print('📋 Navigating to Records');
+          Navigator.pushNamed(context, '/records');
+          break;
+        case 4:
+          print('👤 Navigating to Profile');
+          Navigator.pushNamed(context, '/profile').catchError((error) {
+            print('❌ Profile navigation error: $error');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.error, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Unable to open profile. Please try again.'),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: Colors.red,
+                  action: SnackBarAction(
+                    label: 'Retry',
+                    textColor: Colors.white,
+                    onPressed: () => Navigator.pushNamed(context, '/profile'),
+                  ),
+                ),
+              );
+            }
+            return false; // Return a value to satisfy the error handler
+          });
+          break;
+      }
+    } catch (e) {
+      print('❌ Navigation error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Navigation error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _logout() async {

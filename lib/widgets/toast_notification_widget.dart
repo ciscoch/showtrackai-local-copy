@@ -271,11 +271,14 @@ class ToastOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        const ToastContainer(),
-      ],
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Stack(
+        children: [
+          child,
+          const ToastContainer(),
+        ],
+      ),
     );
   }
 }

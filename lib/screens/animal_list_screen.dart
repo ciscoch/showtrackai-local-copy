@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/animal.dart';
 import '../services/animal_service.dart';
 import '../services/auth_service.dart';
@@ -7,9 +6,10 @@ import '../services/coppa_service.dart';
 import '../widgets/responsive_scaffold.dart';
 import 'animal_create_screen.dart';
 import 'animal_detail_screen.dart';
+import 'animal_edit_screen.dart';
 
 class AnimalListScreen extends StatefulWidget {
-  const AnimalListScreen({Key? key}) : super(key: key);
+  const AnimalListScreen({super.key});
 
   @override
   State<AnimalListScreen> createState() => _AnimalListScreenState();
@@ -182,49 +182,65 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
     }
   }
   
+  Future<void> _navigateToEditAnimal(Animal animal) async {
+    if (!_canAccessAnimalManagement) {
+      _showCoppaRestrictionDialog();
+      return;
+    }
+    
+    try {
+      final result = await Navigator.push<Animal>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AnimalEditScreen(animal: animal),
+        ),
+      );
+      
+      if (result != null) {
+        // Refresh the list if animal was updated
+        await _loadAnimals();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${result.name} has been updated!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
   Future<void> _deleteAnimal(Animal animal) async {
-    if (!_canAccessAnimalManagement) return;
-    
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Animal'),
-        content: Text('Are you sure you want to delete ${animal.name}? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+    try {
+      await _animalService.deleteAnimal(animal.id!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${animal.name} has been deleted'),
+            backgroundColor: Colors.green,
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+        );
+        await _loadAnimals();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting animal: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true) {
-      try {
-        await _animalService.deleteAnimal(animal.id!);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${animal.name} has been deleted'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          await _loadAnimals();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error deleting animal: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        );
+        // Reload the list to restore the item if deletion failed
+        await _loadAnimals();
       }
     }
   }
@@ -341,7 +357,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
                   // Animal avatar
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     child: animal.photoUrl != null
                         ? ClipOval(
                             child: Image.network(
@@ -385,7 +401,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.secondary.withOpacity(0.2),
+                                  color: theme.colorScheme.secondary.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -424,7 +440,7 @@ class _AnimalListScreenState extends State<AnimalListScreen> with NavigationHand
                     onSelected: (value) {
                       switch (value) {
                         case 'edit':
-                          _navigateToAnimalDetail(animal);
+                          _navigateToEditAnimal(animal);
                           break;
                         case 'delete':
                           _deleteAnimal(animal);
