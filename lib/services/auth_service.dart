@@ -163,6 +163,23 @@ class AuthService extends ChangeNotifier {
     } catch (e) {
       print('❌ Sign in failed: $e');
 
+      // Handle specific case for test users that don't exist
+      if (e.toString().contains('Invalid login credentials') && email.contains('test-')) {
+        print('🧪 Test user not found, attempting auto-creation: $email');
+        try {
+          final createResponse = await createTestUser(email: email, password: password);
+          if (createResponse.user != null) {
+            print('✅ Test user created and signed in: ${createResponse.user!.id}');
+            await _ensureUserProfile(createResponse.user!);
+            _scheduleTokenRefresh();
+            return createResponse;
+          }
+        } catch (createError) {
+          print('❌ Failed to create test user: $createError');
+          throw AuthException('Test user does not exist. Please create in Supabase Dashboard or use Demo Mode.');
+        }
+      }
+
       if (e is AuthException) {
         rethrow;
       } else if (e.toString().contains('Invalid login credentials')) {
@@ -310,6 +327,89 @@ class AuthService extends ChangeNotifier {
     if (token == null || token.isEmpty) return {};
     return {'Authorization': 'Bearer $token'};
   }
+
+  // Create test user automatically if it doesn't exist
+  Future<AuthResponse> createTestUser({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      print('🧪 Creating test user: $email');
+      
+      final response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'name': 'Test User',
+          'type': 'elite_student',
+          'auto_created': true,
+        },
+      );
+
+      if (response.user != null) {
+        print('✅ Test user created successfully: ${response.user!.id}');
+        
+        // If email confirmation is required, try to sign in anyway
+        if (response.session == null) {
+          print('📧 Email confirmation may be required, attempting direct sign in...');
+          try {
+            final signInResponse = await _client.auth.signInWithPassword(
+              email: email,
+              password: password,
+            );
+            return signInResponse;
+          } catch (signInError) {
+            print('⚠️ Direct sign in after creation failed: $signInError');
+            return response; // Return original response
+          }
+        }
+      }
+      
+      return response;
+    } catch (e) {
+      print('❌ Test user creation failed: $e');
+      rethrow;
+    }
+  }
+
+  // Sign in as demo user (offline mode)
+  Future<void> signInAsDemo() async {
+    try {
+      print('🎭 Signing in as demo user');
+      
+      // Create a mock user session for demo mode
+      // This doesn't actually authenticate with Supabase
+      // but provides a consistent interface for the app
+      
+      notifyListeners(); // Notify that auth state has "changed"
+      print('✅ Demo sign in successful');
+    } catch (e) {
+      print('❌ Demo sign in failed: $e');
+      rethrow;
+    }
+  }
+
+  // Check if user is in demo mode
+  bool get isDemoMode {
+    // In demo mode, we don't have a real Supabase user
+    // but we can simulate being authenticated
+    return currentUser == null && _demoModeActive;
+  }
+  
+  bool _demoModeActive = false;
+  
+  void activateDemoMode() {
+    _demoModeActive = true;
+    notifyListeners();
+  }
+  
+  void deactivateDemoMode() {
+    _demoModeActive = false;
+    notifyListeners();
+  }
+
+  // Override isAuthenticated to include demo mode
+  bool get isAuthenticatedOrDemo => isAuthenticated || isDemoMode;
 
   @override
   void dispose() {
