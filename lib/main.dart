@@ -8,12 +8,14 @@ import 'screens/login_screen.dart';
 import 'screens/animal_create_screen.dart';
 import 'screens/animal_list_screen.dart';
 import 'screens/animal_detail_screen.dart';
+import 'screens/profile_screen.dart';
 import 'models/animal.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 import 'debug/theme_diagnostic.dart';
 import 'debug/toast_test_widget.dart';
 import 'widgets/toast_notification_widget.dart';
+import 'widgets/auth_wrapper.dart';
 
 void main() async {
   print('🚀 Starting ShowTrackAI Journaling App');
@@ -73,7 +75,7 @@ class ShowTrackAIJournaling extends StatelessWidget {
           ),
         ),
         debugShowCheckedModeBanner: false,
-        initialRoute: '/login',
+        initialRoute: '/',
         // Add error handling
         builder: (context, child) {
           print('🏗️ MaterialApp builder called with child: ${child?.runtimeType}');
@@ -84,8 +86,8 @@ class ShowTrackAIJournaling extends StatelessWidget {
         },
       routes: {
         '/': (context) {
-          print('🏠 Navigating to root route (redirecting to login)');
-          return const LoginScreen();
+          print('🏠 Navigating to root route (AuthWrapper)');
+          return const AuthWrapper();
         },
         '/login': (context) {
           print('🔐 Navigating to login route');
@@ -99,16 +101,16 @@ class ShowTrackAIJournaling extends StatelessWidget {
           print('🍞 Navigating to toast test route');
           return const ToastTestWidget();
         },
-        '/dashboard': (context) => const DashboardScreen(),
-        '/journal': (context) => const JournalListPage(),
-        '/journal/new': (context) => const JournalEntryFormPage(),
-        '/projects': (context) => const Placeholder(), // TODO: Add projects screen
-        '/animals': (context) => const AnimalListScreen(),
-        '/animals/create': (context) => const AnimalCreateScreen(),
-        '/records': (context) => const Placeholder(), // TODO: Add records screen
-        '/tasks': (context) => const Placeholder(), // TODO: Add tasks screen
-        '/profile': (context) => const Placeholder(), // TODO: Add profile screen
-        '/settings': (context) => const Placeholder(), // TODO: Add settings screen
+        '/dashboard': (context) => AuthGuard(child: const DashboardScreen()),
+        '/journal': (context) => AuthGuard(child: const JournalListPage()),
+        '/journal/new': (context) => AuthGuard(child: const JournalEntryFormPage()),
+        '/projects': (context) => AuthGuard(child: const Placeholder()), // TODO: Add projects screen
+        '/animals': (context) => AuthGuard(child: const AnimalListScreen()),
+        '/animals/create': (context) => AuthGuard(child: const AnimalCreateScreen()),
+        '/records': (context) => AuthGuard(child: const Placeholder()), // TODO: Add records screen
+        '/tasks': (context) => AuthGuard(child: const Placeholder()), // TODO: Add tasks screen
+        '/profile': (context) => AuthGuard(child: const ProfileScreen()),
+        '/settings': (context) => AuthGuard(child: const Placeholder()), // TODO: Add settings screen
       },
       onGenerateRoute: (settings) {
         // Handle dynamic routes like animal detail pages

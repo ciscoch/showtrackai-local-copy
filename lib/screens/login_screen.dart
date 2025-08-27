@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -21,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     // Pre-populate with test user as requested
     _emailController.text = 'test-elite@example.com';
-    _passwordController.text = 'test123456';
+    _passwordController.text = 'Password123';
     print('🧪 Pre-populated test user: test-elite@example.com');
   }
 
@@ -54,92 +55,46 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       print('🔐 Attempting sign in for: $email');
       
-      // Check if this is our test user
-      if (email == 'test-elite@example.com') {
-        print('🧪 Test user detected - using test authentication flow');
-        
-        // Test authentication flow with fallback
-        try {
-          // Try Supabase authentication first with short timeout
-          final response = await Supabase.instance.client.auth
-              .signInWithPassword(
-                email: email,
-                password: password,
-              )
-              .timeout(
-                const Duration(seconds: 5),
-                onTimeout: () {
-                  throw Exception('Connection timeout');
-                },
-              );
-
-          print('✅ Supabase sign in successful: ${response.user?.email}');
-          
-          if (response.user != null && mounted) {
-            _showSuccessMessage('Signed in with Supabase');
-            Navigator.of(context).pushReplacementNamed('/dashboard');
-            return;
-          }
-        } catch (supabaseError) {
-          print('⚠️ Supabase authentication failed: $supabaseError');
-          
-          // Fallback to test mode if password is correct
-          if (password == 'test123456') {
-            print('🎮 Using test mode authentication');
-            _showSuccessMessage('Signed in as test user');
-            Navigator.of(context).pushReplacementNamed('/dashboard');
-            return;
-          } else {
-            throw Exception('Invalid password for test user');
-          }
-        }
-      }
-      
-      // Standard authentication for other users
-      final response = await Supabase.instance.client.auth
-          .signInWithPassword(
-            email: email,
-            password: password,
-          )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw Exception('Connection timeout - please check your internet connection');
-            },
-          );
+      // Use AuthService for consistent authentication handling
+      final authService = AuthService();
+      final response = await authService.signIn(
+        email: email,
+        password: password,
+      );
 
       print('✅ Sign in successful: ${response.user?.email}');
       
       if (response.user != null && mounted) {
         _showSuccessMessage('Signed in successfully');
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        // Auth state change will trigger navigation automatically via AuthWrapper
+        // No need to navigate manually
       }
     } catch (e) {
       print('❌ Sign in error: $e');
       
       if (mounted) {
         String errorMessage = 'Login failed';
+        bool showCreationDialog = false;
         
         // Parse error message for better user feedback
         if (e.toString().contains('timeout')) {
           errorMessage = 'Connection timeout - please check your internet connection';
-        } else if (e.toString().contains('Invalid login credentials')) {
-          if (email == 'test-elite@example.com') {
-            errorMessage = 'Test user not found. Please create user in Supabase Dashboard or use Demo Mode';
+        } else if (e.toString().contains('Test user does not exist')) {
+          errorMessage = 'Test user not found. Create in Supabase Dashboard or use Demo Mode.';
+          showCreationDialog = true;
+        } else if (e.toString().contains('Invalid login credentials') || e.toString().contains('Invalid email or password')) {
+          if (email.contains('test-')) {
+            errorMessage = 'Test user not found. Create in Supabase Dashboard or use Demo Mode.';
+            showCreationDialog = true;
           } else {
             errorMessage = 'Invalid email or password';
           }
-        } else if (e.toString().contains('Test user not found')) {
-          errorMessage = 'Test user needs to be created in Supabase Dashboard';
-          _showTestUserCreationDialog();
         } else if (e.toString().contains('ERR_NAME_NOT_RESOLVED')) {
           errorMessage = 'Cannot reach server - please check your connection';
         } else if (e.toString().contains('ERR_TIMED_OUT')) {
           errorMessage = 'Server not responding - please try again later';
-        } else if (e.toString().contains('Invalid password for test user')) {
-          errorMessage = 'Invalid password for test user. Use: test123456';
         } else {
-          errorMessage = 'Login failed: ${e.toString().replaceAll('Exception: ', '')}';
+          errorMessage = 'Login failed: ${e.toString().replaceAll('Exception: ', '').replaceAll('AuthException: ', '')}';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +104,10 @@ class _LoginScreenState extends State<LoginScreen> {
             duration: const Duration(seconds: 5),
           ),
         );
+        
+        if (showCreationDialog) {
+          _showTestUserCreationDialog();
+        }
       }
     } finally {
       if (mounted) {
@@ -195,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Email: test-elite@example.com', style: TextStyle(fontFamily: 'monospace')),
-                        Text('Password: test123456', style: TextStyle(fontFamily: 'monospace')),
+                        Text('Password: Password123', style: TextStyle(fontFamily: 'monospace')),
                         Text('Auto Confirm User: ✓', style: TextStyle(fontFamily: 'monospace')),
                         Text('Email Confirm: ✓', style: TextStyle(fontFamily: 'monospace')),
                       ],
@@ -205,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(height: 8),
                 Text('5. Click "Create User"'),
                 SizedBox(height: 16),
-                Text('Or use Demo Mode to test the app without Supabase.'),
+                Text('Or use Demo Mode to test the app without authentication.'),
               ],
             ),
           ),
@@ -236,11 +195,19 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      final authService = AuthService();
+      
+      // Activate demo mode in AuthService
+      authService.activateDemoMode();
+      
       // Simulate authentication delay
       await Future.delayed(const Duration(seconds: 1));
       
-      _showSuccessMessage('Signed in as Demo User');
-      Navigator.of(context).pushReplacementNamed('/dashboard');
+      if (mounted) {
+        _showSuccessMessage('Signed in as Demo User');
+        // Auth state change will trigger navigation automatically via AuthWrapper
+        // No need to navigate manually
+      }
     } catch (e) {
       print('❌ Demo sign in failed: $e');
       
@@ -418,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _isLoading ? null : () async {
                   // Ensure test credentials are set
                   _emailController.text = 'test-elite@example.com';
-                  _passwordController.text = 'test123456';
+                  _passwordController.text = 'Password123';
                   await _signIn();
                 },
                 icon: const Icon(Icons.science),
@@ -543,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const SelectableText(
-                          'Email: test-elite@example.com\nPassword: test123456\n\n✨ Features:\n• Works with Supabase authentication\n• Real-time data synchronization\n• Pre-populated on app start',
+                          'Email: test-elite@example.com\nPassword: Password123\n\n✨ Features:\n• Works with Supabase authentication\n• Real-time data synchronization\n• Pre-populated on app start',
                           style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                         ),
                       ),

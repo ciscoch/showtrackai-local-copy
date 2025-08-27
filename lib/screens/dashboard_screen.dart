@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/financial_journal_card.dart';
-import '../widgets/ffa_degree_progress_card.dart';
+import '../widgets/ffa_degrees_section.dart';
+import '../services/auth_service.dart';
 
 /// Main dashboard screen that displays all cards including the new journal card
 /// This screen safely adds the journal functionality without modifying existing cards
@@ -25,17 +26,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _loadDashboardData() async {
     try {
+      final authService = AuthService();
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
       
-      if (user == null) {
-        print('❌ No authenticated user - redirecting to login');
-        if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/login');
-        }
+      // Auth is already checked by AuthGuard, just check if demo mode
+      if (authService.isDemoMode) {
+        print('🎭 Loading dashboard in demo mode');
+        _loadDemoData();
         return;
       }
-      print('✅ Authenticated user: ${user.email}');
+      
+      print('✅ Loading dashboard for authenticated user: ${user?.email}');
 
       // Load all dashboard statistics
       final results = await Future.wait([
@@ -112,6 +114,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       return 5; // Fallback to current displayed value
     }
+  }
+
+  void _loadDemoData() {
+    // Load demo data for testing without Supabase connection
+    print('📊 Loading demo dashboard data');
+    setState(() {
+      _dashboardData = {
+        'activeProjects': 3,
+        'livestock': 8,
+        'healthRecords': 28,
+        'tasksDue': 5,
+      };
+      _isLoading = false;
+    });
   }
 
   @override
@@ -394,14 +410,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _logout() async {
     try {
-      await Supabase.instance.client.auth.signOut();
+      final authService = AuthService();
+      
+      if (authService.isDemoMode) {
+        // Just deactivate demo mode
+        authService.deactivateDemoMode();
+      } else {
+        // Sign out from Supabase
+        await authService.signOut();
+      }
+      
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/login');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
+      print('❌ Logout error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
     }
   }
 }
