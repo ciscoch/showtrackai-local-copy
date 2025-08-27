@@ -21,7 +21,7 @@ class InputSanitizer {
   );
 
   static final RegExp _eventHandlerPattern = RegExp(
-    r'on\w+\s*=\s*["\'][^"\']*["\']',
+    'on\\w+\\s*=\\s*["\'][^"\']*["\']',
     multiLine: true,
     caseSensitive: false,
   );
