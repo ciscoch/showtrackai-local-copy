@@ -1,34 +1,18 @@
-# Backlog (Flutter Web)
-
-
 ## Now
+- [ ] [APP-123: Auth screen + Supabase email sign-in](https://linear.app/showtrackai/issue/APP-123)
+- [ ] [APP-124: Create Animal → Journal Entry with weather](https://linear.app/showtrackai/issue/APP-124)
+- [ ] [APP-125: Timeline view combining journal + expenses](https://linear.app/showtrackai/issue/APP-125)
 
+## Next
+- [ ] [APP-126: CSV export of journal](https://linear.app/showtrackai/issue/APP-126)
+- [ ] [APP-127: RLS policies owner-only](https://linear.app/showtrackai/issue/APP-127)
 
+<!-- BEGIN LINEAR ASSIGNED -->
+## Linear — My Assigned (updated 2025-08-27 20:41:15 UTC)
 
+- [ ] [SHO-7: Add Feed modification](https://linear.app/showtrackai/issue/SHO-7/add-feed-modification)
+- [ ] [SHO-9: Journal Entry Content should give option to auto-populate field based on Entry title, Activity, date and duration](https://linear.app/showtrackai/issue/SHO-9/journal-entry-content-should-give-option-to-auto-populate-field-based)
+- [ ] [SHO-10: on New Journal Entry, Learning objectives & Tags should be auto-selected based on Journal Entry Activity, and Journal Entry Content](https://linear.app/showtrackai/issue/SHO-10/on-new-journal-entry-learning-objectives-and-tags-should-be-auto)
+- [ ] [SHO-6: new journal error](https://linear.app/showtrackai/issue/SHO-6/new-journal-error)
 
-- [] SHO-5 https://linear.app/showtrackai/issue/SHO-5/i-cannot-save-edits-to-animals I cannot save edits to animals without error. 
-
-
-#NOW
-
-
-
-
-
-
-## Current Active Task 🚧
-
-- [] SHO-5 https://linear.app/showtrackai/issue/SHO-5/i-cannot-save-edits-to-animals I cannot save edits to animals without error. 
-
-
-## Remaining Tasks 📋
-
-### Post-submit Persistence (Verification Needed)
-- [ ] Verify `journal_entries` upsert is working correctly with all fields
-- [ ] Confirm server-side assessment storage in `journal_entry_ai_assessments`
-- [ ] Validate that SPAR results are properly stored when N8N completes
-
-### UI Completions
-- [ ] Complete weather pill display on timeline (API integration needed)
-- [ ] Implement assessment preview UI component
-- [ ] Add visual indicators for AI processing status
+<!-- END LINEAR ASSIGNED -->

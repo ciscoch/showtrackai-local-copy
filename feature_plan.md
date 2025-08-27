@@ -1,43 +1,43 @@
-# Feature Plan: ShowTrackAI Agricultural Journaling System
+# Feature Plan: APP-123: Auth screen + Supabase email sign-in - Add sign-up functionality
 
-## Slice 1: Journal Entry Model & Supabase Integration
-**Description:** Create journal entry model with agricultural context and Supabase integration
+## Slice 1: Basic Structure Setup
+**Description:** Set up basic journaling data models and service structure
 **Files:** lib/models/journal_entry.dart, lib/services/journal_service.dart
-**Tests:** Test model creation and Supabase CRUD operations
-**Success:** Journal entries can be created, stored, and retrieved from Supabase
+**Tests:** Unit tests for models and service
+**Success:** Models can be instantiated and service can manage entries
 
-## Slice 2: Journal Entry Form Widget
-**Description:** Create form for adding journal entries with livestock tracking context
-**Files:** lib/widgets/journal_entry_form.dart, lib/widgets/livestock_selector.dart
-**Tests:** Widget tests for form validation and livestock selection
-**Success:** Form validates input and associates entries with animals
+## Slice 2: Basic UI Components
+**Description:** Create basic journal entry list and entry widget
+**Files:** lib/widgets/journal_entry_widget.dart, lib/widgets/journal_list.dart
+**Tests:** Widget tests for components
+**Success:** UI components render correctly
 
-## Slice 3: Journal List Screen with Filters
-**Description:** Display journal entries with filtering by date, animal, and category
-**Files:** lib/screens/journal_list_screen.dart, lib/widgets/journal_filter_bar.dart
-**Tests:** Test list rendering and filter functionality
-**Success:** Users can view and filter their journal entries
+## Slice 3: Journal List Screen
+**Description:** Create screen to display list of journal entries
+**Files:** lib/screens/journal_list_screen.dart
+**Tests:** Integration test for screen navigation
+**Success:** Screen displays and navigates properly
 
-## Slice 4: Add Entry Screen with AI Integration
-**Description:** Screen for creating entries with AI suggestions from N8N webhook
-**Files:** lib/screens/add_journal_entry_screen.dart, lib/services/ai_journal_service.dart
-**Tests:** Test AI integration and webhook calls
-**Success:** AI provides suggestions and competency mapping for entries
+## Slice 4: Add Entry Functionality
+**Description:** Add ability to create new journal entries
+**Files:** lib/screens/add_journal_entry_screen.dart, update journal_service.dart
+**Tests:** Test entry creation and persistence
+**Success:** Users can add new entries
 
-## Slice 5: Journal Detail & Edit Screen
-**Description:** View, edit, and delete journal entries with rich text support
-**Files:** lib/screens/journal_detail_screen.dart, lib/widgets/rich_text_editor.dart
-**Tests:** Test editing functionality and data persistence
-**Success:** Full CRUD operations work with rich text formatting
+## Slice 5: Entry Detail View
+**Description:** View and edit individual journal entries
+**Files:** lib/screens/journal_detail_screen.dart
+**Tests:** Test detail view and editing
+**Success:** Entries can be viewed and edited
 
-## Slice 6: Dashboard Integration
-**Description:** Add journal summary widget to main dashboard
-**Files:** lib/widgets/journal_summary_card.dart, update lib/screens/dashboard_screen.dart
-**Tests:** Test dashboard integration and navigation
-**Success:** Journal summary appears on dashboard with quick actions
+## Slice 6: Data Persistence
+**Description:** Implement local storage for journal entries
+**Files:** Update journal_service.dart with SQLite/SharedPreferences
+**Tests:** Test data persistence across app restarts
+**Success:** Data persists between sessions
 
-## Slice 7: Export & Sharing Features
-**Description:** Export journal entries as PDF/CSV for FFA documentation
-**Files:** lib/services/journal_export_service.dart, lib/screens/export_screen.dart
-**Tests:** Test export generation and sharing functionality
-**Success:** Users can export journal entries for FFA requirements
+## Slice 7: Polish and Refinement
+**Description:** Add search, filtering, and UI polish
+**Files:** Update existing screens with enhanced features
+**Tests:** End-to-end testing
+**Success:** Full journaling functionality is polished and tested

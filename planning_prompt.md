@@ -1,7 +1,7 @@
 # Feature Planning Request
 
 ## Goal
-build my journaling app
+APP-123: Auth screen + Supabase email sign-in - Add sign-up functionality
 
 ## Current Project Structure
 This is a Flutter ShowTrackAI app for agricultural education with the following structure:
