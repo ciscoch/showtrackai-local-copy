@@ -134,7 +134,7 @@ E
   - Duplicate function declarations
   - Conflicting imports (JournalCategories, FFAConstants)
 
-
+- [ ] Create profile UI/UX tab that fullfils all pertainet information to match user table and profile tables.
 
 ## Remaining Tasks 📋
 
