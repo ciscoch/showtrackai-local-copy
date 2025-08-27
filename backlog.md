@@ -62,29 +62,16 @@
 
 ## Now
 
-- [] Add Breed Drop-down box with common show breeds for each species. make mandatory
 
-- [] The Netlify deploy errored, with the following guidance provided:
 
-**Diagnosis:**
-The build failure is due to multiple errors in the `journal_entry_form_page.dart` file starting from line 3815 to line 4174. These errors include unmatched parenthesis and square brackets, duplicate function declarations, and conflicting imports.
 
-**Solution:**
-1. **Unmatched Parenthesis and Square Brackets:**
-   - Fix the unmatched parenthesis and square brackets in the `journal_entry_form_page.dart` file starting from line 3815 to line 4174.
+- [] SHO-5 https://linear.app/showtrackai/issue/SHO-5/i-cannot-save-edits-to-animals I cannot save edits to animals without error. 
 
-2. **Duplicate Function Declarations:**
-   - Remove or rename the duplicate function declarations in the `journal_entry_form_page.dart` file to resolve the conflicts.
 
-3. **Conflicting Imports:**
-   - Address the conflicting imports of `JournalCategories` and `FFAConstants` from different files in the `journal_entry_form_page.dart` file to avoid naming conflicts.
-
-E
 #NOW
 
 
 
-- [ ] Add a “Feeds” section to the Journal Entry flow so users can record feeds by **brand** (e.g., Jacoby) and **feed name** (e.g., Red Tag Sheep & Goat Developer), log **quantity** (feeds in **lbs**, hay in **flakes**), and quickly **Use Last** to auto-fill.Uses the updated schema (`feed_brands`, `feed_products`, `journal_feed_items`, `user_feed_recent`) with RLS in place.
 
 
 
@@ -128,13 +115,8 @@ E
 
 ## Current Active Task 🚧
 
-- [ ] **Fix Netlify deployment error** - Build failure in journal_entry_form_page.dart:
-  - Lines 3815-4174 have syntax errors
-  - Unmatched parentheses and brackets
-  - Duplicate function declarations
-  - Conflicting imports (JournalCategories, FFAConstants)
+- [] SHO-5 https://linear.app/showtrackai/issue/SHO-5/i-cannot-save-edits-to-animals I cannot save edits to animals without error. 
 
-- [ ] Create profile UI/UX tab that fullfils all pertainet information to match user table and profile tables.
 
 ## Remaining Tasks 📋
 
