@@ -58,7 +58,7 @@ class _FeedDataCardState extends State<FeedDataCard> {
       child: Container(
         // DEBUG: Add background color to make it more visible
         decoration: BoxDecoration(
-          color: Colors.green.shade25,
+          color: Colors.green.shade50,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Padding(
