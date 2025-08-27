@@ -20,16 +20,34 @@ BEGIN
 END;
 $$;
 
+-- First, ensure the updated_at column exists (it might be missing)
+ALTER TABLE feed_brands 
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL;
+
+-- Create or replace the trigger function for updating timestamps
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for feed_brands if it doesn't exist
+DROP TRIGGER IF EXISTS update_feed_brands_updated_at ON feed_brands;
+CREATE TRIGGER update_feed_brands_updated_at
+    BEFORE UPDATE ON feed_brands
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Ensure all brands have proper non-null required fields
 UPDATE feed_brands 
 SET 
     is_active = COALESCE(is_active, true),
-    created_at = COALESCE(created_at, NOW()),
-    updated_at = COALESCE(updated_at, NOW())
+    created_at = COALESCE(created_at, NOW())
 WHERE 
     is_active IS NULL 
-    OR created_at IS NULL 
-    OR updated_at IS NULL;
+    OR created_at IS NULL;
 
 -- Re-insert brands if they don't exist (using explicit IDs for consistency)
 INSERT INTO feed_brands (id, name, is_active, created_at, updated_at) VALUES
@@ -115,18 +133,27 @@ BEGIN
 END;
 $$;
 
+-- Ensure feed_products also has updated_at column
+ALTER TABLE feed_products 
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL;
+
+-- Create trigger for feed_products if it doesn't exist
+DROP TRIGGER IF EXISTS update_feed_products_updated_at ON feed_products;
+CREATE TRIGGER update_feed_products_updated_at
+    BEFORE UPDATE ON feed_products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Ensure all products have required non-null fields
 UPDATE feed_products 
 SET 
     species = COALESCE(species, ARRAY['cattle', 'goat', 'sheep', 'swine']),
     is_active = COALESCE(is_active, true),
-    created_at = COALESCE(created_at, NOW()),
-    updated_at = COALESCE(updated_at, NOW())
+    created_at = COALESCE(created_at, NOW())
 WHERE 
     species IS NULL OR species = '{}' 
     OR is_active IS NULL 
-    OR created_at IS NULL 
-    OR updated_at IS NULL;
+    OR created_at IS NULL;
 
 -- Final validation
 DO $$
@@ -187,7 +214,7 @@ SELECT
     COUNT(*) FILTER (WHERE id IS NULL) as null_id_count,
     COUNT(*) FILTER (WHERE name IS NULL OR name = '') as null_name_count,
     MIN(created_at) as oldest_brand_date,
-    MAX(updated_at) as newest_update
+    MAX(COALESCE(updated_at, created_at)) as newest_update
 FROM feed_brands;
 
 -- Grant permissions on the status view
