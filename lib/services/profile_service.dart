@@ -246,14 +246,25 @@ class ProfileService {
     // This would connect to achievements table when available
     // For now, calculate based on activity levels
     try {
-      final stats = await getUserStatistics();
+      // Get counts directly instead of calling getUserStatistics() to avoid recursion
+      final results = await Future.wait([
+        _getTotalJournalEntries(),
+        _getAnimalCount(),
+        _getHealthRecordCount(),
+        _getActiveProjects(),
+      ]);
+      
       int achievementCount = 0;
+      final journalEntries = results[0];
+      final totalAnimals = results[1]; 
+      final healthRecords = results[2];
+      final activeProjects = results[3];
       
       // Basic achievements based on usage
-      if (stats['journal_entries'] >= 10) achievementCount++;
-      if (stats['total_animals'] >= 5) achievementCount++;
-      if (stats['health_records'] >= 20) achievementCount++;
-      if (stats['active_projects'] >= 3) achievementCount++;
+      if (journalEntries >= 10) achievementCount++;
+      if (totalAnimals >= 5) achievementCount++;
+      if (healthRecords >= 20) achievementCount++;
+      if (activeProjects >= 3) achievementCount++;
       
       return achievementCount + 8; // Base achievements
     } catch (e) {
