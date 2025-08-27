@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     // Pre-populate with test user as requested
     _emailController.text = 'test-elite@example.com';
-    _passwordController.text = 'test123456';
+    _passwordController.text = 'Password123';
     print('🧪 Pre-populated test user: test-elite@example.com');
   }
 
@@ -154,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Email: test-elite@example.com', style: TextStyle(fontFamily: 'monospace')),
-                        Text('Password: test123456', style: TextStyle(fontFamily: 'monospace')),
+                        Text('Password: Password123', style: TextStyle(fontFamily: 'monospace')),
                         Text('Auto Confirm User: ✓', style: TextStyle(fontFamily: 'monospace')),
                         Text('Email Confirm: ✓', style: TextStyle(fontFamily: 'monospace')),
                       ],
@@ -385,7 +385,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _isLoading ? null : () async {
                   // Ensure test credentials are set
                   _emailController.text = 'test-elite@example.com';
-                  _passwordController.text = 'test123456';
+                  _passwordController.text = 'Password123';
                   await _signIn();
                 },
                 icon: const Icon(Icons.science),
@@ -510,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const SelectableText(
-                          'Email: test-elite@example.com\nPassword: test123456\n\n✨ Features:\n• Works with Supabase authentication\n• Real-time data synchronization\n• Pre-populated on app start',
+                          'Email: test-elite@example.com\nPassword: Password123\n\n✨ Features:\n• Works with Supabase authentication\n• Real-time data synchronization\n• Pre-populated on app start',
                           style: TextStyle(fontFamily: 'monospace', fontSize: 12),
                         ),
                       ),
