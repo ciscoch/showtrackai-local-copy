@@ -61,6 +61,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     try {
       setState(() => _isLoading = true);
       
+      // Check if we should use demo data
+      if (_authService.isDemoMode || (!_authService.isAuthenticated)) {
+        print('⚠️ Using demo mode or not authenticated, loading demo data');
+        _loadDemoProfileData();
+        return;
+      }
+      
       // Load profile data and statistics using ProfileService
       final results = await Future.wait([
         _profileService.getProfileData(),
@@ -83,16 +90,53 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _animationController.forward();
     } catch (e) {
       print('Error loading profile: $e');
-      setState(() => _isLoading = false);
+      // Fallback to demo data on error
+      _loadDemoProfileData();
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to load profile: ${e.toString()}'),
-            backgroundColor: AppTheme.accentRed,
+            content: const Text('Using demo profile data'),
+            backgroundColor: AppTheme.accentOrange,
           ),
         );
       }
     }
+  }
+  
+  /// Load demo profile data when services aren't available
+  void _loadDemoProfileData() {
+    setState(() {
+      _profileData = {
+        'name': 'Demo Student',
+        'email': 'demo@showtrackai.com',
+        'chapter': 'Demo FFA Chapter',
+        'degree': 'Chapter FFA Degree',
+        'years_active': 2,
+        'state': 'Demo State',
+        'bio': 'This is a demo profile showing how ShowTrackAI works.',
+        'phone': '(555) 123-4567',
+        'joined_date': '2023-08-01T00:00:00Z',
+      };
+      
+      _statistics = {
+        'total_animals': 5,
+        'active_projects': 3,
+        'journal_entries': 12,
+        'health_records': 8,
+        'current_shows': 2,
+        'achievements': 4,
+      };
+      
+      _nameController.text = _profileData['name'] ?? '';
+      _chapterController.text = _profileData['chapter'] ?? '';
+      _bioController.text = _profileData['bio'] ?? '';
+      _phoneController.text = _profileData['phone'] ?? '';
+      
+      _isLoading = false;
+    });
+    
+    _animationController.forward();
   }
   
 

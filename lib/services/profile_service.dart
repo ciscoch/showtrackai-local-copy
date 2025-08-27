@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 import 'auth_service.dart';
 
 /// Service for managing user profile data and statistics
@@ -124,9 +125,10 @@ class ProfileService {
       final fileName = 'profile_${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       
       // Upload to Supabase Storage
+      final file = File(filePath);
       await _supabase.storage
           .from('profiles')
-          .upload(fileName, filePath);
+          .upload(fileName, file);
 
       // Get public URL
       final publicUrl = _supabase.storage
