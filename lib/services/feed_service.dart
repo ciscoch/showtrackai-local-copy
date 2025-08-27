@@ -37,8 +37,32 @@ class FeedService {
           .eq('is_active', true)
           .order('name', ascending: true);
 
-      final brands = (response as List)
-          .map((json) => FeedBrand.fromJson(json))
+      // Ensure response is a list and handle null/empty cases
+      if (response == null) {
+        print('⚠️ Database returned null response for brands');
+        return [];
+      }
+
+      final responseList = response is List ? response : [];
+      
+      final brands = responseList
+          .where((json) => json != null && json is Map<String, dynamic>)
+          .map((json) {
+            try {
+              final brandJson = json as Map<String, dynamic>;
+              // Additional validation before parsing
+              if (brandJson['id'] == null || brandJson['name'] == null) {
+                print('⚠️ Skipping brand with missing required fields: $brandJson');
+                return null;
+              }
+              return FeedBrand.fromJson(brandJson);
+            } catch (e) {
+              print('⚠️ Failed to parse brand JSON: $json, error: $e');
+              return null;
+            }
+          })
+          .where((brand) => brand != null)
+          .cast<FeedBrand>()
           .toList();
 
       print('✅ Found ${brands.length} active brands');
@@ -108,8 +132,32 @@ class FeedService {
 
       final response = await query.order('name', ascending: true);
 
-      final products = (response as List)
-          .map((json) => FeedProduct.fromJson(json))
+      // Ensure response is a list and handle null/empty cases
+      if (response == null) {
+        print('⚠️ Database returned null response for products');
+        return [];
+      }
+
+      final responseList = response is List ? response : [];
+      
+      final products = responseList
+          .where((json) => json != null && json is Map<String, dynamic>)
+          .map((json) {
+            try {
+              final productJson = json as Map<String, dynamic>;
+              // Additional validation before parsing
+              if (productJson['id'] == null || productJson['brand_id'] == null || productJson['name'] == null) {
+                print('⚠️ Skipping product with missing required fields: $productJson');
+                return null;
+              }
+              return FeedProduct.fromJson(productJson);
+            } catch (e) {
+              print('⚠️ Failed to parse product JSON: $json, error: $e');
+              return null;
+            }
+          })
+          .where((product) => product != null)
+          .cast<FeedProduct>()
           .toList();
 
       print('✅ Found ${products.length} products');
@@ -748,6 +796,110 @@ class FeedService {
         message: 'Failed to load popular products',
         originalError: e,
       );
+    }
+  }
+
+  /// Save feed items to a journal entry
+  /// 
+  /// [feedItems] - List of feed items to save
+  /// 
+  /// Saves feed items to the database and updates recent feed usage for
+  /// "Use Last" functionality. Each feed item must have an entryId.
+  /// 
+  /// Throws [FeedServiceException] if the operation fails.
+  /// 
+  /// Example:
+  /// ```dart
+  /// await FeedService.saveFeedItems([
+  ///   FeedItem.create(
+  ///     entryId: 'entry_123',
+  ///     userId: 'user_123',
+  ///     brandId: 'brand_1',
+  ///     productId: 'product_1',
+  ///     quantity: 3.5,
+  ///     unit: FeedUnit.lbs,
+  ///   ),
+  /// ]);
+  /// ```
+  static Future<void> saveFeedItems(List<FeedItem> feedItems) async {
+    if (feedItems.isEmpty) return;
+    
+    try {
+      _ensureAuthenticated();
+      
+      final currentUser = _supabase.auth.currentUser!;
+      print('💾 Saving ${feedItems.length} feed items for user: ${currentUser.id}');
+
+      // Prepare feed items for database insertion
+      final feedItemsData = feedItems.map((item) => {
+        'id': item.id,
+        'entry_id': item.entryId,
+        'user_id': currentUser.id,
+        'brand_id': item.brandId,
+        'product_id': item.productId,
+        'is_hay': item.isHay,
+        'quantity': item.quantity,
+        'unit': item.unit.name,
+        'note': item.note,
+        'created_at': DateTime.now().toIso8601String(),
+      }).toList();
+
+      // Insert feed items
+      await _supabase.from('feed_items').upsert(feedItemsData);
+
+      // Update recent feed usage for "Use Last" functionality
+      await _updateRecentFeedUsage(feedItems);
+
+      print('✅ Successfully saved ${feedItems.length} feed items');
+
+    } on PostgrestException catch (e) {
+      print('❌ Database error saving feed items: ${e.message}');
+      throw FeedServiceException(
+        message: 'Failed to save feed items: ${e.message}',
+        code: 'DATABASE_ERROR',
+        originalError: e,
+      );
+    } catch (e) {
+      print('❌ Unexpected error saving feed items: $e');
+      throw FeedServiceException(
+        message: 'Failed to save feed items',
+        originalError: e,
+      );
+    }
+  }
+
+  /// Update recent feed usage for "Use Last" functionality
+  static Future<void> _updateRecentFeedUsage(List<FeedItem> feedItems) async {
+    try {
+      final currentUser = _supabase.auth.currentUser!;
+      
+      for (final item in feedItems) {
+        // Skip hay items as they don't have brand/product
+        if (item.isHay || item.brandId == null || item.productId == null) {
+          continue;
+        }
+
+        final recentFeedData = {
+          'user_id': currentUser.id,
+          'brand_id': item.brandId,
+          'product_id': item.productId,
+          'is_hay': item.isHay,
+          'quantity': item.quantity,
+          'unit': item.unit.name,
+          'last_used_at': DateTime.now().toIso8601String(),
+        };
+
+        // Upsert recent feed usage (create or update existing)
+        await _supabase
+            .from('user_feed_recent')
+            .upsert(recentFeedData, 
+              onConflict: 'user_id,brand_id,product_id');
+      }
+      
+      print('✅ Updated recent feed usage records');
+    } catch (e) {
+      print('⚠️ Failed to update recent feed usage: $e');
+      // Don't throw - this is not critical
     }
   }
 

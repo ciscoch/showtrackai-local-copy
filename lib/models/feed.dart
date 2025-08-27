@@ -17,12 +17,23 @@ class FeedBrand {
   });
 
   factory FeedBrand.fromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
+    final name = json['name']?.toString() ?? '';
+    
+    // Validate required fields
+    if (id.isEmpty) {
+      throw ArgumentError('FeedBrand id cannot be empty');
+    }
+    if (name.isEmpty) {
+      throw ArgumentError('FeedBrand name cannot be empty');
+    }
+    
     return FeedBrand(
-      id: json['id'] as String,
-      name: json['name'] as String,
+      id: id,
+      name: name,
       isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()) : DateTime.now(),
     );
   }
 
@@ -92,15 +103,32 @@ class FeedProduct {
   });
 
   factory FeedProduct.fromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
+    final brandId = json['brand_id']?.toString() ?? '';
+    final name = json['name']?.toString() ?? '';
+    
+    // Validate required fields
+    if (id.isEmpty) {
+      throw ArgumentError('FeedProduct id cannot be empty');
+    }
+    if (brandId.isEmpty) {
+      throw ArgumentError('FeedProduct brandId cannot be empty');
+    }
+    if (name.isEmpty) {
+      throw ArgumentError('FeedProduct name cannot be empty');
+    }
+    
     return FeedProduct(
-      id: json['id'] as String,
-      brandId: json['brand_id'] as String,
-      name: json['name'] as String,
-      species: List<String>.from(json['species'] as List),
-      type: FeedType.fromString(json['type'] as String),
+      id: id,
+      brandId: brandId,
+      name: name,
+      species: json['species'] != null 
+          ? List<String>.from((json['species'] as List).map((e) => e?.toString() ?? '').where((s) => s.isNotEmpty))
+          : [],
+      type: FeedType.fromString(json['type']?.toString()),
       isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()) : DateTime.now(),
       brand: json['brand'] != null 
           ? FeedBrand.fromJson(json['brand'] as Map<String, dynamic>)
           : null,
@@ -176,7 +204,11 @@ enum FeedType {
 
   final String value;
 
-  static FeedType fromString(String value) {
+  static FeedType fromString(String? value) {
+    if (value == null || value.isEmpty) {
+      return FeedType.feed; // Default fallback
+    }
+    
     switch (value.toLowerCase()) {
       case 'feed':
         return FeedType.feed;
@@ -185,7 +217,7 @@ enum FeedType {
       case 'supplement':
         return FeedType.supplement;
       default:
-        throw ArgumentError('Unknown feed type: $value');
+        return FeedType.feed; // Default fallback instead of throwing
     }
   }
 
@@ -215,7 +247,11 @@ enum FeedUnit {
 
   final String value;
 
-  static FeedUnit fromString(String value) {
+  static FeedUnit fromString(String? value) {
+    if (value == null || value.isEmpty) {
+      return FeedUnit.lbs; // Default fallback
+    }
+    
     switch (value.toLowerCase()) {
       case 'lbs':
         return FeedUnit.lbs;
@@ -226,7 +262,7 @@ enum FeedUnit {
       case 'scoops':
         return FeedUnit.scoops;
       default:
-        throw ArgumentError('Unknown feed unit: $value');
+        return FeedUnit.lbs; // Default fallback instead of throwing
     }
   }
 
@@ -281,16 +317,16 @@ class FeedItem {
 
   factory FeedItem.fromJson(Map<String, dynamic> json) {
     return FeedItem(
-      id: json['id'] as String,
-      entryId: json['entry_id'] as String,
-      brandId: json['brand_id'] as String?,
-      productId: json['product_id'] as String?,
+      id: json['id']?.toString() ?? '',
+      entryId: json['entry_id']?.toString() ?? '',
+      brandId: json['brand_id']?.toString(),
+      productId: json['product_id']?.toString(),
       isHay: json['is_hay'] as bool? ?? false,
-      quantity: (json['quantity'] as num).toDouble(),
-      unit: FeedUnit.fromString(json['unit'] as String? ?? 'lbs'),
-      note: json['note'] as String?,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      userId: json['user_id'] as String,
+      quantity: json['quantity'] != null ? (json['quantity'] as num).toDouble() : 0.0,
+      unit: FeedUnit.fromString(json['unit']?.toString() ?? 'lbs'),
+      note: json['note']?.toString(),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'].toString()) : DateTime.now(),
+      userId: json['user_id']?.toString() ?? '',
       brand: json['brand'] != null 
           ? FeedBrand.fromJson(json['brand'] as Map<String, dynamic>)
           : null,
@@ -428,15 +464,15 @@ class UserFeedRecent {
 
   factory UserFeedRecent.fromJson(Map<String, dynamic> json) {
     return UserFeedRecent(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      brandId: json['brand_id'] as String?,
-      productId: json['product_id'] as String?,
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      brandId: json['brand_id']?.toString(),
+      productId: json['product_id']?.toString(),
       isHay: json['is_hay'] as bool? ?? false,
-      quantity: (json['quantity'] as num).toDouble(),
-      unit: FeedUnit.fromString(json['unit'] as String? ?? 'lbs'),
-      lastUsedAt: DateTime.parse(json['last_used_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      quantity: json['quantity'] != null ? (json['quantity'] as num).toDouble() : 0.0,
+      unit: FeedUnit.fromString(json['unit']?.toString() ?? 'lbs'),
+      lastUsedAt: json['last_used_at'] != null ? DateTime.parse(json['last_used_at'].toString()) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'].toString()) : DateTime.now(),
       brand: json['brand'] != null 
           ? FeedBrand.fromJson(json['brand'] as Map<String, dynamic>)
           : null,

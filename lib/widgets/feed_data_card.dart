@@ -36,18 +36,63 @@ class _FeedDataCardState extends State<FeedDataCard> {
 
   @override
   Widget build(BuildContext context) {
+    // DEBUG: Log build information
+    print('🍀 FeedDataCard.build() called');
+    print('🍀 showTitle: ${widget.showTitle}');
+    print('🍀 feedItems count: ${widget.feedItems.length}');
+    print('🍀 feedItems data: ${widget.feedItems.map((item) => '${item.isHay ? "Hay" : "${item.brand?.name ?? 'Unknown'} - ${item.product?.name ?? 'Unknown'}"} ${item.quantity} ${item.unit.displayName}').join(', ')}');
+    print('🍀 selectedAnimal: ${widget.selectedAnimal?.name ?? 'None'}');
+    print('🍀 padding: ${widget.padding}');
+    
     return Card(
-      child: Padding(
-        padding: widget.padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (widget.showTitle) ...[
-              _buildHeader(),
-              const SizedBox(height: 12),
+      // DEBUG: Make card more visible with enhanced styling
+      elevation: 4,
+      shadowColor: Colors.green.withOpacity(0.3),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: Colors.green.shade300,
+          width: 2,
+        ),
+      ),
+      child: Container(
+        // DEBUG: Add background color to make it more visible
+        decoration: BoxDecoration(
+          color: Colors.green.shade25,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: widget.padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min, // DEBUG: Prevent overflow issues
+            children: [
+              // DEBUG: Always show a debug header even when showTitle is false
+              if (widget.showTitle) ...[
+                _buildHeader(),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Text(
+                    'DEBUG: Feed Data Card (showTitle=false)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange.shade700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              _buildContent(),
             ],
-            _buildContent(),
-          ],
+          ),
         ),
       ),
     );
@@ -69,12 +114,16 @@ class _FeedDataCardState extends State<FeedDataCard> {
   }
 
   Widget _buildActionButtons() {
+    print('🍀 _buildActionButtons() called, _isLoadingRecentFeeds: $_isLoadingRecentFeeds');
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Use Last Button with enhanced visual feedback
         OutlinedButton.icon(
-          onPressed: _isLoadingRecentFeeds ? null : _useLastFeeds,
+          onPressed: _isLoadingRecentFeeds ? null : () {
+            print('🍀 Use Last button pressed');
+            _useLastFeeds();
+          },
           icon: _isLoadingRecentFeeds
               ? const SizedBox(
                   width: 16,
@@ -108,7 +157,10 @@ class _FeedDataCardState extends State<FeedDataCard> {
         ),
         const SizedBox(width: 8),
         ElevatedButton.icon(
-          onPressed: _addFeed,
+          onPressed: () {
+            print('🍀 Add Feed button pressed');
+            _addFeed();
+          },
           icon: const Icon(Icons.add, size: 16),
           label: const Text('Add Feed'),
           style: ElevatedButton.styleFrom(
@@ -123,12 +175,18 @@ class _FeedDataCardState extends State<FeedDataCard> {
   }
 
   Widget _buildContent() {
+    print('🍀 _buildContent() called');
+    print('🍀 feedItems.isEmpty: ${widget.feedItems.isEmpty}');
+    
     if (widget.feedItems.isEmpty) {
+      print('🍀 Returning empty state');
       return _buildEmptyState();
     }
     
+    print('🍀 Returning feed items list with ${widget.feedItems.length} items');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min, // DEBUG: Prevent overflow
       children: [
         ...widget.feedItems.asMap().entries.map((entry) {
           final index = entry.key;
@@ -142,6 +200,7 @@ class _FeedDataCardState extends State<FeedDataCard> {
   }
 
   Widget _buildEmptyState() {
+    print('🍀 _buildEmptyState() called - building empty state container');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
