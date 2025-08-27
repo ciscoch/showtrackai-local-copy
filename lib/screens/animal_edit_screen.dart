@@ -49,41 +49,12 @@ class _AnimalEditScreenState extends State<AnimalEditScreen> {
   late final String _originalTag;
   late final Animal _originalAnimal;
   
-  // Species-specific gender options
+  // Simplified gender options - only Male and Female
   List<AnimalGender> get _genderOptions {
-    switch (_selectedSpecies) {
-      case AnimalSpecies.cattle:
-        return [
-          AnimalGender.heifer,
-          AnimalGender.steer,
-          AnimalGender.male,
-          AnimalGender.female,
-        ];
-      case AnimalSpecies.swine:
-        return [
-          AnimalGender.gilt,
-          AnimalGender.barrow,
-          AnimalGender.male,
-          AnimalGender.female,
-        ];
-      case AnimalSpecies.sheep:
-        return [
-          AnimalGender.ewe,
-          AnimalGender.ram,
-          AnimalGender.wether,
-        ];
-      case AnimalSpecies.goat:
-        return [
-          AnimalGender.doe,
-          AnimalGender.buck,
-          AnimalGender.wether,
-        ];
-      default:
-        return [
-          AnimalGender.male,
-          AnimalGender.female,
-        ];
-    }
+    return [
+      AnimalGender.male,
+      AnimalGender.female,
+    ];
   }
   
   @override
@@ -571,7 +542,7 @@ class _AnimalEditScreenState extends State<AnimalEditScreen> {
                         onChanged: (value) {
                           setState(() {
                             _selectedSpecies = value!;
-                            // Reset gender when species changes
+                            // Reset gender if current selection is not in simplified options
                             if (!_genderOptions.contains(_selectedGender)) {
                               _selectedGender = null;
                             }
