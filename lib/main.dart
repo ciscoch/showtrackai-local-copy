@@ -8,6 +8,7 @@ import 'screens/login_screen.dart';
 import 'screens/animal_create_screen.dart';
 import 'screens/animal_list_screen.dart';
 import 'screens/animal_detail_screen.dart';
+import 'screens/profile_screen.dart';
 import 'models/animal.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
@@ -108,7 +109,7 @@ class ShowTrackAIJournaling extends StatelessWidget {
         '/animals/create': (context) => AuthGuard(child: const AnimalCreateScreen()),
         '/records': (context) => AuthGuard(child: const Placeholder()), // TODO: Add records screen
         '/tasks': (context) => AuthGuard(child: const Placeholder()), // TODO: Add tasks screen
-        '/profile': (context) => AuthGuard(child: const Placeholder()), // TODO: Add profile screen
+        '/profile': (context) => AuthGuard(child: const ProfileScreen()),
         '/settings': (context) => AuthGuard(child: const Placeholder()), // TODO: Add settings screen
       },
       onGenerateRoute: (settings) {

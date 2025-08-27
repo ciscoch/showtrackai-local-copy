@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/dashboard_card.dart';
 import '../widgets/financial_journal_card.dart';
-import '../widgets/ffa_degree_progress_card.dart';
+import '../widgets/ffa_degrees_section.dart';
 import '../services/auth_service.dart';
 
 /// Main dashboard screen that displays all cards including the new journal card
