@@ -40,6 +40,16 @@ class _WeightTrackerScreenState extends State<WeightTrackerScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check for route arguments to pre-select an animal
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args['animalId'] != null) {
+      _selectedAnimalId = args['animalId'] as String;
+    }
     _loadInitialData();
   }
 
@@ -349,15 +359,14 @@ class _WeightTrackerScreenState extends State<WeightTrackerScreen>
     }
 
     return ResponsiveScaffold(
-      appBar: AppBar(
-        title: const Text('Weight Tracker'),
-        actions: [
-          IconButton(
-            onPressed: _refreshData,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-          PopupMenuButton<String>(
+      title: 'Weight Tracker',
+      actions: [
+        IconButton(
+          onPressed: _refreshData,
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Refresh',
+        ),
+        PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
                 case 'export':
@@ -391,31 +400,30 @@ class _WeightTrackerScreenState extends State<WeightTrackerScreen>
               ),
             ],
           ),
+      ],
+      bottom: TabBar(
+        controller: _tabController,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white70,
+        indicatorColor: Colors.white,
+        tabs: const [
+          Tab(
+            icon: Icon(Icons.add_circle),
+            text: 'Record',
+          ),
+          Tab(
+            icon: Icon(Icons.history),
+            text: 'History',
+          ),
+          Tab(
+            icon: Icon(Icons.flag),
+            text: 'Goals',
+          ),
+          Tab(
+            icon: Icon(Icons.analytics),
+            text: 'Analytics',
+          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.add_circle),
-              text: 'Record',
-            ),
-            Tab(
-              icon: Icon(Icons.history),
-              text: 'History',
-            ),
-            Tab(
-              icon: Icon(Icons.flag),
-              text: 'Goals',
-            ),
-            Tab(
-              icon: Icon(Icons.analytics),
-              text: 'Analytics',
-            ),
-          ],
-        ),
       ),
       body: TabBarView(
         controller: _tabController,

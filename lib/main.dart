@@ -12,6 +12,7 @@ import 'screens/animal_create_screen.dart';
 import 'screens/animal_list_screen.dart';
 import 'screens/animal_detail_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/weight_tracker_screen.dart';
 import 'models/animal.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
@@ -137,6 +138,7 @@ class ShowTrackAIJournaling extends StatelessWidget {
         '/projects': (context) => AuthGuard(child: const Placeholder()), // TODO: Add projects screen
         '/animals': (context) => AuthGuard(child: const AnimalListScreen()),
         '/animals/create': (context) => AuthGuard(child: const AnimalCreateScreen()),
+        '/weight-tracker': (context) => AuthGuard(child: const WeightTrackerScreen()),
         '/records': (context) => AuthGuard(child: const Placeholder()), // TODO: Add records screen
         '/tasks': (context) => AuthGuard(child: const Placeholder()), // TODO: Add tasks screen
         '/profile': (context) => AuthGuard(child: const ProfileScreen()),
