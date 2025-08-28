@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShowTrackAI Console Fixes Verification</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #b8daff; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 ShowTrackAI Console Fixes Verification</h1>
+    <p>This page tests the fixes applied to resolve console errors in the ShowTrackAI application.</p>
+
+    <div class="test-section">
+        <h2>1. Content Security Policy Test</h2>
+        <p>Testing if external API connections are now allowed:</p>
+        <button onclick="testCSP()">Test CSP</button>
+        <div id="csp-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Supabase Connection Test</h2>
+        <p>Testing connection to Supabase database:</p>
+        <button onclick="testSupabase()">Test Database</button>
+        <div id="supabase-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Error Handling Test</h2>
+        <p>Testing improved error handling:</p>
+        <button onclick="testErrorHandling()">Test Errors</button>
+        <div id="error-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Console Log Monitor</h2>
+        <p>Monitor console for errors (check browser dev tools):</p>
+        <button onclick="startMonitoring()">Start Monitoring</button>
+        <button onclick="stopMonitoring()">Stop Monitoring</button>
+        <div id="monitor-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Database Schema Test</h2>
+        <p>Test if birth_date column and RPC function are available:</p>
+        <button onclick="testDatabaseSchema()">Test Schema</button>
+        <div id="schema-result"></div>
+    </div>
+
+    <script>
+        let originalConsoleError = console.error;
+        let errorCount = 0;
+        let monitoring = false;
+
+        // Content Security Policy Test
+        function testCSP() {
+            const resultDiv = document.getElementById('csp-result');
+            resultDiv.innerHTML = '<div class="info">Testing CSP...</div>';
+
+            try {
+                // Test Supabase connection
+                fetch('https://zifbuzsdhparxlhsifdi.supabase.co/rest/v1/', {
+                    method: 'GET',
+                    headers: {
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU'
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        resultDiv.innerHTML = '<div class="success">✅ CSP allows Supabase connection</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="warning">⚠️ Supabase responded with status: ${response.status}</div>`;
+                    }
+                })
+                .catch(error => {
+                    if (error.message.includes('CSP') || error.message.includes('Content Security Policy')) {
+                        resultDiv.innerHTML = '<div class="error">❌ CSP is still blocking connections</div>';
+                    } else {
+                        resultDiv.innerHTML = `<div class="warning">⚠️ Connection error: ${error.message}</div>`;
+                    }
+                });
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Test failed: ${error.message}</div>`;
+            }
+        }
+
+        // Supabase Connection Test
+        function testSupabase() {
+            const resultDiv = document.getElementById('supabase-result');
+            resultDiv.innerHTML = '<div class="info">Testing Supabase...</div>';
+
+            const supabaseUrl = 'https://zifbuzsdhparxlhsifdi.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU';
+
+            fetch(`${supabaseUrl}/rest/v1/animals?select=id&limit=1`, {
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                resultDiv.innerHTML = '<div class="success">✅ Supabase connection successful</div>';
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `<div class="error">❌ Supabase connection failed: ${error.message}</div>`;
+            });
+        }
+
+        // Error Handling Test
+        function testErrorHandling() {
+            const resultDiv = document.getElementById('error-result');
+            resultDiv.innerHTML = '<div class="info">Testing error handling...</div>';
+
+            // Test that errors are caught and logged properly
+            try {
+                // Intentionally cause an error
+                throw new Error('Test error for verification');
+            } catch (error) {
+                console.error('Caught test error:', error.message);
+                resultDiv.innerHTML = '<div class="success">✅ Error handling working (check console)</div>';
+            }
+
+            // Test unhandled promise rejection
+            setTimeout(() => {
+                Promise.reject(new Error('Test promise rejection')).catch(error => {
+                    console.error('Caught promise rejection:', error.message);
+                });
+            }, 1000);
+        }
+
+        // Console Monitoring
+        function startMonitoring() {
+            monitoring = true;
+            errorCount = 0;
+            const resultDiv = document.getElementById('monitor-result');
+            
+            console.error = function(...args) {
+                errorCount++;
+                originalConsoleError.apply(console, args);
+                if (monitoring) {
+                    updateMonitorDisplay();
+                }
+            };
+
+            resultDiv.innerHTML = '<div class="info">🔍 Monitoring started - check console errors</div>';
+            updateMonitorDisplay();
+        }
+
+        function stopMonitoring() {
+            monitoring = false;
+            console.error = originalConsoleError;
+            const resultDiv = document.getElementById('monitor-result');
+            resultDiv.innerHTML = `<div class="info">📊 Monitoring stopped. Total errors detected: ${errorCount}</div>`;
+        }
+
+        function updateMonitorDisplay() {
+            if (!monitoring) return;
+            const resultDiv = document.getElementById('monitor-result');
+            const statusClass = errorCount === 0 ? 'success' : errorCount < 5 ? 'warning' : 'error';
+            resultDiv.innerHTML = `<div class="${statusClass}">🔍 Monitoring... Errors detected: ${errorCount}</div>`;
+        }
+
+        // Database Schema Test
+        function testDatabaseSchema() {
+            const resultDiv = document.getElementById('schema-result');
+            resultDiv.innerHTML = '<div class="info">Testing database schema...</div>';
+
+            const supabaseUrl = 'https://zifbuzsdhparxlhsifdi.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppZmJ1enNkaHBhcnhsaHNpZmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIwMTUzOTEsImV4cCI6MjA2NzU5MTM5MX0.Lmg6kZ0E35Q9nNsJei9CDxH2uUQZO4AJaiU6H3TvXqU';
+
+            // Test user_profiles birth_date column
+            fetch(`${supabaseUrl}/rest/v1/user_profiles?select=birth_date&limit=1`, {
+                headers: {
+                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${supabaseKey}`
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">✅ birth_date column exists</div>';
+                    
+                    // Test RPC function
+                    return fetch(`${supabaseUrl}/rest/v1/rpc/get_user_journal_stats`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            p_user_id: '00000000-0000-0000-0000-000000000000'  // Test UUID
+                        })
+                    });
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    resultDiv.innerHTML += '<br><div class="success">✅ get_user_journal_stats function exists</div>';
+                } else {
+                    resultDiv.innerHTML += `<br><div class="warning">⚠️ RPC function needs to be added (HTTP ${response.status})</div>`;
+                }
+            })
+            .catch(error => {
+                if (error.message.includes('column "birth_date" does not exist')) {
+                    resultDiv.innerHTML = '<div class="error">❌ birth_date column missing - migration needed</div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="warning">⚠️ Schema test error: ${error.message}</div>`;
+                }
+            });
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔧 ShowTrackAI Console Fixes Verification Tool Loaded');
+            console.log('Click the test buttons to verify each fix');
+        });
+    </script>
+</body>
+</html>

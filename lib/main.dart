@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:ui';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/journal_entry_form.dart';
@@ -22,6 +24,20 @@ void main() async {
   print('🚀 Starting ShowTrackAI Journaling App');
   
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Add global error handling for uncaught exceptions
+  FlutterError.onError = (FlutterErrorDetails details) {
+    print('❌ Flutter Error: ${details.exception}');
+    print('📍 Stack: ${details.stack}');
+    // In production, you might want to send this to a crash reporting service
+  };
+  
+  // Handle errors that occur outside of Flutter's error handling
+  PlatformDispatcher.instance.onError = (error, stack) {
+    print('❌ Platform Error: $error');
+    print('📍 Stack: $stack');
+    return true; // Indicates we've handled the error
+  };
   
   try {
     // Initialize Supabase with working credentials (validated via API test)

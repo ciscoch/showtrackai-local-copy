@@ -43,27 +43,85 @@
 
     <!-- 2) Explicitly boot Flutter using the modern API -->
     <script>
+      // Global error handler for uncaught JavaScript errors
+      window.addEventListener('error', function(e) {
+        console.error('Global JavaScript Error:', e.error);
+        console.error('File:', e.filename, 'Line:', e.lineno, 'Col:', e.colno);
+      });
+
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled Promise Rejection:', e.reason);
+        e.preventDefault(); // Prevent the default browser handling
+      });
+
       // Remove splash when Flutter paints a frame (and a fallback just in case)
-      const removeSplash = () => document.getElementById('splash')?.remove();
+      const removeSplash = () => {
+        const splash = document.getElementById('splash');
+        if (splash) {
+          splash.remove();
+          console.log('Splash screen removed');
+        }
+      };
+      
       window.addEventListener('flutter-first-frame', removeSplash);
       setTimeout(removeSplash, 4000);
 
       // Start Flutter (modern API using main.dart.js; no bootstrap needed)
       window.addEventListener('load', function () {
-        if (!window._flutter || !window._flutter.loader) {
-          console.error('Flutter loader not present.');
-          return;
-        }
-        window._flutter.loader.loadEntrypoint({
-          // You can omit entrypointUrl — default is "main.dart.js"
-          onEntrypointLoaded: function (engineInitializer) {
-            engineInitializer.initializeEngine({ renderer: "html", assetBase: "/" })
-              .then(function (appRunner) { return appRunner.runApp(); })
-              .catch(function (e) { console.error('initializeEngine/runApp failed', e); });
+        try {
+          if (!window._flutter || !window._flutter.loader) {
+            console.error('Flutter loader not present.');
+            // Show error message to user
+            const splash = document.getElementById('splash');
+            if (splash) {
+              splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Flutter failed to load. Please refresh the page.</p>';
+            }
+            return;
           }
-        }).catch(function (e) {
-          console.error('loadEntrypoint failed', e);
-        });
+          
+          console.log('Starting Flutter application...');
+          
+          window._flutter.loader.loadEntrypoint({
+            // You can omit entrypointUrl — default is "main.dart.js"
+            onEntrypointLoaded: function (engineInitializer) {
+              console.log('Flutter entrypoint loaded, initializing engine...');
+              engineInitializer.initializeEngine({ 
+                renderer: "html", 
+                assetBase: "/" 
+              })
+              .then(function (appRunner) { 
+                console.log('Flutter engine initialized, running app...');
+                return appRunner.runApp(); 
+              })
+              .then(function() {
+                console.log('Flutter app started successfully');
+              })
+              .catch(function (e) { 
+                console.error('initializeEngine/runApp failed:', e);
+                // Show error message to user
+                const splash = document.getElementById('splash');
+                if (splash) {
+                  splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Application failed to start. Please refresh the page.</p>';
+                }
+              });
+            }
+          }).catch(function (e) {
+            console.error('loadEntrypoint failed:', e);
+            // Show error message to user
+            const splash = document.getElementById('splash');
+            if (splash) {
+              splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Failed to load application. Please refresh the page.</p>';
+            }
+          });
+        } catch (e) {
+          console.error('Critical error during Flutter initialization:', e);
+          // Show error message to user
+          const splash = document.getElementById('splash');
+          if (splash) {
+            splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Critical Error: Please refresh the page or contact support.</p>';
+          }
+        }
       });
     </script>
 
