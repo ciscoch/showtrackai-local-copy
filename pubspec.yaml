@@ -34,10 +34,11 @@ dependencies:
   # Web support for file download (using web-safe alternative)
   # universal_html: ^2.2.4 # Commented out - not WebAssembly compatible
   
-  # Geolocation - use web-safe alternative or conditional import
-  geolocator: ^10.1.0
-  geolocator_web: ^2.2.1  # Explicit web implementation
-  permission_handler: ^11.1.0
+  # Geolocation - temporarily disabled due to WebAssembly compilation issues
+  # These packages cause dart:html compatibility issues with Flutter web
+  # geolocator: ^10.1.0
+  # geolocator_web: ^2.2.1
+  # permission_handler: ^11.1.0
   
   # Weather API (using http package instead of weather package)
 

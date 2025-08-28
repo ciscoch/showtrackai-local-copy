@@ -1,6 +1,7 @@
 [build]
-  command = "./build_for_netlify.sh"
+  command = "npm install && ./build_for_netlify.sh"
   publish = "build/web"
+  functions = "netlify/functions"
 
 [[redirects]]
   from = "/*"

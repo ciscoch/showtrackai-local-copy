@@ -1,0 +1,27 @@
+{
+  "name": "showtrackai-netlify-functions",
+  "version": "1.0.0",
+  "description": "Node.js dependencies for ShowTrackAI Netlify Functions",
+  "private": true,
+  "scripts": {
+    "postinstall": "echo 'Dependencies installed successfully'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/showtrackai-local-copy.git"
+  },
+  "keywords": [
+    "netlify",
+    "functions",
+    "supabase",
+    "agricultural-education"
+  ],
+  "author": "ShowTrackAI",
+  "license": "MIT"
+}
