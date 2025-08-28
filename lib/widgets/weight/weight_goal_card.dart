@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/weight_goal.dart';
 import '../../models/animal.dart';
+import '../../models/weight.dart'; // Import WeightUnit enum
 import '../../theme/app_theme.dart';
 
 /// Card widget for displaying and managing weight goals
@@ -200,7 +201,11 @@ class _WeightGoalCardState extends State<WeightGoalCard> {
                   final goal = activeGoals[index];
                   final animal = widget.animals.firstWhere(
                     (a) => a.id == goal.animalId,
-                    orElse: () => Animal(name: 'Unknown', species: 'cattle'),
+                    orElse: () => Animal(
+                      name: 'Unknown', 
+                      userId: '', 
+                      species: AnimalSpecies.cattle,
+                    ),
                   );
                   
                   return _GoalItem(
