@@ -31,7 +31,7 @@ class JournalContentTemplateService {
         id: 'feed_analysis',
         title: 'Feed Quality Assessment',
         category: 'feeding',
-        descriptionTemplate: 'Analyzed {feed_brand} {feed_type} for quality indicators. Feed appearance: {feed_appearance}. Texture: {feed_texture}. No signs of mold or contamination detected. Feed conversion ratio calculated at {fcr}. Cost per pound: ${cost_per_pound}.',
+        descriptionTemplate: 'Analyzed {feed_brand} {feed_type} for quality indicators. Feed appearance: {feed_appearance}. Texture: {feed_texture}. No signs of mold or contamination detected. Feed conversion ratio calculated at {fcr}. Cost per pound: {cost_per_pound}.',
         suggestedAETSkills: ['Feeding and Nutrition', 'Cost Analysis', 'Quality Assurance'],
         duration: 45,
         tags: ['feed_analysis', 'quality_control', 'economics'],
