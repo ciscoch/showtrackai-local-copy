@@ -10,9 +10,26 @@
   console.log('🚀 Flutter Bootstrap v3.0 starting...');
   
   // Verify buildConfig was set (should be set in index.html before this script)
-  if (!window._flutter || !window._flutter.buildConfig) {
-    console.error('❌ Flutter buildConfig not found! This should be set before flutter_bootstrap.js');
-    return;
+  if (!window._flutter) {
+    window._flutter = {};
+  }
+  
+  if (!window._flutter.buildConfig) {
+    console.warn('⚠️ Flutter buildConfig not found, setting default configuration');
+    window._flutter.buildConfig = {
+      "renderer": "html",
+      "canvasKitBaseUrl": null,
+      "useLocalCanvasKit": false,
+      "serviceWorkerSettings": null,
+      "hostElement": null,
+      "useColorEmoji": true,
+      "builds": [] // Add builds array to prevent 'find' errors
+    };
+  }
+  
+  // Ensure builds array exists to prevent 'find' method errors
+  if (!window._flutter.buildConfig.builds) {
+    window._flutter.buildConfig.builds = [];
   }
   
   console.log('✅ Flutter buildConfig verified:', window._flutter.buildConfig);
