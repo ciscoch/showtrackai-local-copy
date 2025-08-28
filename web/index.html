@@ -6,6 +6,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="ShowTrackAI - Agricultural Education Platform" />
+    
+    <!-- Fix permission policy violations - disable unnecessary permissions -->
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+    
     <title>ShowTrackAI Journaling</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="favicon.png" />
@@ -36,12 +40,7 @@
       <p>Loading ShowTrackAI…</p>
     </div>
 
-    <!-- 1) Configure renderer (runtime) -->
-    <script>
-      window.flutterConfiguration = { renderer: "html", assetBase: "/" };
-    </script>
-
-    <!-- 2) Explicitly boot Flutter using the modern API -->
+    <!-- Global error handlers -->
     <script>
       // Global error handler for uncaught JavaScript errors
       window.addEventListener('error', function(e) {
@@ -65,71 +64,29 @@
       };
       
       window.addEventListener('flutter-first-frame', removeSplash);
-      setTimeout(removeSplash, 4000);
-
-      // Start Flutter (modern API using main.dart.js; no bootstrap needed)
-      window.addEventListener('load', function () {
-        try {
-          if (!window._flutter || !window._flutter.loader) {
-            console.error('Flutter loader not present.');
-            // Show error message to user
-            const splash = document.getElementById('splash');
-            if (splash) {
-              splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Flutter failed to load. Please refresh the page.</p>';
-            }
-            return;
-          }
-          
-          console.log('Starting Flutter application...');
-          
-          window._flutter.loader.load({
-            // Use modern API - config moved to load method
-            config: {
-              renderer: "html",
-              assetBase: "/"
-            },
-            onEntrypointLoaded: function (engineInitializer) {
-              console.log('Flutter entrypoint loaded, initializing engine...');
-              engineInitializer.initializeEngine({ 
-                renderer: "html", 
-                assetBase: "/" 
-              })
-              .then(function (appRunner) { 
-                console.log('Flutter engine initialized, running app...');
-                return appRunner.runApp(); 
-              })
-              .then(function() {
-                console.log('Flutter app started successfully');
-              })
-              .catch(function (e) { 
-                console.error('initializeEngine/runApp failed:', e);
-                // Show error message to user
-                const splash = document.getElementById('splash');
-                if (splash) {
-                  splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Application failed to start. Please refresh the page.</p>';
-                }
-              });
-            }
-          }).catch(function (e) {
-            console.error('load failed:', e);
-            // Show error message to user
-            const splash = document.getElementById('splash');
-            if (splash) {
-              splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Error: Failed to load application. Please refresh the page.</p>';
-            }
-          });
-        } catch (e) {
-          console.error('Critical error during Flutter initialization:', e);
-          // Show error message to user
-          const splash = document.getElementById('splash');
-          if (splash) {
-            splash.innerHTML = '<div class="spinner"></div><p style="color: red;">Critical Error: Please refresh the page or contact support.</p>';
-          }
-        }
-      });
+      setTimeout(removeSplash, 8000); // Increased timeout for more complex initialization
     </script>
 
-    <!-- 3) The orchestrator (this defines _flutter.loader) -->
+    <!-- Load Flutter configuration and buildConfig setup -->
+    <script>
+      // Set up _flutter.buildConfig early - this is critical for newer Flutter versions
+      window._flutter = window._flutter || {};
+      window._flutter.buildConfig = {
+        "renderer": "html",
+        "canvasKitBaseUrl": null,
+        "useLocalCanvasKit": false,
+        "serviceWorkerSettings": null,
+        "hostElement": null,
+        "useColorEmoji": true
+      };
+      
+      console.log('✅ Flutter buildConfig set:', window._flutter.buildConfig);
+    </script>
+
+    <!-- Flutter initialization bootstrap -->
+    <script src="flutter_bootstrap.js"></script>
+    
+    <!-- Flutter.js must load after bootstrap sets up buildConfig -->
     <script src="flutter.js" defer></script>
   </body>
 </html>

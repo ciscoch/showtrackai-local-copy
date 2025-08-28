@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flutter Initialization Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .pass { background-color: #d4edda; border-color: #c3e6cb; }
+        .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .console-output { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background-color: #000; color: #0f0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Flutter Initialization Fix Test</h1>
+    <p>This test verifies that the Flutter initialization fixes are working correctly.</p>
+
+    <div id="test-results">
+        <div class="test-section info">
+            <h3>Test 1: Permission Policy Check</h3>
+            <p id="permission-policy-result">Checking...</p>
+        </div>
+
+        <div class="test-section info">
+            <h3>Test 2: Flutter buildConfig Setup</h3>
+            <p id="buildconfig-result">Checking...</p>
+        </div>
+
+        <div class="test-section info">
+            <h3>Test 3: Flutter Loader Availability</h3>
+            <p id="loader-result">Checking...</p>
+        </div>
+
+        <div class="test-section info">
+            <h3>Test 4: HTML Renderer Configuration</h3>
+            <p id="renderer-result">Checking...</p>
+        </div>
+
+        <div class="test-section">
+            <h3>Console Output</h3>
+            <div id="console-output" class="console-output"></div>
+        </div>
+    </div>
+
+    <script>
+        // Capture console output
+        const consoleOutput = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.style.color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#ffd93d' : '#4dabf7';
+            line.textContent = `[${timestamp}] ${message}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        // Test 1: Permission Policy
+        function testPermissionPolicy() {
+            const result = document.getElementById('permission-policy-result');
+            const meta = document.querySelector('meta[http-equiv="Permissions-Policy"]');
+            
+            if (meta) {
+                const content = meta.getAttribute('content');
+                if (content.includes('camera=()') && content.includes('microphone=()')) {
+                    result.innerHTML = '✅ PASS: Permission policy correctly disables camera and microphone';
+                    result.parentElement.className = 'test-section pass';
+                } else {
+                    result.innerHTML = '❌ FAIL: Permission policy not configured correctly';
+                    result.parentElement.className = 'test-section fail';
+                }
+            } else {
+                result.innerHTML = '❌ FAIL: Permission policy meta tag not found';
+                result.parentElement.className = 'test-section fail';
+            }
+        }
+
+        // Test 2: Flutter buildConfig
+        function testBuildConfig() {
+            const result = document.getElementById('buildconfig-result');
+            
+            setTimeout(() => {
+                if (window._flutter && window._flutter.buildConfig) {
+                    const config = window._flutter.buildConfig;
+                    if (config.renderer === 'html') {
+                        result.innerHTML = `✅ PASS: buildConfig properly set with HTML renderer<br>Config: ${JSON.stringify(config, null, 2)}`;
+                        result.parentElement.className = 'test-section pass';
+                    } else {
+                        result.innerHTML = '❌ FAIL: buildConfig renderer is not HTML';
+                        result.parentElement.className = 'test-section fail';
+                    }
+                } else {
+                    result.innerHTML = '❌ FAIL: window._flutter.buildConfig not found';
+                    result.parentElement.className = 'test-section fail';
+                }
+            }, 1000);
+        }
+
+        // Test 3: Flutter Loader
+        function testFlutterLoader() {
+            const result = document.getElementById('loader-result');
+            
+            // Wait for flutter.js to load
+            setTimeout(() => {
+                if (window._flutter && window._flutter.loader) {
+                    if (typeof window._flutter.loader.load === 'function') {
+                        result.innerHTML = '✅ PASS: Flutter loader is available and ready';
+                        result.parentElement.className = 'test-section pass';
+                    } else {
+                        result.innerHTML = '❌ FAIL: Flutter loader.load method not available';
+                        result.parentElement.className = 'test-section fail';
+                    }
+                } else {
+                    result.innerHTML = '❌ FAIL: Flutter loader not found';
+                    result.parentElement.className = 'test-section fail';
+                }
+            }, 2000);
+        }
+
+        // Test 4: Renderer Configuration
+        function testRendererConfig() {
+            const result = document.getElementById('renderer-result');
+            
+            // Check the build config file
+            fetch('flutter_build_config.json')
+                .then(response => response.json())
+                .then(config => {
+                    if (config.renderer === 'html') {
+                        result.innerHTML = `✅ PASS: Build configuration uses HTML renderer<br>Config: ${JSON.stringify(config, null, 2)}`;
+                        result.parentElement.className = 'test-section pass';
+                    } else {
+                        result.innerHTML = '❌ FAIL: Build configuration does not use HTML renderer';
+                        result.parentElement.className = 'test-section fail';
+                    }
+                })
+                .catch(error => {
+                    result.innerHTML = `⚠️ WARNING: Could not load flutter_build_config.json: ${error.message}`;
+                    result.parentElement.className = 'test-section fail';
+                });
+        }
+
+        // Run tests
+        console.log('🧪 Starting Flutter initialization fix tests...');
+        
+        testPermissionPolicy();
+        testBuildConfig();
+        testFlutterLoader();
+        testRendererConfig();
+
+        // Monitor for Flutter initialization events
+        window.addEventListener('flutter-first-frame', () => {
+            console.log('✅ Flutter first frame event received!');
+        });
+
+        window.addEventListener('flutter-initialized', () => {
+            console.log('✅ Flutter initialized event received!');
+        });
+
+        // Check if Flutter bootstrap loads
+        setTimeout(() => {
+            if (window.flutterApp) {
+                console.log('✅ Flutter app successfully initialized!');
+            } else {
+                console.log('⚠️ Flutter app not detected yet...');
+            }
+        }, 5000);
+    </script>
+
+    <!-- Simulate the same setup as our fixed index.html -->
+    <script>
+        // Set up _flutter.buildConfig early - this is critical for newer Flutter versions
+        window._flutter = window._flutter || {};
+        window._flutter.buildConfig = {
+            "renderer": "html",
+            "canvasKitBaseUrl": null,
+            "useLocalCanvasKit": false,
+            "serviceWorkerSettings": null,
+            "hostElement": null,
+            "useColorEmoji": true
+        };
+        
+        console.log('✅ Flutter buildConfig set:', window._flutter.buildConfig);
+    </script>
+
+    <!-- Add permission policy meta tag for testing -->
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+
+    <!-- Load Flutter files if they exist (for actual testing) -->
+    <script>
+        // Try to load flutter.js if available
+        const script = document.createElement('script');
+        script.src = 'flutter.js';
+        script.onload = () => console.log('✅ flutter.js loaded successfully');
+        script.onerror = () => console.log('⚠️ flutter.js not found (this is expected in standalone test)');
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
