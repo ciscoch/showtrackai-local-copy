@@ -6,6 +6,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="ShowTrackAI - Agricultural Education Platform" />
+    
+    <!-- Fix permission policy violations - disable unnecessary permissions -->
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+    
     <title>ShowTrackAI Journaling</title>
     <link rel="manifest" href="manifest.json" />
     <link rel="icon" href="favicon.png" />
@@ -36,38 +40,55 @@
       <p>Loading ShowTrackAI…</p>
     </div>
 
-    <!-- 1) Configure renderer (runtime) -->
+    <!-- Global error handlers -->
     <script>
-      window.flutterConfiguration = { renderer: "html", assetBase: "/" };
-    </script>
-
-    <!-- 2) Explicitly boot Flutter using the modern API -->
-    <script>
-      // Remove splash when Flutter paints a frame (and a fallback just in case)
-      const removeSplash = () => document.getElementById('splash')?.remove();
-      window.addEventListener('flutter-first-frame', removeSplash);
-      setTimeout(removeSplash, 4000);
-
-      // Start Flutter (modern API using main.dart.js; no bootstrap needed)
-      window.addEventListener('load', function () {
-        if (!window._flutter || !window._flutter.loader) {
-          console.error('Flutter loader not present.');
-          return;
-        }
-        window._flutter.loader.loadEntrypoint({
-          // You can omit entrypointUrl — default is "main.dart.js"
-          onEntrypointLoaded: function (engineInitializer) {
-            engineInitializer.initializeEngine({ renderer: "html", assetBase: "/" })
-              .then(function (appRunner) { return appRunner.runApp(); })
-              .catch(function (e) { console.error('initializeEngine/runApp failed', e); });
-          }
-        }).catch(function (e) {
-          console.error('loadEntrypoint failed', e);
-        });
+      // Global error handler for uncaught JavaScript errors
+      window.addEventListener('error', function(e) {
+        console.error('Global JavaScript Error:', e.error);
+        console.error('File:', e.filename, 'Line:', e.lineno, 'Col:', e.colno);
       });
+
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled Promise Rejection:', e.reason);
+        e.preventDefault(); // Prevent the default browser handling
+      });
+
+      // Remove splash when Flutter paints a frame (and a fallback just in case)
+      const removeSplash = () => {
+        const splash = document.getElementById('splash');
+        if (splash) {
+          splash.remove();
+          console.log('Splash screen removed');
+        }
+      };
+      
+      window.addEventListener('flutter-first-frame', removeSplash);
+      setTimeout(removeSplash, 8000); // Increased timeout for more complex initialization
     </script>
 
-    <!-- 3) The orchestrator (this defines _flutter.loader) -->
+    <!-- Load Flutter configuration and buildConfig setup -->
+    <script>
+      // Set up _flutter.buildConfig early - this is critical for newer Flutter versions
+      window._flutter = window._flutter || {};
+      window._flutter.buildConfig = {
+        "engineRevision": "stable",
+        "builds": [
+          {
+            "compileTarget": "dart2js",
+            "renderer": "html",
+            "mainJsPath": "main.dart.js"
+          }
+        ]
+      };
+      
+      console.log('✅ Flutter buildConfig set:', window._flutter.buildConfig);
+    </script>
+
+    <!-- Flutter initialization bootstrap -->
+    <script src="flutter_bootstrap.js"></script>
+    
+    <!-- Flutter.js must load after bootstrap sets up buildConfig -->
     <script src="flutter.js" defer></script>
   </body>
 </html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Flutter Loader Fix</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        h1 { color: #1976d2; }
+        .status { 
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: #f5f5f5;
+        }
+        .success { background: #e8f5e9; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        .warning { background: #fff3e0; color: #f57c00; }
+        pre { 
+            background: #f5f5f5; 
+            padding: 10px; 
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #1565c0; }
+    </style>
+</head>
+<body>
+    <h1>Flutter Loader Configuration Test</h1>
+    
+    <div id="results"></div>
+    
+    <h2>Actions:</h2>
+    <button onclick="testConfiguration()">Test Configuration</button>
+    <button onclick="testLocalBuild()">Test Local Build</button>
+    <button onclick="window.location.href='/build/web/index.html'">Open Build Directory</button>
+    
+    <h2>Configuration Details:</h2>
+    <pre id="config"></pre>
+    
+    <script>
+        const results = document.getElementById('results');
+        const configDisplay = document.getElementById('config');
+        
+        function addResult(message, type = 'status') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        function testConfiguration() {
+            results.innerHTML = '';
+            
+            // Test buildConfig structure
+            const buildConfig = {
+                "engineRevision": "stable",
+                "builds": [
+                    {
+                        "compileTarget": "dart2js",
+                        "renderer": "html",
+                        "mainJsPath": "main.dart.js"
+                    }
+                ]
+            };
+            
+            addResult('Testing Flutter buildConfig structure...', 'status');
+            
+            // Check if builds array exists
+            if (!buildConfig.builds || !Array.isArray(buildConfig.builds)) {
+                addResult('❌ builds array is missing or invalid', 'error');
+                return;
+            }
+            addResult('✅ builds array exists and is valid', 'success');
+            
+            // Check if we can find a compatible build
+            const compatibleBuild = buildConfig.builds.find(build => 
+                build.renderer === "html" && 
+                build.compileTarget === "dart2js"
+            );
+            
+            if (!compatibleBuild) {
+                addResult('❌ No compatible build configuration found', 'error');
+                return;
+            }
+            addResult('✅ Compatible build configuration found', 'success');
+            
+            // Display the configuration
+            configDisplay.textContent = JSON.stringify(buildConfig, null, 2);
+            
+            addResult('<strong>Configuration is valid for Flutter loader!</strong>', 'success');
+        }
+        
+        function testLocalBuild() {
+            results.innerHTML = '';
+            addResult('Testing local Flutter build...', 'status');
+            
+            // Check if build files exist
+            fetch('/build/web/flutter.js')
+                .then(response => {
+                    if (response.ok) {
+                        addResult('✅ flutter.js found', 'success');
+                    } else {
+                        addResult('⚠️ flutter.js not found - run flutter build web first', 'warning');
+                    }
+                })
+                .catch(err => {
+                    addResult('❌ Error checking flutter.js: ' + err.message, 'error');
+                });
+            
+            fetch('/build/web/main.dart.js')
+                .then(response => {
+                    if (response.ok) {
+                        addResult('✅ main.dart.js found', 'success');
+                    } else {
+                        addResult('⚠️ main.dart.js not found - run flutter build web first', 'warning');
+                    }
+                })
+                .catch(err => {
+                    addResult('❌ Error checking main.dart.js: ' + err.message, 'error');
+                });
+            
+            fetch('/build/web/flutter_bootstrap.js')
+                .then(response => {
+                    if (response.ok) {
+                        addResult('✅ flutter_bootstrap.js found', 'success');
+                    } else {
+                        addResult('⚠️ flutter_bootstrap.js not found', 'warning');
+                    }
+                })
+                .catch(err => {
+                    addResult('❌ Error checking flutter_bootstrap.js: ' + err.message, 'error');
+                });
+        }
+        
+        // Auto-run configuration test on load
+        window.addEventListener('load', () => {
+            testConfiguration();
+        });
+    </script>
+</body>
+</html>

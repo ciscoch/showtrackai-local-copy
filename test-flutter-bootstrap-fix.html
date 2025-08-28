@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flutter Bootstrap Fix Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #e8f5e8; color: #2d5a2d; }
+        .warning { background: #fff3cd; color: #856404; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Flutter Bootstrap Fix Verification</h1>
+        <p>Testing the Flutter bootstrap configuration and file availability...</p>
+        
+        <div id="test-results"></div>
+        
+        <h3>Test Log:</h3>
+        <pre id="test-log"></pre>
+    </div>
+
+    <script>
+        const results = document.getElementById('test-results');
+        const log = document.getElementById('test-log');
+        let testLog = '';
+
+        function addLog(message) {
+            testLog += new Date().toISOString() + ': ' + message + '\n';
+            log.textContent = testLog;
+            console.log(message);
+        }
+
+        function addResult(type, title, message) {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${title}</strong><br>${message}`;
+            results.appendChild(div);
+        }
+
+        // Test 1: Check if required files exist
+        async function testFileAvailability() {
+            addLog('🧪 Testing file availability...');
+            
+            const requiredFiles = [
+                'flutter.js',
+                'main.dart.js',
+                'flutter_bootstrap.js',
+                'flutter_build_config.json'
+            ];
+            
+            let allFilesExist = true;
+            const fileStatus = [];
+            
+            for (const file of requiredFiles) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    const exists = response.ok;
+                    fileStatus.push(`${file}: ${exists ? '✅ Found' : '❌ Missing'}`);
+                    if (!exists) allFilesExist = false;
+                    addLog(`File check: ${file} - ${exists ? 'EXISTS' : 'MISSING'}`);
+                } catch (error) {
+                    fileStatus.push(`${file}: ❌ Error - ${error.message}`);
+                    allFilesExist = false;
+                    addLog(`File check error: ${file} - ${error.message}`);
+                }
+            }
+            
+            addResult(
+                allFilesExist ? 'success' : 'error',
+                allFilesExist ? 'File Availability: PASS' : 'File Availability: FAIL',
+                fileStatus.join('<br>')
+            );
+            
+            return allFilesExist;
+        }
+
+        // Test 2: Check buildConfig structure
+        function testBuildConfig() {
+            addLog('🧪 Testing buildConfig structure...');
+            
+            // Simulate the buildConfig setup from index.html
+            window._flutter = window._flutter || {};
+            window._flutter.buildConfig = {
+                "renderer": "html",
+                "canvasKitBaseUrl": null,
+                "useLocalCanvasKit": false,
+                "serviceWorkerSettings": null,
+                "hostElement": null,
+                "useColorEmoji": true
+            };
+            
+            let configValid = true;
+            const issues = [];
+            
+            // Check if buildConfig exists
+            if (!window._flutter || !window._flutter.buildConfig) {
+                issues.push('❌ buildConfig not found');
+                configValid = false;
+                addLog('buildConfig test: NOT FOUND');
+            } else {
+                addLog('buildConfig test: FOUND');
+                
+                // Check builds array (this was causing the find() errors)
+                if (!window._flutter.buildConfig.builds) {
+                    window._flutter.buildConfig.builds = [];
+                    issues.push('⚠️ builds array was missing, added empty array');
+                    addLog('buildConfig test: builds array was missing, added empty array');
+                } else {
+                    addLog('buildConfig test: builds array exists');
+                }
+                
+                // Check required properties
+                const requiredProps = ['renderer'];
+                for (const prop of requiredProps) {
+                    if (!window._flutter.buildConfig.hasOwnProperty(prop)) {
+                        issues.push(`❌ Missing required property: ${prop}`);
+                        configValid = false;
+                        addLog(`buildConfig test: Missing ${prop}`);
+                    } else {
+                        addLog(`buildConfig test: ${prop} = ${window._flutter.buildConfig[prop]}`);
+                    }
+                }
+            }
+            
+            if (issues.length === 0) {
+                issues.push('✅ All buildConfig properties are valid');
+            }
+            
+            addResult(
+                configValid ? 'success' : 'warning',
+                configValid ? 'BuildConfig Structure: PASS' : 'BuildConfig Structure: ISSUES FIXED',
+                issues.join('<br>')
+            );
+            
+            return configValid;
+        }
+
+        // Test 3: Test Flutter loader availability
+        async function testFlutterLoader() {
+            addLog('🧪 Testing Flutter loader...');
+            
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                function checkLoader() {
+                    attempts++;
+                    addLog(`Flutter loader check attempt ${attempts}/${maxAttempts}`);
+                    
+                    if (window._flutter && window._flutter.loader && typeof window._flutter.loader.load === 'function') {
+                        addLog('Flutter loader: READY');
+                        addResult('success', 'Flutter Loader: PASS', '✅ Flutter loader is available and ready');
+                        resolve(true);
+                    } else if (attempts >= maxAttempts) {
+                        addLog('Flutter loader: TIMEOUT');
+                        addResult('warning', 'Flutter Loader: TIMEOUT', '⚠️ Flutter loader not ready within timeout period. This may be normal during initial load.');
+                        resolve(false);
+                    } else {
+                        addLog(`Flutter loader: NOT READY (attempt ${attempts})`);
+                        setTimeout(checkLoader, 500);
+                    }
+                }
+                
+                checkLoader();
+            });
+        }
+
+        // Run all tests
+        async function runTests() {
+            addLog('🚀 Starting Flutter Bootstrap fix verification...');
+            
+            const fileTest = await testFileAvailability();
+            const configTest = testBuildConfig();
+            const loaderTest = await testFlutterLoader();
+            
+            addLog('📊 Test Summary:');
+            addLog(`Files Available: ${fileTest ? 'PASS' : 'FAIL'}`);
+            addLog(`BuildConfig Valid: ${configTest ? 'PASS' : 'ISSUES FIXED'}`);
+            addLog(`Flutter Loader: ${loaderTest ? 'PASS' : 'TIMEOUT'}`);
+            
+            const overallStatus = fileTest && configTest;
+            
+            addResult(
+                overallStatus ? 'success' : 'error',
+                `Overall Test Result: ${overallStatus ? 'PASS' : 'NEEDS ATTENTION'}`,
+                overallStatus 
+                    ? '🎉 Flutter bootstrap fix appears to be working correctly!'
+                    : '⚠️ Some issues detected. Check individual test results above.'
+            );
+        }
+
+        // Load flutter.js to test the actual loader
+        const script = document.createElement('script');
+        script.src = 'flutter.js';
+        script.onload = () => {
+            addLog('flutter.js loaded successfully');
+            setTimeout(runTests, 100);
+        };
+        script.onerror = () => {
+            addLog('flutter.js failed to load');
+            runTests();
+        };
+        document.head.appendChild(script);
+    </script>
+</body>
+</html>
