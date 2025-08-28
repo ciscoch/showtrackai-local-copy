@@ -9,6 +9,13 @@
 ## Completed Today (2025-08-28)
 - [x] **SHO-7:** Feed modification - Complete feed management system with CRUD operations
 - [x] **SHO-9:** Journal auto-populate - AI-powered content generation with 40+ templates
+- [x] **SHO-11:** Weight Tracker - Comprehensive livestock weight tracking system
+  - Complete database schema with RLS policies
+  - Flutter models and service layer
+  - UI components with forms, history, goals, and analytics
+  - Interactive weight charts with ADG visualization
+  - Goal tracking and progress monitoring
+  - Performance optimized with caching and views
 - [x] **SHO-13:** CSV export (duplicate of APP-126) - Already completed
 - [x] **SHO-14:** Netlify deployment fixes - Resolved all Flutter web initialization errors
   - Fixed template syntax errors
@@ -18,15 +25,16 @@
   - Created comprehensive deployment guide
 
 <!-- BEGIN LINEAR ASSIGNED -->
-## Linear — My Assigned (updated 2025-08-28 14:15:36 UTC)
+## Linear — My Assigned (updated 2025-08-28 16:33:50 UTC)
 
-- [x] [SHO-7: Add Feed modification](https://linear.app/showtrackai/issue/SHO-7/add-feed-modification) ✅ Complete - Feed management with add/edit/delete, service refactoring
-- [x] [SHO-9: Journal Entry Content should give option to auto-populate field based on Entry title, Activity, date and duration](https://linear.app/showtrackai/issue/SHO-9/journal-entry-content-should-give-option-to-auto-populate-field-based) ✅ Complete - AI-powered auto-populate with 40+ agricultural templates, 3-tier suggestion system
-- [ ] [SHO-10: on New Journal Entry, Learning objectives & Tags should be auto-selected based on Journal Entry Activity, and Journal Entry Content](https://linear.app/showtrackai/issue/SHO-10/on-new-journal-entry-learning-objectives-and-tags-should-be-auto)
-- [ ] [SHO-11: Weight Tracker](https://linear.app/showtrackai/issue/SHO-11/weight-tracker)
+- [x] [SHO-7: Add Feed modification](https://linear.app/showtrackai/issue/SHO-7/add-feed-modification) ✅ Complete
+- [x] [SHO-9: Journal Entry Content should give option to auto-populate field based on Entry title, Activity, date and duration](https://linear.app/showtrackai/issue/SHO-9/journal-entry-content-should-give-option-to-auto-populate-field-based) ✅ Complete
+- [x] [SHO-11: Weight Tracker](https://linear.app/showtrackai/issue/SHO-11/weight-tracker) ✅ Complete
 - [ ] [SHO-12: Financial Dashboard & n8N Agent Integration](https://linear.app/showtrackai/issue/SHO-12/financial-dashboard-and-n8n-agent-integration)
-- [x] [SHO-13: PP-126: CSV export of journal](https://linear.app/showtrackai/issue/SHO-13/pp-126-csv-export-of-journal) ✅ Complete - Already implemented as APP-126
-- [x] [SHO-14: Netlify console errors - bootstrap](https://linear.app/showtrackai/issue/SHO-14/netlify-console-errors-bootstrap) ✅ Complete - Fixed all Flutter web deployment issues, created comprehensive fix guide
-- [ ] [SHO-6: new journal error](https://linear.app/showtrackai/issue/SHO-6/new-journal-error)
+- [ ] [SHO-13: PP-126: CSV export of journal](https://linear.app/showtrackai/issue/SHO-13/pp-126-csv-export-of-journal)
+- [x] [SHO-14: Netlify console errors - bootstrap](https://linear.app/showtrackai/issue/SHO-14/netlify-console-errors-bootstrap)
+- [x] [SHO-15: Math import for geolocation calculations error](https://linear.app/showtrackai/issue/SHO-15/math-import-for-geolocation-calculations-error)
+- [x] [SHO-6: new journal error](https://linear.app/showtrackai/issue/SHO-6/new-journal-error)
+- [ ] [SHO-10: on New Journal Entry, Learning objectives & Tags should be auto-selected based on Journal Entry Activity, and Journal Entry Content](https://linear.app/showtrackai/issue/SHO-10/on-new-journal-entry-learning-objectives-and-tags-should-be-auto)
 
 <!-- END LINEAR ASSIGNED -->
