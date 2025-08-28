@@ -29,6 +29,10 @@ dependencies:
   
   # Development utilities
   uuid: ^4.2.1
+  intl: ^0.19.0
+  
+  # Web support for file download
+  universal_html: ^2.2.4
   
   # Geolocation and permissions
   geolocator: ^10.1.0

@@ -4,6 +4,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/journal_entry_form.dart';
 import 'screens/journal_entry_form_page.dart';
 import 'screens/journal_list_page.dart';
+import 'screens/timeline_view_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/animal_create_screen.dart';
 import 'screens/animal_list_screen.dart';
@@ -103,7 +104,20 @@ class ShowTrackAIJournaling extends StatelessWidget {
         },
         '/dashboard': (context) => AuthGuard(child: const DashboardScreen()),
         '/journal': (context) => AuthGuard(child: const JournalListPage()),
-        '/journal/new': (context) => AuthGuard(child: const JournalEntryFormPage()),
+        '/journal/new': (context) => AuthGuard(
+          child: Builder(
+            builder: (context) {
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              return JournalEntryFormPage(
+                animalId: args?['animalId'],
+                prePopulatedData: args,
+              );
+            },
+          ),
+        ),
+        '/timeline': (context) => AuthGuard(child: const TimelineViewScreen()),
+        '/expense/new': (context) => AuthGuard(child: const Placeholder()), // TODO: Add expense form
+        '/expense/detail': (context) => AuthGuard(child: const Placeholder()), // TODO: Add expense detail
         '/projects': (context) => AuthGuard(child: const Placeholder()), // TODO: Add projects screen
         '/animals': (context) => AuthGuard(child: const AnimalListScreen()),
         '/animals/create': (context) => AuthGuard(child: const AnimalCreateScreen()),
