@@ -82,6 +82,7 @@
         window._flutter.loader.load({
           config: {
             renderer: "html",
+            assetBase: "/",
             canvasKitBaseUrl: null,
             useLocalCanvasKit: false
           },
@@ -110,11 +111,11 @@
             }
           }
         });
-      } else if (window._flutter && window._flutter.loader && window._flutter.loader.loadEntrypoint) {
-        // Fallback for older Flutter versions using loadEntrypoint
-        console.log('🔄 Using legacy Flutter loader API (loadEntrypoint)...');
+      } else if (window._flutter && window._flutter.loader && window._flutter.loader.load) {
+        // Fallback for older Flutter versions that still have load method
+        console.log('🔄 Using legacy Flutter loader API (older load)...');
         
-        window._flutter.loader.loadEntrypoint({
+        window._flutter.loader.load({
           config: window._flutter.buildConfig,
           onEntrypointLoaded: async function(engineInitializer) {
             console.log('✅ Flutter entrypoint loaded via legacy API');

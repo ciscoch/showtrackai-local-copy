@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:universal_html/html.dart' as html;
+import 'package:flutter/foundation.dart';
+// Web-safe import using conditional import
+import 'csv_export_io.dart' if (dart.library.html) 'csv_export_web.dart';
 import '../models/journal_entry.dart';
 import '../models/animal.dart';
 import 'animal_service.dart';
@@ -382,27 +384,11 @@ class CsvExportService {
     return field;
   }
 
-  /// Download CSV file in the browser
+  /// Download CSV file (platform specific implementation)
   static void _downloadCsv(String csvContent, String fileName) {
-    // Convert string to bytes
-    final bytes = utf8.encode(csvContent);
-    final blob = html.Blob([bytes]);
-    
-    // Create download link
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.document.createElement('a') as html.AnchorElement
-      ..href = url
-      ..download = fileName
-      ..style.display = 'none';
-    
-    html.document.body!.children.add(anchor);
-    
-    // Trigger download
-    anchor.click();
-    
-    // Cleanup
-    html.document.body!.children.remove(anchor);
-    html.Url.revokeObjectUrl(url);
+    // The conditional import will handle platform-specific implementation
+    // Both methods have the same signature
+    downloadCsvIO(csvContent, fileName);
   }
 
   /// Export a summary report of journal entries

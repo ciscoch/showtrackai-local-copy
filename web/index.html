@@ -82,8 +82,12 @@
           
           console.log('Starting Flutter application...');
           
-          window._flutter.loader.loadEntrypoint({
-            // You can omit entrypointUrl — default is "main.dart.js"
+          window._flutter.loader.load({
+            // Use modern API - config moved to load method
+            config: {
+              renderer: "html",
+              assetBase: "/"
+            },
             onEntrypointLoaded: function (engineInitializer) {
               console.log('Flutter entrypoint loaded, initializing engine...');
               engineInitializer.initializeEngine({ 
@@ -107,7 +111,7 @@
               });
             }
           }).catch(function (e) {
-            console.error('loadEntrypoint failed:', e);
+            console.error('load failed:', e);
             // Show error message to user
             const splash = document.getElementById('splash');
             if (splash) {
