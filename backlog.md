@@ -15,7 +15,7 @@
 - [ ] [SHO-10: on New Journal Entry, Learning objectives & Tags should be auto-selected based on Journal Entry Activity, and Journal Entry Content](https://linear.app/showtrackai/issue/SHO-10/on-new-journal-entry-learning-objectives-and-tags-should-be-auto)
 - [ ] [SHO-11: Weight Tracker](https://linear.app/showtrackai/issue/SHO-11/weight-tracker)
 - [ ] [SHO-12: Financial Dashboard & n8N Agent Integration](https://linear.app/showtrackai/issue/SHO-12/financial-dashboard-and-n8n-agent-integration)
-- [ ] [SHO-13: PP-126: CSV export of journal](https://linear.app/showtrackai/issue/SHO-13/pp-126-csv-export-of-journal)
+- [x] [SHO-13: PP-126: CSV export of journal](https://linear.app/showtrackai/issue/SHO-13/pp-126-csv-export-of-journal) ✅ Complete - Duplicate of APP-126
 - [ ] [SHO-6: new journal error](https://linear.app/showtrackai/issue/SHO-6/new-journal-error)
 
 <!-- END LINEAR ASSIGNED -->
