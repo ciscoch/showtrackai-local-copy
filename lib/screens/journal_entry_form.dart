@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/journal_entry.dart';
 import '../services/journal_service.dart';
+import '../services/journal_content_templates.dart';
 import '../theme/app_theme.dart';
 import '../widgets/feed_data_input.dart';
 import '../widgets/aet_skills_selector.dart';
+import '../widgets/ai_assisted_text_field.dart';
+import '../widgets/journal_suggestion_panel.dart';
 
 class JournalEntryForm extends StatefulWidget {
   const JournalEntryForm({Key? key}) : super(key: key);
@@ -26,8 +29,11 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'general';
   List<String> _selectedAETSkills = [];
+  List<String> _suggestedTags = [];
   FeedData? _feedData;
   bool _isSubmitting = false;
+  bool _showSuggestionPanel = false;
+  String? _selectedAnimalType;
 
   final List<String> _categories = [
     'feeding',
@@ -48,6 +54,48 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
     _challengesController.dispose();
     _improvementsController.dispose();
     super.dispose();
+  }
+
+  void _updateAETSkills(List<String> skills) {
+    setState(() {
+      // Merge suggested skills with existing ones, avoiding duplicates
+      final newSkills = [..._selectedAETSkills];
+      for (final skill in skills) {
+        if (!newSkills.contains(skill)) {
+          newSkills.add(skill);
+        }
+      }
+      _selectedAETSkills = newSkills;
+    });
+  }
+
+  void _updateDuration(int minutes) {
+    setState(() {
+      _durationController.text = minutes.toString();
+    });
+  }
+
+  void _updateTags(List<String> tags) {
+    setState(() {
+      _suggestedTags = tags;
+    });
+  }
+
+  void _applySuggestion(ContentSuggestion suggestion) {
+    final currentText = _descriptionController.text;
+    final newText = currentText.isNotEmpty
+        ? '$currentText\n\n${suggestion.content}'
+        : suggestion.content;
+    
+    setState(() {
+      _descriptionController.text = newText;
+    });
+  }
+
+  void _toggleSuggestionPanel() {
+    setState(() {
+      _showSuggestionPanel = !_showSuggestionPanel;
+    });
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -216,21 +264,40 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
               onChanged: (value) {
                 setState(() {
                   _selectedCategory = value!;
+                  // Auto-suggest duration and skills for category
+                  final templateService = JournalContentTemplateService();
+                  final suggestedDuration = templateService.getSuggestedDurationForCategory(_selectedCategory);
+                  if (_durationController.text.isEmpty) {
+                    _durationController.text = suggestedDuration.toString();
+                  }
+                  
+                  // Auto-suggest AET skills for category
+                  final suggestedSkills = templateService.getSuggestedAETSkillsForCategory(_selectedCategory);
+                  if (_selectedAETSkills.isEmpty && suggestedSkills.isNotEmpty) {
+                    _selectedAETSkills = suggestedSkills.take(3).toList();
+                  }
                 });
               },
             ),
             const SizedBox(height: 16),
 
-            // Description Field
-            TextFormField(
+            // Enhanced Description Field with AI assistance
+            AIAssistedTextField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description *',
-                hintText: 'Describe your activities in detail (minimum 50 words)',
-                prefixIcon: Icon(Icons.description),
-                alignLabelWithHint: true,
-              ),
+              labelText: 'Description *',
+              hintText: 'Describe your activities in detail (minimum 50 words)',
               maxLines: 5,
+              category: _selectedCategory,
+              animalType: _selectedAnimalType,
+              context: {
+                'selectedDate': _selectedDate,
+                'duration': _durationController.text,
+                'existingSkills': _selectedAETSkills,
+                'feedData': _feedData,
+              },
+              onAETSkillsGenerated: _updateAETSkills,
+              onDurationSuggested: _updateDuration,
+              onTagsGenerated: _updateTags,
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a description';
@@ -240,6 +307,45 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
                 }
                 return null;
               },
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // AI Assistance Toggle Button
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _toggleSuggestionPanel,
+                  icon: Icon(
+                    _showSuggestionPanel ? Icons.close : Icons.auto_fix_high,
+                  ),
+                  label: Text(
+                    _showSuggestionPanel ? 'Hide Assistant' : 'Writing Assistant',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _showSuggestionPanel
+                        ? Colors.grey[600]
+                        : AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (_suggestedTags.isNotEmpty)
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: _suggestedTags.take(3).map((tag) {
+                        return Chip(
+                          label: Text(tag),
+                          backgroundColor: AppTheme.lightGreen,
+                          labelStyle: const TextStyle(fontSize: 11),
+                          visualDensity: VisualDensity.compact,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -371,6 +477,26 @@ class _JournalEntryFormState extends State<JournalEntryForm> {
           ],
         ),
       ),
+      
+      // AI Suggestion Panel (Bottom Sheet Style)
+      bottomSheet: _showSuggestionPanel
+          ? JournalSuggestionPanel(
+              category: _selectedCategory,
+              currentText: _descriptionController.text,
+              animalType: _selectedAnimalType,
+              context: {
+                'selectedDate': _selectedDate,
+                'duration': _durationController.text,
+                'existingSkills': _selectedAETSkills,
+                'feedData': _feedData,
+              },
+              onSuggestionSelected: _applySuggestion,
+              onAETSkillsUpdated: _updateAETSkills,
+              onDurationUpdated: _updateDuration,
+              onTagsUpdated: _updateTags,
+              onClose: () => setState(() => _showSuggestionPanel = false),
+            )
+          : null,
     );
   }
 
