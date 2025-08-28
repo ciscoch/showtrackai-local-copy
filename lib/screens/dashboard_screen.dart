@@ -315,6 +315,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: const Color(0xFF9C27B0),
                                   onTap: () => Navigator.pushNamed(context, '/journal'),
                                 ),
+                                
+                                // NEW: Timeline View Card - Combined journal & expenses
+                                DashboardCard(
+                                  title: 'Timeline',
+                                  count: 0, // Combined count
+                                  icon: Icons.timeline,
+                                  color: const Color(0xFF00BCD4),
+                                  onTap: () => Navigator.pushNamed(context, '/timeline'),
+                                ),
                               ],
                             );
                           },

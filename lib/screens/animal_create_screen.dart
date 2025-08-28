@@ -169,6 +169,140 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
     }
   }
   
+  void _showSuccessDialog(Animal savedAnimal) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Animal Created!',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${savedAnimal.name} has been successfully added to your livestock.',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Would you like to create your first journal entry for this animal?',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.blue.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      color: Colors.blue,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Journal entries help track your animal\'s progress and meet FFA requirements.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.of(context).pop(savedAnimal); // Return to previous screen
+              },
+              child: const Text('Maybe Later'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                _navigateToJournalEntry(savedAnimal);
+              },
+              icon: const Icon(Icons.book),
+              label: const Text('Create Journal Entry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _navigateToJournalEntry(Animal savedAnimal) async {
+    try {
+      // Navigate to journal entry form with pre-populated animal data
+      final result = await Navigator.of(context).pushNamed(
+        '/journal/new',
+        arguments: {
+          'animalId': savedAnimal.id,
+          'animalName': savedAnimal.name,
+          'fromAnimalCreation': true,
+          'suggestedTitle': 'Welcome ${savedAnimal.name} - Day 1',
+          'suggestedDescription': 'Today I added ${savedAnimal.name} to my livestock project. '
+              '${savedAnimal.breed != null ? 'This ${savedAnimal.breed} ' : 'This '}${savedAnimal.speciesDisplay.toLowerCase()} '
+              '${savedAnimal.gender != null ? '(${savedAnimal.genderDisplay.toLowerCase()}) ' : ''}'
+              'will be part of my agricultural education journey.',
+        },
+      );
+      
+      // Navigate back to previous screen after journal entry is created (or cancelled)
+      if (mounted) {
+        Navigator.of(context).pop(savedAnimal);
+      }
+    } catch (e) {
+      // Handle navigation error gracefully
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open journal entry: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        Navigator.of(context).pop(savedAnimal);
+      }
+    }
+  }
+
   Future<void> _saveAnimal() async {
     // Validate form
     if (!_formKey.currentState!.validate()) {
@@ -217,16 +351,8 @@ class _AnimalCreateScreenState extends State<AnimalCreateScreen> {
       final savedAnimal = await _animalService.createAnimal(animal);
       
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${savedAnimal.name} has been added!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        
-        // Navigate back to dashboard or animals list
-        Navigator.of(context).pop(savedAnimal);
+        // Show success message with option to create journal entry
+        _showSuccessDialog(savedAnimal);
       }
     } catch (e) {
       if (mounted) {

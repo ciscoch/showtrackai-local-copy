@@ -20,16 +20,20 @@ import '../widgets/toast_notification_widget.dart';
 import '../widgets/feed_data_card.dart';
 import '../widgets/assessment_preview_card.dart';
 import '../widgets/processing_status_indicator.dart';
+import '../widgets/weather_pill_widget.dart';
+import '../widgets/animal_creation_banner.dart';
 import '../constants/livestock_breeds.dart';
 
 class JournalEntryFormPage extends StatefulWidget {
   final String? animalId;
   final JournalEntry? existingEntry;
+  final Map<String, dynamic>? prePopulatedData;
 
   const JournalEntryFormPage({
     super.key,
     this.animalId,
     this.existingEntry,
+    this.prePopulatedData,
   });
 
   @override
@@ -280,6 +284,9 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
       // Pre-populate if editing existing entry
       if (widget.existingEntry != null) {
         _populateFromExistingEntry();
+      } else if (widget.prePopulatedData != null) {
+        // Pre-populate from animal creation flow
+        _populateFromPrePopulatedData();
       } else {
         // Set default title for new entry
         _titleController.text = 'Journal Entry - ${_formatDate(_selectedDate)}';
@@ -287,6 +294,11 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
 
       // Request location permission and get current location
       await _requestLocationPermission();
+      
+      // Auto-capture weather if coming from animal creation
+      if (widget.prePopulatedData?['fromAnimalCreation'] == true) {
+        await _attachCurrentWeather();
+      }
 
       setState(() {});
     } catch (e) {
@@ -372,6 +384,87 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     if (entry.id != null) {
       _loadFeedItems(entry.id!);
     }
+  }
+
+  void _populateFromPrePopulatedData() {
+    final data = widget.prePopulatedData!;
+    
+    // Set pre-populated animal ID
+    if (data['animalId'] != null) {
+      _selectedAnimalId = data['animalId'];
+    }
+    
+    // Set suggested title
+    if (data['suggestedTitle'] != null) {
+      _titleController.text = data['suggestedTitle'];
+    }
+    
+    // Set suggested description
+    if (data['suggestedDescription'] != null) {
+      _descriptionController.text = data['suggestedDescription'];
+    }
+    
+    // Set category as animal care for new animal entries
+    _selectedCategory = 'daily_care';
+    
+    // Set initial duration
+    _duration = 30;
+    
+    // Set FFA degree type to Greenhand if coming from animal creation
+    _ffaDegreeType = 'greenhand';
+    _saeType = 'ownership_entrepreneurship';
+    _countsForDegree = true;
+    _hoursLogged = 0.5; // 30 minutes initial
+    
+    // Add relevant FFA standards for animal care
+    if (_selectedAnimalId != null && _animals.isNotEmpty) {
+      final selectedAnimal = _animals.firstWhere(
+        (animal) => animal.id == _selectedAnimalId,
+        orElse: () => throw Exception('Selected animal not found'),
+      );
+      
+      // Add species-appropriate FFA standards
+      switch (selectedAnimal.species) {
+        case AnimalSpecies.cattle:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01', 'AS.02.01'];
+          break;
+        case AnimalSpecies.swine:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01', 'AS.02.02'];
+          break;
+        case AnimalSpecies.sheep:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01', 'AS.02.03'];
+          break;
+        case AnimalSpecies.goat:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01', 'AS.02.04'];
+          break;
+        case AnimalSpecies.poultry:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01', 'AS.02.05'];
+          break;
+        default:
+          _selectedFFAStandards = ['AS.01.01', 'AS.07.01'];
+      }
+    }
+    
+    // Add initial AET skills
+    _selectedAETSkills = ['Animal Health Management', 'Record Keeping'];
+    
+    // Set initial learning objectives
+    _learningObjectives = [
+      'Begin establishing trust with new animal',
+      'Document initial animal assessment',
+      'Start SAE record keeping process',
+    ];
+    _objectivesController.text = _learningObjectives.join('\n');
+    
+    // Set tags based on animal
+    if (data['animalName'] != null) {
+      _tagsController.text = 'new animal, ${data['animalName']}, day 1';
+    }
+    
+    debugPrint('✨ Pre-populated journal entry from animal creation');
+    debugPrint('   Animal: ${data['animalName']} (${data['animalId']})');
+    debugPrint('   Title: ${_titleController.text}');
+    debugPrint('   FFA Standards: ${_selectedFFAStandards.join(', ')}');
   }
 
   Future<void> _requestLocationPermission() async {
@@ -468,40 +561,77 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     try {
       WeatherData? weather;
       
-      if (_useIPBasedWeather || _locationData == null) {
-        // Try IP-based weather (fallback)
-        if (_locationCity != null) {
-          weather = await _weatherService.getWeatherByCityName(_locationCity!);
-        }
-      } else if (_locationData != null) {
-        // Try GPS-based weather
+      // Enhanced weather fetching with multiple fallback strategies
+      debugPrint('🌤️ Attempting to fetch weather data...');
+      debugPrint('   Weather service configured: ${_weatherService.isApiConfigured}');
+      debugPrint('   Location available: ${_locationData != null}');
+      debugPrint('   IP-based fallback: $_useIPBasedWeather');
+      
+      // Strategy 1: GPS-based weather (most accurate)
+      if (_locationData != null && !_useIPBasedWeather) {
+        debugPrint('   Trying GPS-based weather...');
         weather = await _weatherService.getWeatherByLocation(
           _locationData!.latitude!,
           _locationData!.longitude!,
         );
       }
+      
+      // Strategy 2: City-based weather (fallback)
+      if (weather == null && _locationCity != null) {
+        debugPrint('   Trying city-based weather for: $_locationCity');
+        weather = await _weatherService.getWeatherByCityName(_locationCity!);
+      }
+      
+      // Strategy 3: IP-based weather (last resort)
+      if (weather == null) {
+        debugPrint('   Trying IP-based weather...');
+        weather = await _weatherService.getWeatherByIP();
+      }
+
+      setState(() {
+        _weatherData = weather;
+        _isLoadingWeather = false;
+      });
 
       if (weather != null) {
-        setState(() {
-          _weatherData = weather;
-          _isLoadingWeather = false;
-        });
-      } else {
-        // Use enhanced mock weather data for demonstration
-        setState(() {
-          _weatherData = null;
-          _isLoadingWeather = false;
-        });
+        debugPrint('✅ Weather data captured successfully');
+        debugPrint('   ${_weatherService.getWeatherSummary(weather)}');
         
-        if (mounted) {
+        // Show success notification for automatic weather capture
+        if (widget.prePopulatedData?['fromAnimalCreation'] == true && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.cloud, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Weather captured: ${_weatherService.getWeatherDescription(weather)}',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        debugPrint('⚠️ No weather data available from any source');
+        
+        if (mounted && widget.prePopulatedData?['fromAnimalCreation'] != true) {
+          // Only show error for manual weather requests, not automatic ones
           _showError('Weather data not available');
         }
       }
     } catch (e) {
       setState(() => _isLoadingWeather = false);
-      debugPrint('Weather fetch error: $e');
-      if (mounted) {
-        _showError('Could not fetch weather data');
+      debugPrint('❌ Weather fetch error: $e');
+      
+      if (mounted && widget.prePopulatedData?['fromAnimalCreation'] != true) {
+        // Only show error for manual weather requests
+        _showError('Could not fetch weather data: ${e.toString()}');
       }
     }
   }
@@ -980,6 +1110,59 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
     showError(message, onAction: onRetry);
   }
 
+  /// Show weather details in a dialog
+  void _showWeatherDetails() {
+    if (_weatherData == null) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.cloud, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Weather Details'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            WeatherPillWidget(
+              weatherData: _weatherData,
+              showRefreshButton: false,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _weatherService.getWeatherSummary(_weatherData!),
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Weather data captured at ${DateTime.now().toString().substring(0, 16)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _attachCurrentWeather();
+            },
+            child: const Text('Refresh Weather'),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Example method for file upload with toast notifications
   /// This can be used when file upload functionality is implemented
   Future<void> _uploadFile(String fileName, Future<void> Function() uploadFunction) async {
@@ -1180,6 +1363,20 @@ class _JournalEntryFormPageState extends State<JournalEntryFormPage>
             // Progress indicator card
             _buildProgressCard(),
             const SizedBox(height: 16),
+
+            // Animal Creation Banner (if coming from animal creation)
+            if (widget.prePopulatedData?['fromAnimalCreation'] == true)
+              AnimalCreationBanner(
+                animalName: widget.prePopulatedData?['animalName'] ?? 'your animal',
+                onDismiss: () {
+                  // Remove the fromAnimalCreation flag to hide banner
+                  setState(() {
+                    widget.prePopulatedData?.remove('fromAnimalCreation');
+                  });
+                },
+              ),
+            if (widget.prePopulatedData?['fromAnimalCreation'] == true)
+              const SizedBox(height: 16),
 
             // Animal Selection
             _buildAnimalSelector(),

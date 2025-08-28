@@ -5,10 +5,12 @@ import '../models/animal.dart';
 import '../services/journal_service.dart';
 import '../services/animal_service.dart';
 import '../services/spar_runs_service.dart';
+
 import '../theme/app_theme.dart';
 import '../widgets/weather_pill.dart';
 import '../widgets/processing_status_indicator.dart';
 import '../widgets/ai_status_panel.dart';
+import '../widgets/export_dialog.dart';
 import 'journal_entry_form_page.dart';
 
 class JournalListPage extends StatefulWidget {
@@ -377,6 +379,11 @@ class _JournalListPageState extends State<JournalListPage> {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: _showFilterDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.download),
+            tooltip: 'Export to CSV',
+            onPressed: _showExportDialog,
           ),
           PopupMenuButton<JournalSortOption>(
             icon: const Icon(Icons.sort),
@@ -1183,6 +1190,24 @@ class _JournalListPageState extends State<JournalListPage> {
             child: const Text('Apply'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showExportDialog() {
+    if (_entries.isEmpty) {
+      _showErrorSnackbar('No journal entries to export');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => ExportDialog(
+        entries: _entries,
+        animals: _animals,
+        preselectedAnimalId: _selectedAnimalFilter,
+        preselectedCategory: _selectedCategoryFilter,
+        preselectedDateRange: _selectedDateRange,
       ),
     );
   }
