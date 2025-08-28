@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import '../models/journal_entry.dart' show LocationData;
 
 /// Web-compatible stub implementation of GeolocationService
@@ -69,15 +70,15 @@ class GeolocationService {
     // Basic distance calculation using Haversine formula
     const double earthRadius = 6371000; // meters
     
-    double lat1Rad = startLatitude * (3.141592653589793 / 180);
-    double lat2Rad = endLatitude * (3.141592653589793 / 180);
-    double deltaLatRad = (endLatitude - startLatitude) * (3.141592653589793 / 180);
-    double deltaLngRad = (endLongitude - startLongitude) * (3.141592653589793 / 180);
+    double lat1Rad = startLatitude * (math.pi / 180);
+    double lat2Rad = endLatitude * (math.pi / 180);
+    double deltaLatRad = (endLatitude - startLatitude) * (math.pi / 180);
+    double deltaLngRad = (endLongitude - startLongitude) * (math.pi / 180);
 
-    double a = (deltaLatRad / 2).sin() * (deltaLatRad / 2).sin() +
-        lat1Rad.cos() * lat2Rad.cos() *
-        (deltaLngRad / 2).sin() * (deltaLngRad / 2).sin();
-    double c = 2 * (a.sqrt()).atan2((1 - a).sqrt());
+    double a = math.sin(deltaLatRad / 2) * math.sin(deltaLatRad / 2) +
+        math.cos(lat1Rad) * math.cos(lat2Rad) *
+        math.sin(deltaLngRad / 2) * math.sin(deltaLngRad / 2);
+    double c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 
     return earthRadius * c;
   }
