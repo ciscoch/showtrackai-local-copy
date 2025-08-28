@@ -72,13 +72,14 @@
       // Set up _flutter.buildConfig early - this is critical for newer Flutter versions
       window._flutter = window._flutter || {};
       window._flutter.buildConfig = {
-        "renderer": "html",
-        "canvasKitBaseUrl": null,
-        "useLocalCanvasKit": false,
-        "serviceWorkerSettings": null,
-        "hostElement": null,
-        "useColorEmoji": true,
-        "builds": [] // Add builds array to prevent 'find' method errors
+        "engineRevision": "stable",
+        "builds": [
+          {
+            "compileTarget": "dart2js",
+            "renderer": "html",
+            "mainJsPath": "main.dart.js"
+          }
+        ]
       };
       
       console.log('✅ Flutter buildConfig set:', window._flutter.buildConfig);

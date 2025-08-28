@@ -7,64 +7,68 @@
 (function() {
   'use strict';
   
-  console.log('🚀 Flutter Bootstrap v3.0 starting...');
+  console.log('🚀 Flutter Bootstrap v4.0 starting...');
   
-  // Verify buildConfig was set (should be set in index.html before this script)
+  // Ensure buildConfig exists with proper structure
   if (!window._flutter) {
     window._flutter = {};
   }
   
   if (!window._flutter.buildConfig) {
-    console.warn('⚠️ Flutter buildConfig not found, setting default configuration');
+    console.log('⚠️ buildConfig not found, creating default...');
     window._flutter.buildConfig = {
-      "renderer": "html",
-      "canvasKitBaseUrl": null,
-      "useLocalCanvasKit": false,
-      "serviceWorkerSettings": null,
-      "hostElement": null,
-      "useColorEmoji": true,
-      "builds": [] // Add builds array to prevent 'find' errors
+      "engineRevision": "stable",
+      "builds": [
+        {
+          "compileTarget": "dart2js",
+          "renderer": "html",
+          "mainJsPath": "main.dart.js"
+        }
+      ]
     };
   }
   
-  // Ensure builds array exists to prevent 'find' method errors
-  if (!window._flutter.buildConfig.builds) {
-    window._flutter.buildConfig.builds = [];
+  // Ensure builds array exists
+  if (!window._flutter.buildConfig.builds || !Array.isArray(window._flutter.buildConfig.builds)) {
+    console.log('⚠️ builds array not found or invalid, creating default...');
+    window._flutter.buildConfig.builds = [
+      {
+        "compileTarget": "dart2js",
+        "renderer": "html",
+        "mainJsPath": "main.dart.js"
+      }
+    ];
   }
   
   console.log('✅ Flutter buildConfig verified:', window._flutter.buildConfig);
   
-  // Configuration for HTML renderer only  
+  // Configuration for HTML renderer
   const engineConfig = {
     renderer: "html",
     hostElement: document.body,
     useColorEmoji: true
   };
   
-  // Simplified Flutter initialization
-  function initializeFlutterWhenReady() {
-    console.log('🔄 Checking if Flutter loader is ready...');
+  // Wait for Flutter loader to be ready
+  function waitForFlutterLoader() {
+    console.log('🔄 Waiting for Flutter loader...');
     
-    // Wait for flutter.js to load and setup window._flutter.loader
     if (window._flutter && window._flutter.loader && typeof window._flutter.loader.load === 'function') {
-      console.log('✅ Flutter loader is ready, initializing...');
+      console.log('✅ Flutter loader ready');
       initializeFlutter();
     } else {
-      console.log('⏳ Flutter loader not ready yet, retrying...');
-      // Retry after a short delay
-      setTimeout(initializeFlutterWhenReady, 100);
+      setTimeout(waitForFlutterLoader, 100);
     }
   }
   
-  // Initialize Flutter with HTML renderer
+  // Initialize Flutter
   function initializeFlutter() {
-    console.log('🔧 Initializing Flutter...');
+    console.log('🔧 Initializing Flutter with new loader API...');
     
     try {
-      console.log('🎯 Using Flutter loader API with buildConfig...');
-      
-      // Use the buildConfig-based initialization approach
+      // Use the new Flutter 3.x loader API
       window._flutter.loader.load({
+        config: engineConfig,
         onEntrypointLoaded: async function(engineInitializer) {
           console.log('✅ Flutter entrypoint loaded');
           
@@ -77,38 +81,37 @@
             await appRunner.runApp();
             console.log('✅ Flutter app started successfully!');
             
-            // Mark Flutter as successfully loaded
+            // Store reference
             window.flutterApp = appRunner;
             
-            // Dispatch events for loading screen management
+            // Fire events
             window.dispatchEvent(new CustomEvent('flutter-first-frame'));
             window.dispatchEvent(new CustomEvent('flutter-initialized'));
             
           } catch (error) {
             console.error('❌ Failed to initialize Flutter engine:', error);
-            handleFlutterError('Engine initialization failed: ' + error.message);
+            handleError('Engine initialization failed: ' + error.message);
           }
         }
       });
     } catch (error) {
-      console.error('❌ Flutter initialization error:', error);
-      handleFlutterError('Initialization error: ' + error.message);
+      console.error('❌ Flutter loader error:', error);
+      handleError('Loader error: ' + error.message);
     }
   }
   
-  // Handle Flutter loading errors
-  function handleFlutterError(errorMessage) {
-    console.error('❌ Flutter Error:', errorMessage);
+  // Error handler
+  function handleError(message) {
+    console.error('❌ Flutter Error:', message);
     
-    // Hide loading screen even on error
+    // Remove splash
+    const splash = document.getElementById('splash');
+    if (splash) {
+      splash.style.display = 'none';
+    }
+    
+    // Show error UI
     setTimeout(() => {
-      const loadingElement = document.getElementById('loading');
-      if (loadingElement) {
-        loadingElement.style.display = 'none';
-        console.log('⚠️ Loading screen hidden due to error');
-      }
-      
-      // Show error message
       document.body.innerHTML = `
         <div style="
           position: fixed;
@@ -122,10 +125,10 @@
         ">
           <h2 style="color: #d32f2f;">Loading Error</h2>
           <p style="color: #666;">
-            There was an issue loading the application. Please refresh the page to try again.
+            There was an issue loading the application. Please refresh the page.
           </p>
           <p style="font-size: 12px; color: #999; margin-top: 20px;">
-            Error: ${errorMessage}
+            ${message}
           </p>
           <button 
             onclick="window.location.reload()" 
@@ -143,74 +146,46 @@
           </button>
         </div>
       `;
-    }, 1000);
+    }, 500);
   }
   
-  // Start Flutter initialization when ready
-  function startFlutterInitialization() {
-    console.log('🚀 Starting Flutter initialization process...');
-    
-    // Start checking for Flutter loader
-    initializeFlutterWhenReady();
+  // Start initialization
+  function startInitialization() {
+    console.log('🚀 Starting Flutter initialization...');
+    waitForFlutterLoader();
   }
   
-  // Start when DOM is ready
+  // Wait for DOM
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startFlutterInitialization);
+    document.addEventListener('DOMContentLoaded', startInitialization);
   } else {
-    // DOM is already ready
-    startFlutterInitialization();
+    startInitialization();
   }
   
-  // Safety check with timeout
+  // Safety check after load
   window.addEventListener('load', function() {
-    console.log('🔍 Window load event - setting up Flutter safety checks...');
+    console.log('🔍 Window loaded - verifying Flutter...');
     
     setTimeout(() => {
-      const flutterDetected = !!(
-        window.flutterApp || 
-        window._flutter?.app || 
+      const flutterElements = !!(
+        window.flutterApp ||
         document.querySelector('flutter-view') ||
-        document.querySelector('flt-glass-pane')
+        document.querySelector('flt-glass-pane') ||
+        document.querySelector('[flt-scene-host]')
       );
       
-      if (!flutterDetected) {
-        console.warn('⚠️ Flutter app not detected, starting recovery process...');
+      if (!flutterElements) {
+        console.warn('⚠️ Flutter not detected after 5 seconds');
         
-        let attempts = 0;
-        const maxAttempts = 5;
-        const checkInterval = 2000;
-        
-        const recoveryCheck = setInterval(() => {
-          attempts++;
-          
-          const nowDetected = !!(
-            window.flutterApp || 
-            window._flutter?.app ||
-            document.querySelector('flutter-view') ||
-            document.querySelector('flt-glass-pane')
-          );
-          
-          if (nowDetected) {
-            console.log('✅ Flutter recovered after', attempts, 'attempts');
-            clearInterval(recoveryCheck);
-          } else if (attempts >= maxAttempts) {
-            console.error('❌ Flutter failed to recover after', attempts, 'attempts');
-            clearInterval(recoveryCheck);
-            handleFlutterError('Flutter failed to initialize after ' + (maxAttempts * checkInterval / 1000) + ' seconds');
-          } else {
-            console.log('🔄 Recovery attempt', attempts + '/' + maxAttempts);
-            // Try to reinitialize
-            if (window._flutter?.loader && typeof window._flutter.loader.load === 'function') {
-              console.log('🔄 Attempting Flutter reinitialization...');
-              initializeFlutter();
-            }
-          }
-        }, checkInterval);
+        // Retry initialization once
+        if (window._flutter?.loader && !window.flutterApp) {
+          console.log('🔄 Retrying Flutter initialization...');
+          initializeFlutter();
+        }
       } else {
-        console.log('✅ Flutter detected successfully');
+        console.log('✅ Flutter detected and running');
       }
-    }, 3000);
+    }, 5000);
   });
   
   console.log('✅ Flutter Bootstrap setup complete');
