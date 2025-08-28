@@ -667,6 +667,26 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen>
                       ],
                     ),
                 ],
+                
+                // Weight Tracker Navigation Button
+                const SizedBox(height: 16),
+                Center(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/weight-tracker',
+                        arguments: {'animalId': widget.animal.id},
+                      );
+                    },
+                    icon: const Icon(Icons.monitor_weight),
+                    label: const Text('View Detailed Weight Tracker'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4CAF50),
+                      side: const BorderSide(color: Color(0xFF4CAF50)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

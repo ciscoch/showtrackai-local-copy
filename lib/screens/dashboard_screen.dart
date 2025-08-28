@@ -324,6 +324,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: const Color(0xFF00BCD4),
                                   onTap: () => Navigator.pushNamed(context, '/timeline'),
                                 ),
+                                
+                                // NEW: Weight Tracker Card
+                                DashboardCard(
+                                  title: 'Weight Tracker',
+                                  count: 0, // Will be updated with weights count
+                                  icon: Icons.monitor_weight,
+                                  color: const Color(0xFF795548),
+                                  onTap: () => Navigator.pushNamed(context, '/weight-tracker'),
+                                ),
                               ],
                             );
                           },
