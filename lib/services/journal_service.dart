@@ -166,7 +166,7 @@ class JournalService {
       if (token == null) throw Exception('Not authenticated');
 
       final response = await http.delete(
-        Uri.parse('${ApiConfig.journalDelete}?id=$id'),
+        Uri.parse(ApiConfig.fn('journal-delete', {'id': id})),
         headers: ApiConfig.getDefaultHeaders(authToken: token),
       ).timeout(ApiConfig.requestTimeout);
 
