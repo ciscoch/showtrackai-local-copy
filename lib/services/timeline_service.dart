@@ -9,7 +9,7 @@ import '../models/expense.dart';
 /// Implements unified timeline queries with caching and pagination
 class TimelineService {
   static final _supabase = Supabase.instance.client;
-  static const String _baseUrl = 'https://mellifluous-speculoos-46225c.netlify.app';
+  static const String _baseUrl = 'https://showtrackai.netlify.app';
   
   // Cache for timeline data (5 minutes TTL)
   static final Map<String, _CacheEntry> _cache = {};

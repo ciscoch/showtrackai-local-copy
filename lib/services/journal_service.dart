@@ -9,7 +9,7 @@ import 'ai_assessment_service.dart';
 /// Journal service for real-time database operations
 /// Handles CRUD operations, AI processing, and search with Supabase
 class JournalService {
-  static const String _baseUrl = 'https://mellifluous-speculoos-46225c.netlify.app';
+  static const String _baseUrl = 'https://showtrackai.netlify.app';
   static const String _n8nWebhookUrl = 'https://showtrackai.app.n8n.cloud/webhook/4b52c2de-4d37-4752-aa5c-5741bd9e493d';
   
   static final _supabase = Supabase.instance.client;
