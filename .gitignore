@@ -53,3 +53,13 @@ coverage/
 
 # Exceptions to above rules.
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages.env.local
+
+# never commit compiled bundles
+web/main.dart.js
+web/main.dart.js.map
+
+
+# never commit compiled bundles
+web/main.dart.js
+web/main.dart.js.map
+
