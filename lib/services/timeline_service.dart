@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/api_config.dart';
 import '../models/timeline_item.dart';
 import '../models/journal_entry.dart';
 import '../models/expense.dart';
@@ -9,7 +10,6 @@ import '../models/expense.dart';
 /// Implements unified timeline queries with caching and pagination
 class TimelineService {
   static final _supabase = Supabase.instance.client;
-  static const String _baseUrl = 'https://showtrackai.netlify.app';
   
   // Cache for timeline data (5 minutes TTL)
   static final Map<String, _CacheEntry> _cache = {};

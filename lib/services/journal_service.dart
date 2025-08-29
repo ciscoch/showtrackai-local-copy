@@ -3,14 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/journal_entry.dart';
+import '../config/api_config.dart';
 import 'n8n_webhook_service.dart';
 import 'ai_assessment_service.dart';
 
 /// Journal service for real-time database operations
 /// Handles CRUD operations, AI processing, and search with Supabase
 class JournalService {
-  static const String _baseUrl = 'https://showtrackai.netlify.app';
-  static const String _n8nWebhookUrl = 'https://showtrackai.app.n8n.cloud/webhook/4b52c2de-4d37-4752-aa5c-5741bd9e493d';
   
   static final _supabase = Supabase.instance.client;
   static final _uuid = const Uuid();
@@ -77,14 +76,13 @@ class JournalService {
       print('[TRACE_ID: $traceId] 🌐 HTTP POST to Netlify function: journal-create');
       
       final response = await http.post(
-        Uri.parse('$_baseUrl/.netlify/functions/journal-create'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-          'X-Trace-ID': traceId, // Add trace ID to headers for end-to-end correlation
-        },
+        Uri.parse(ApiConfig.journalCreate),
+        headers: ApiConfig.getHeadersWithTrace(
+          authToken: token,
+          traceId: traceId,
+        ),
         body: jsonEncode(entryWithId.toJson()),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(ApiConfig.requestTimeout);
 
       print('[TRACE_ID: $traceId] 📡 Netlify response: ${response.statusCode} (${response.body.length} bytes)');
 
@@ -131,14 +129,13 @@ class JournalService {
       print('[TRACE_ID: $traceId] 🌐 HTTP PUT to Netlify function: journal-update');
       
       final response = await http.put(
-        Uri.parse('$_baseUrl/.netlify/functions/journal-update'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-          'X-Trace-ID': traceId, // Add trace ID to headers for end-to-end correlation
-        },
+        Uri.parse(ApiConfig.journalUpdate),
+        headers: ApiConfig.getHeadersWithTrace(
+          authToken: token,
+          traceId: traceId,
+        ),
         body: jsonEncode(updatedEntry.toJson()),
-      ).timeout(const Duration(seconds: 30));
+      ).timeout(ApiConfig.requestTimeout);
 
       print('[TRACE_ID: $traceId] 📡 Netlify response: ${response.statusCode} (${response.body.length} bytes)');
 
@@ -169,9 +166,9 @@ class JournalService {
       if (token == null) throw Exception('Not authenticated');
 
       final response = await http.delete(
-        Uri.parse('$_baseUrl/.netlify/functions/journal-delete?id=$id'),
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 30));
+        Uri.parse('${ApiConfig.journalDelete}?id=$id'),
+        headers: ApiConfig.getDefaultHeaders(authToken: token),
+      ).timeout(ApiConfig.requestTimeout);
 
       if (response.statusCode != 200) {
         throw Exception('Failed to delete entry: ${response.statusCode} ${response.body}');
@@ -213,13 +210,13 @@ class JournalService {
       if (endDate != null) queryParams['end_date'] = endDate.toIso8601String();
       if (tags != null && tags.isNotEmpty) queryParams['tags'] = tags.join(',');
 
-      final uri = Uri.parse('$_baseUrl/.netlify/functions/journal-list')
+      final uri = Uri.parse(ApiConfig.journalList)
           .replace(queryParameters: queryParams);
 
       final response = await http.get(
         uri,
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 30));
+        headers: ApiConfig.getDefaultHeaders(authToken: token),
+      ).timeout(ApiConfig.requestTimeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -248,9 +245,9 @@ class JournalService {
       if (token == null) throw Exception('Not authenticated');
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/.netlify/functions/journal-get?id=$id'),
-        headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 30));
+        Uri.parse('${ApiConfig.journalGet}?id=$id'),
+        headers: ApiConfig.getDefaultHeaders(authToken: token),
+      ).timeout(ApiConfig.requestTimeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

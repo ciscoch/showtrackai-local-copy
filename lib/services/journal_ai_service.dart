@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/api_config.dart';
 import 'journal_content_templates.dart';
 
 class JournalAIService {
   static final _supabase = Supabase.instance.client;
-  static const String _baseUrl = 'https://showtrackai.netlify.app/.netlify/functions';
-  static const String _n8nWebhookUrl = 'https://showtrackai.app.n8n.cloud/webhook/journal-content-gen';
   
   // Cache for storing recent suggestions
   static final Map<String, ContentSuggestion> _suggestionCache = {};
@@ -83,10 +82,8 @@ class JournalAIService {
     int userAge,
   ) async {
     final response = await http.post(
-      Uri.parse(_n8nWebhookUrl),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      Uri.parse(ApiConfig.n8nContentGenWebhook),
+      headers: ApiConfig.getDefaultHeaders(),
       body: jsonEncode({
         'title': context['title'] ?? '',
         'category': context['category'] ?? 'other',
@@ -97,7 +94,7 @@ class JournalAIService {
         'weather': context['weather'],
         'additionalContext': context,
       }),
-    ).timeout(Duration(seconds: 10));
+    ).timeout(ApiConfig.getTimeoutForUrl(ApiConfig.n8nContentGenWebhook));
     
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -130,11 +127,8 @@ class JournalAIService {
     }
     
     final response = await http.post(
-      Uri.parse('$_baseUrl/journal-generate-content'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      Uri.parse(ApiConfig.journalGenerateContent),
+      headers: ApiConfig.getDefaultHeaders(authToken: token),
       body: jsonEncode({
         'title': context['title'] ?? '',
         'category': context['category'] ?? 'other',
@@ -143,7 +137,7 @@ class JournalAIService {
         'userAge': userAge,
         'context': context,
       }),
-    ).timeout(Duration(seconds: 15));
+    ).timeout(ApiConfig.getTimeoutForUrl(ApiConfig.journalGenerateContent));
     
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
