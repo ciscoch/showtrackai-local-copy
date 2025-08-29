@@ -3,7 +3,7 @@
   publish = "build/web"
   functions = "netlify/functions"
 
-[build.processing]
+ [build.processing]
   skip_processing = true
   
 [[redirects]]
