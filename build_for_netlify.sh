@@ -3,6 +3,7 @@ set -euo pipefail
 
 echo "🚀 Building ShowTrackAI for Netlify"
 echo "📍 CWD: $(pwd)"
+echo "🔍 Git: $(git rev-parse --short HEAD) on $(git rev-parse --abbrev-ref HEAD)"
 
 # --- Resolve project root ---
 PROJECT_ROOT="${NETLIFY_REPO_PATH:-/opt/build/repo}"
@@ -48,17 +49,36 @@ HAS_WEB_RENDERER=0
 HAS_PWA_STRATEGY=0
 HAS_NO_WASM_DRY_RUN=0
 
-echo "$WEB_HELP" | grep -q -- '--web-renderer'      && HAS_WEB_RENDERER=1
-echo "$WEB_HELP" | grep -q -- '--pwa-strategy'      && HAS_PWA_STRATEGY=1
-echo "$WEB_HELP" | grep -q -- '--no-wasm-dry-run'   && HAS_NO_WASM_DRY_RUN=1
+echo "$WEB_HELP" | grep -q -- '--web-renderer'    && HAS_WEB_RENDERER=1
+echo "$WEB_HELP" | grep -q -- '--pwa-strategy'    && HAS_PWA_STRATEGY=1
+echo "$WEB_HELP" | grep -q -- '--no-wasm-dry-run' && HAS_NO_WASM_DRY_RUN=1
 
 echo "🔎 Flag support: web-renderer=$HAS_WEB_RENDERER, pwa-strategy=$HAS_PWA_STRATEGY, no-wasm-dry-run=$HAS_NO_WASM_DRY_RUN"
 
 # --- Build command (compose safely for any Flutter) ---
 BUILD_ARGS=(build web --release --no-tree-shake-icons)
-[ "$HAS_WEB_RENDERER"   -eq 1 ] && BUILD_ARGS+=("--web-renderer=html")
-[ "$HAS_NO_WASM_DRY_RUN" -eq 1 ] && BUILD_ARGS+=("--no-wasm-dry-run")
-[ "$HAS_PWA_STRATEGY"   -eq 1 ] && BUILD_ARGS+=("--pwa-strategy=none")
+[ "$HAS_WEB_RENDERER"     -eq 1 ] && BUILD_ARGS+=("--web-renderer=html")
+[ "$HAS_NO_WASM_DRY_RUN"  -eq 1 ] && BUILD_ARGS+=("--no-wasm-dry-run")
+[ "$HAS_PWA_STRATEGY"     -eq 1 ] && BUILD_ARGS+=("--pwa-strategy=none")
+
+# ----- Dart-defines / config -----
+# Default to same-origin functions; override in Netlify env if ever needed
+: "${FUNCTIONS_BASE:=/.netlify/functions/}"
+BUILD_ARGS+=("--dart-define=FUNCTIONS_BASE=${FUNCTIONS_BASE}")
+
+# Optional: Supabase + demo creds + feature flags
+[ -n "${SUPABASE_URL:-}" ]         && BUILD_ARGS+=("--dart-define=SUPABASE_URL=${SUPABASE_URL}")
+[ -n "${SUPABASE_ANON_KEY:-}" ]    && BUILD_ARGS+=("--dart-define=SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}")
+[ -n "${DEMO_EMAIL:-}" ]           && BUILD_ARGS+=("--dart-define=DEMO_EMAIL=${DEMO_EMAIL}")
+[ -n "${DEMO_PASSWORD:-}" ]        && BUILD_ARGS+=("--dart-define=DEMO_PASSWORD=${DEMO_PASSWORD}")
+[ -n "${FEATURE_WEIGHT_TRACKER:-}" ] && BUILD_ARGS+=("--dart-define=FEATURE_WEIGHT_TRACKER=${FEATURE_WEIGHT_TRACKER}")
+
+echo "🔐 FUNCTIONS_BASE: ${FUNCTIONS_BASE}"
+echo "🔐 SUPABASE_URL present: ${SUPABASE_URL:+yes}"
+echo "🔐 SUPABASE_ANON_KEY present: ${SUPABASE_ANON_KEY:+yes}"
+echo "🔐 DEMO_EMAIL present: ${DEMO_EMAIL:+yes}"
+echo "🔐 DEMO_PASSWORD present: ${DEMO_PASSWORD:+yes}"
+echo "🔐 FEATURE_WEIGHT_TRACKER present: ${FEATURE_WEIGHT_TRACKER:+yes}"
 
 echo "🔨 flutter ${BUILD_ARGS[*]}"
 if ! flutter "${BUILD_ARGS[@]}"; then
@@ -84,15 +104,15 @@ fi
 # --- SPA routing ---
 echo "/* /index.html 200" > build/web/_redirects
 
-# --- Runtime headers (authoritative; Netlify warns if toml headers are malformed) ---
+# --- Runtime headers (authoritative) ---
+# Note: include *.netlify.app everywhere we might fetch from; no-cache for top-level JS
 cat > build/web/_headers <<'HEADERS'
 /*
   X-Frame-Options: SAMEORIGIN
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  # CSP fits HTML renderer path; fonts/CDNs allowed if used.
-  Content-Security-Policy: default-src 'self' https://*.netlify.com https://*.netlify.app https://www.gstatic.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.netlify.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.netlify.com https://fonts.gstatic.com https://www.gstatic.com; frame-src 'self' https://*.netlify.com https://*.netlify.app;
+  Content-Security-Policy: default-src 'self' https://*.netlify.com https://*.netlify.app https://www.gstatic.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.netlify.com https://*.netlify.app https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.netlify.com https://*.netlify.app https://fonts.gstatic.com https://www.gstatic.com; frame-src 'self' https://*.netlify.com https://*.netlify.app;
 
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
@@ -117,6 +137,16 @@ cat > build/web/_headers <<'HEADERS'
   Content-Type: application/wasm
   Cache-Control: public, max-age=31536000, immutable
 HEADERS
+
+# --- Build stamp & quick bundle sanity ---
+STAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)-$(git rev-parse --short HEAD)"
+echo "$STAMP" > build/web/build-info.txt
+
+if grep -R "mellifluous-speculoos-46225c" build/web >/dev/null 2>&1; then
+  echo "❌ Found old preview host in bundle. Verify ApiConfig / FUNCTIONS_BASE."
+else
+  echo "✅ No old preview URLs in bundle."
+fi
 
 chmod -R 755 build/web || true
 echo "📦 build/web (top 30):"
